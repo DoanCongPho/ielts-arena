@@ -19,6 +19,7 @@ type AppConfig struct {
 	Env         string
 	Port        int
 	AutoMigrate bool
+	SecretKey   []byte
 }
 type DBConfig struct {
 	Host     string
@@ -77,6 +78,7 @@ func loadFromMap(env map[string]string) (*Config, error) {
 		return nil, fmt.Errorf("PORT: %w", err)
 	}
 	cfg.App.Port = port
+	cfg.App.SecretKey = []byte(get("SECRET_KEY", ""))
 
 	// DB
 	cfg.DB.Host = get("DB_HOST", "localhost")

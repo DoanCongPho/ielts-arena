@@ -6,10 +6,10 @@ run:
 
 
 migrate-up:
-	go run ./cmd/app migrate up
+	go run ./cmd/api migrate up
 
 migrate-down:
-	go run ./cmd/app migrate down 1
+	go run ./cmd/api migrate down 1
 
 migrate-status:
-	go run ./cmd/app migrate status
+	go run ./cmd/api migrate status
