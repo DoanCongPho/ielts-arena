@@ -8,6 +8,7 @@ import (
 	"github/DoanCongPho/game-arena/internal/platform/auth"
 	"github/DoanCongPho/game-arena/internal/platform/config"
 	"github/DoanCongPho/game-arena/internal/platform/database"
+	"github/DoanCongPho/game-arena/internal/platform/middleware"
 	"github/DoanCongPho/game-arena/migrations"
 	"log"
 	"net/http"
@@ -39,20 +40,26 @@ func main() {
 	r.HandleFunc("/", helloWorld)
 	r.HandleFunc("/health", checkhealth)
 
+	// Protected routes
+	api := r.PathPrefix("/api").Subrouter()
+	api.Use(middleware.RequireAuth)
+
 	// -- Auth --
 	authRepo := auth.NewUserRepository(plat.DB)
 	authSvc := auth.NewService(authRepo)
 	authSvc.MountRoutes(r)
+	auth.Init(cfg.App.SecretKey)
+	middleware.CorsInit(cfg.App.AllowedOrigins...)
 
 	addr := fmt.Sprintf(":%d", cfg.App.Port)
 	srv := &http.Server{
 		Addr:              addr,
-		Handler:           r,
+		Handler:           middleware.CORS(r),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("server failure")
+			log.Fatalf("server failure: %v", err)
 		}
 	}()
 

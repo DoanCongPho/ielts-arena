@@ -16,10 +16,11 @@ type Config struct {
 }
 
 type AppConfig struct {
-	Env         string
-	Port        int
-	AutoMigrate bool
-	SecretKey   []byte
+	Env            string
+	Port           int
+	AutoMigrate    bool
+	SecretKey      []byte
+	AllowedOrigins []string
 }
 type DBConfig struct {
 	Host     string
@@ -79,6 +80,12 @@ func loadFromMap(env map[string]string) (*Config, error) {
 	}
 	cfg.App.Port = port
 	cfg.App.SecretKey = []byte(get("SECRET_KEY", ""))
+	if raw := get("ALLOWED_ORIGINS", ""); raw != "" {
+		cfg.App.AllowedOrigins = strings.Split(raw, ",")
+		for i, o := range cfg.App.AllowedOrigins {
+			cfg.App.AllowedOrigins[i] = strings.TrimSpace(o)
+		}
+	}
 
 	// DB
 	cfg.DB.Host = get("DB_HOST", "localhost")
