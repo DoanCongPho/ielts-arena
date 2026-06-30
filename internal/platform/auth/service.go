@@ -2,9 +2,7 @@ package auth
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"github/DoanCongPho/game-arena/internal/platform/httpx"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -30,43 +28,35 @@ func (s *service) MountRoutes(r *mux.Router) {
 	r.HandleFunc("/auth/login", s.loginHandler).Methods(http.MethodPost)
 }
 
-func (s *service) registerHandler(w http.ResponseWriter, r *http.Request) {
-	var body RegisterRequest
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httpx.WriteError(w, http.StatusBadRequest, "auth.invalid_input", "invalid JSON body")
-		return
-	}
-	if err := body.Validate(); err != nil {
-		httpx.WriteError(w, http.StatusBadRequest, "auth.invalid_input", err.Error())
-		return
-	}
-	user, err := s.RegisterUser(r.Context(), body)
+func (s *service) LoginUser(ctx context.Context, req LoginRequest) (*AuthResponse, error) {
+
+	user, err := s.users.FindByEmail(ctx, req.Email)
 	if err != nil {
-		httpx.WriteError(w, http.StatusBadRequest, "auth.create_user", err.Error())
-		return
+		return nil, errors.New("invalid email or password")
 	}
-	httpx.WriteSuccess(w, user)
+	err = bcrypt.CompareHashAndPassword(
+		[]byte(user.PasswordHash),
+		[]byte(req.Password),
+	)
+	if err != nil {
+		return nil, errors.New("invalid email or password")
+	}
+	accessToken, err := GenerateAccessToken(user)
+	if err != nil {
+		return nil, err
+	}
+	refreshToken, err := GenerateRefreshToken(user)
+	if err != nil {
+		return nil, err
+	}
+
+	return &AuthResponse{
+		User:         user,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
 }
 
-func (s *service) loginHandler(w http.ResponseWriter, r *http.Request) {
-	var body LoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httpx.WriteError(w, http.StatusBadRequest, "auth.invalid_input", "invalid JSON body")
-		return
-	}
-	if err := body.Validate(); err != nil {
-		httpx.WriteError(w, http.StatusBadRequest, "auth.invalid_input", err.Error())
-		return
-	}
-	res, err := s.LoginUser(r.Context(), body)
-
-	if err != nil {
-		httpx.WriteError(w, http.StatusUnauthorized, "auth.invalid_credentials", err.Error())
-		return
-	}
-	httpx.WriteSuccess(w, res)
-
-}
 func (s *service) RegisterUser(ctx context.Context, req RegisterRequest) (*AuthResponse, error) {
 	// Hash password
 	hashedPassword, err := bcrypt.GenerateFromPassword(
@@ -98,35 +88,6 @@ func (s *service) RegisterUser(ctx context.Context, req RegisterRequest) (*AuthR
 
 	return &AuthResponse{
 		User:         newUser,
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-	}, nil
-}
-
-func (s *service) LoginUser(ctx context.Context, req LoginRequest) (*AuthResponse, error) {
-
-	user, err := s.users.FindByEmail(ctx, req.Email)
-	if err != nil {
-		return nil, errors.New("invalid email or password")
-	}
-	err = bcrypt.CompareHashAndPassword(
-		[]byte(user.PasswordHash),
-		[]byte(req.Password),
-	)
-	if err != nil {
-		return nil, errors.New("invalid email or password")
-	}
-	accessToken, err := GenerateAccessToken(user)
-	if err != nil {
-		return nil, err
-	}
-	refreshToken, err := GenerateRefreshToken(user)
-	if err != nil {
-		return nil, err
-	}
-
-	return &AuthResponse{
-		User:         user,
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}, nil

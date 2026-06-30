@@ -21,6 +21,8 @@ type AppConfig struct {
 	AutoMigrate    bool
 	SecretKey      []byte
 	AllowedOrigins []string
+	OpenAIAPIKey   string
+	OpenAIModel    string
 }
 type DBConfig struct {
 	Host     string
@@ -86,6 +88,8 @@ func loadFromMap(env map[string]string) (*Config, error) {
 			cfg.App.AllowedOrigins[i] = strings.TrimSpace(o)
 		}
 	}
+	cfg.App.OpenAIAPIKey = get("OPENAI_API_KEY", "")
+	cfg.App.OpenAIModel = get("OPENAI_MODEL", "gpt-4o-mini")
 
 	// DB
 	cfg.DB.Host = get("DB_HOST", "localhost")

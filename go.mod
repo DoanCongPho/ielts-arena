@@ -8,7 +8,10 @@ require (
 	github.com/joho/godotenv v1.5.1
 )
 
-require github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
+require (
+	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
+	github.com/sashabaranov/go-openai v1.41.2 // indirect
+)
 
 require (
 	filippo.io/edwards25519 v1.2.0 // indirect
