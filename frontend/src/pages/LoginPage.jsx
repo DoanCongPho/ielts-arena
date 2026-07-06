@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import LightPillar from '../components/LightPillar/LightPillar';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import HoverGrid from '../components/HoverGrid/HoverGrid';
 import './AuthPage.css';
 
 function EyeIcon({ open }) {
@@ -20,10 +20,21 @@ function EyeIcon({ open }) {
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [sessionExpired] = useState(() => searchParams.get('reason') === 'expired');
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Strip the ?reason=expired param from the URL once read, so refreshing
+  // the login page later doesn't keep re-showing the notice.
+  useEffect(() => {
+    if (searchParams.get('reason')) {
+      setSearchParams({}, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -53,23 +64,7 @@ export default function LoginPage() {
 
   return (
     <div className="auth-page">
-      <div className="threads-bg">
-        <LightPillar
-          topColor="#5227FF"
-          bottomColor="#FF9FFC"
-          intensity={1}
-          rotationSpeed={0.2}
-          glowAmount={0.005}
-          pillarWidth={3.5}
-          pillarHeight={0.3}
-          noiseIntensity={0.2}
-          pillarRotation={45}
-          interactive={false}
-          mixBlendMode="normal"
-          quality="medium"
-        />
-      </div>
-
+      <HoverGrid />
       <div className="auth-card-wrapper">
         <div className="auth-card-inner">
           <div className="auth-card-header">
@@ -78,6 +73,9 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="auth-form">
+            {sessionExpired && !error && (
+              <div className="auth-notice">Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.</div>
+            )}
             {error && <div className="auth-error">{error}</div>}
 
             <div className="auth-field">

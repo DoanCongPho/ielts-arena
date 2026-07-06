@@ -5,15 +5,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #0a0a0f;
+  background: var(--cream);
   overflow: hidden;
-}
-
-/* Threads background fills the whole page */
-.threads-bg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
 }
 
 /* === Auth Card === */
@@ -23,12 +16,9 @@
   width: 100%;
   max-width: 420px;
   margin: 0 16px;
-  background: rgba(10, 8, 20, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  background: var(--white);
+  border: var(--border);
+  box-shadow: 8px 8px 0 var(--ink);
 }
 
 .auth-card-inner {
@@ -42,16 +32,17 @@
 }
 
 .auth-card-header h1 {
-  font-size: 28px;
-  font-weight: 700;
-  color: #ffffff;
-  letter-spacing: -0.5px;
-  margin: 0 0 8px;
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.04em;
+  margin: 0 0 10px;
 }
 
 .auth-card-header p {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+  font-family: var(--font-mono);
+  color: rgba(11, 14, 20, 0.55);
   margin: 0;
 }
 
@@ -59,42 +50,41 @@
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
 }
 
 /* === Field === */
 .auth-field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .auth-field label {
-  font-size: 13px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.7);
-  letter-spacing: 0.3px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  color: rgba(11, 14, 20, 0.6);
+  letter-spacing: 0.4px;
 }
 
 .auth-field input {
-  padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  color: #ffffff;
+  padding: 12px 14px;
+  background: var(--white);
+  border: var(--border);
+  color: var(--ink);
   font-size: 14px;
   outline: none;
-  transition: border-color 0.2s, background 0.2s;
   width: 100%;
 }
 
 .auth-field input::placeholder {
-  color: rgba(255, 255, 255, 0.25);
+  color: rgba(11, 14, 20, 0.35);
 }
 
 .auth-field input:focus {
-  border-color: rgba(100, 150, 255, 0.6);
-  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 3px 3px 0 var(--ink);
 }
 
 /* === Password wrapper === */
@@ -115,39 +105,39 @@
   border: none;
   cursor: pointer;
   padding: 4px;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(11, 14, 20, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.2s;
 }
 
 .auth-eye-btn:hover {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--ink);
 }
 
 /* === Button === */
 .auth-btn {
   margin-top: 4px;
   padding: 13px;
-  background: linear-gradient(135deg, #4f6ef7, #7c3aed);
-  color: #ffffff;
+  background: var(--blue);
+  color: var(--ink);
   font-size: 15px;
-  font-weight: 600;
-  border: none;
-  border-radius: 10px;
+  font-weight: 700;
+  border: var(--border);
+  box-shadow: 4px 4px 0 var(--ink);
   cursor: pointer;
-  transition: opacity 0.2s, transform 0.1s;
+  transition: transform 0.1s, box-shadow 0.1s;
   letter-spacing: 0.2px;
 }
 
 .auth-btn:hover:not(:disabled) {
-  opacity: 0.9;
-  transform: translateY(-1px);
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 var(--ink);
 }
 
 .auth-btn:active:not(:disabled) {
-  transform: translateY(0);
+  transform: translate(0, 0);
+  box-shadow: 2px 2px 0 var(--ink);
 }
 
 .auth-btn:disabled {
@@ -158,21 +148,31 @@
 /* === Error === */
 .auth-error {
   padding: 12px 14px;
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 8px;
-  color: #fca5a5;
+  background: var(--pink);
+  border: var(--border);
+  color: var(--ink);
   font-size: 13px;
+  font-weight: 600;
+}
+
+/* === Notice (e.g. session expired) === */
+.auth-notice {
+  padding: 12px 14px;
+  background: var(--yellow);
+  border: var(--border);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 /* === Success === */
 .auth-success {
   padding: 12px 14px;
-  background: rgba(34, 197, 94, 0.15);
-  border: 1px solid rgba(34, 197, 94, 0.3);
-  border-radius: 8px;
-  color: #86efac;
+  background: var(--green);
+  border: var(--border);
+  color: var(--ink);
   font-size: 13px;
+  font-weight: 600;
 }
 
 /* === Switch Link === */
@@ -180,15 +180,11 @@
   text-align: center;
   margin-top: 24px;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(11, 14, 20, 0.6);
 }
 
 .auth-switch a {
-  color: #818cf8;
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.auth-switch a:hover {
+  color: var(--ink);
+  font-weight: 700;
   text-decoration: underline;
 }

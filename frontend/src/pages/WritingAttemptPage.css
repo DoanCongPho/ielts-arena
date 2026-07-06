@@ -1,0 +1,233 @@
+.attempt-page {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  background: var(--cream);
+  color: var(--ink);
+  padding: 24px 40px 64px;
+}
+
+.practice-status {
+  font-size: 14px;
+  padding: 24px 0;
+}
+
+.practice-error {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.attempt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  border-bottom: var(--border);
+  margin-bottom: 20px;
+}
+
+.attempt-timer {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  padding: 6px 12px;
+  background: var(--yellow);
+  border: var(--border);
+}
+
+.attempt-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .attempt-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+.attempt-prompt-panel,
+.attempt-answer-panel {
+  background: var(--white);
+  border: var(--border);
+  padding: 24px;
+}
+
+.attempt-prompt-panel h2 {
+  font-size: 18px;
+  margin: 0 0 16px;
+}
+
+.attempt-chart {
+  width: 100%;
+  border: var(--border);
+  margin-bottom: 16px;
+}
+
+.attempt-prompt-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(11, 14, 20, 0.8);
+}
+
+.attempt-prompt-text p {
+  margin: 0 0 12px;
+}
+
+.attempt-prompt-text p:last-child {
+  margin-bottom: 0;
+}
+
+.attempt-prompt-text strong {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.attempt-prompt-text ul,
+.attempt-prompt-text ol {
+  margin: 0 0 12px;
+  padding-left: 20px;
+}
+
+.attempt-answer-meta {
+  display: flex;
+  justify-content: flex-end;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: rgba(11, 14, 20, 0.5);
+  margin-bottom: 8px;
+}
+
+.attempt-textarea {
+  width: 100%;
+  min-height: 360px;
+  background: var(--white);
+  border: var(--border);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 16px;
+  resize: vertical;
+  outline: none;
+}
+
+.attempt-textarea:focus {
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.attempt-submit-btn {
+  margin-top: 16px;
+  width: 100%;
+  padding: 13px;
+  background: var(--blue);
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+  border: var(--border);
+  box-shadow: 4px 4px 0 var(--ink);
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.attempt-submit-btn:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 var(--ink);
+}
+
+.attempt-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* === Result === */
+.attempt-band {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 0 24px;
+  border-bottom: var(--border);
+  margin-bottom: 20px;
+}
+
+.attempt-band-value {
+  font-size: 56px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.attempt-band-label {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  color: rgba(11, 14, 20, 0.5);
+  letter-spacing: 0.5px;
+}
+
+.criteria-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.criteria-item-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.criteria-score {
+  font-family: var(--font-mono);
+  padding: 1px 8px;
+  background: var(--purple);
+  border: 1.5px solid var(--ink);
+}
+
+.criteria-feedback {
+  font-size: 13px;
+  color: rgba(11, 14, 20, 0.7);
+  line-height: 1.5;
+}
+
+.corrections-list h3,
+.model-answer h3 {
+  font-size: 13px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  margin: 0 0 10px;
+  letter-spacing: 0.4px;
+}
+
+.correction-item {
+  background: var(--cream);
+  border: var(--border);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.correction-span {
+  font-style: italic;
+  margin-bottom: 4px;
+}
+
+.correction-issue {
+  color: rgba(11, 14, 20, 0.6);
+  margin-bottom: 4px;
+}
+
+.correction-suggestion {
+  font-weight: 600;
+}
+
+.model-answer p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(11, 14, 20, 0.75);
+  white-space: pre-wrap;
+}

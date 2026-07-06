@@ -14,6 +14,25 @@ type SuccessReponse struct {
 	Data interface{} `json:"data"`
 }
 
+type Pagination struct {
+	Total      int  `json:"total"`
+	Page       int  `json:"page"`
+	TotalPages int  `json:"total_pages"`
+	HasNext    bool `json:"has_next"`
+	HasPrev    bool `json:"has_prev"`
+}
+
+func NewPagination(total, page, limit int) Pagination {
+	totalPages := (total + limit - 1) / limit
+	return Pagination{
+		Total:      total,
+		Page:       page,
+		TotalPages: totalPages,
+		HasNext:    page < totalPages,
+		HasPrev:    page > 1,
+	}
+}
+
 func WriteError(w http.ResponseWriter, status int, code, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)

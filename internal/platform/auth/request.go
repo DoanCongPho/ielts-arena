@@ -13,6 +13,10 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
+type RefreshRequest struct {
+	RefreshToken string `json:"refresh_token"`
+}
+
 // Response data
 type AuthResponse struct {
 	User         *User  `json:"user"`
@@ -32,6 +36,13 @@ func (r *RegisterRequest) Validate() error {
 	}
 	if len(r.Password) < 8 {
 		return errors.New("password must be 8+ chars")
+	}
+	return nil
+}
+
+func (r *RefreshRequest) Validate() error {
+	if r.RefreshToken == "" {
+		return errors.New("refresh_token required")
 	}
 	return nil
 }

@@ -42,6 +42,9 @@ func main() {
 	r.HandleFunc("/", helloWorld)
 	r.HandleFunc("/health", checkhealth)
 
+	// Static assets (e.g. Writing Task 1 chart images) — public, no auth.
+	r.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir("internal/assets"))))
+
 	// Protected routes
 	api := r.PathPrefix("/api").Subrouter()
 	api.Use(middleware.RequireAuth)
@@ -61,9 +64,7 @@ func main() {
 
 	testRepo := ielts_test.NewRepository(plat.DB)
 	testSvc := ielts_test.NewService(testRepo, grader)
-
-	// hot fix
-	_ = testSvc
+	testSvc.MountRoutes(api)
 
 	addr := fmt.Sprintf(":%d", cfg.App.Port)
 	srv := &http.Server{

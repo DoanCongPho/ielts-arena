@@ -18,25 +18,32 @@ const (
 	refreshTokenTTL = 7 * 24 * time.Hour
 )
 
+const (
+	TokenTypeAccess  = "access"
+	TokenTypeRefresh = "refresh"
+)
+
 type Claims struct {
 	UserID uint64 `json:"user_id"`
 	Email  string `json:"email"`
+	Type   string `json:"type"`
 	jwt.RegisteredClaims
 }
 
 func GenerateAccessToken(user *User) (string, error) {
-	return generateToken(user, accessTokenTTL)
+	return generateToken(user, TokenTypeAccess, accessTokenTTL)
 }
 
 func GenerateRefreshToken(user *User) (string, error) {
-	return generateToken(user, refreshTokenTTL)
+	return generateToken(user, TokenTypeRefresh, refreshTokenTTL)
 }
 
-func generateToken(user *User, ttl time.Duration) (string, error) {
+func generateToken(user *User, tokenType string, ttl time.Duration) (string, error) {
 	now := time.Now()
 	claims := Claims{
 		UserID: user.ID,
 		Email:  user.Email,
+		Type:   tokenType,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(ttl)),

@@ -13,11 +13,14 @@ const submissionColumns = `id, user_id, test_id, payload, status, submitted_at`
 const scoreColumns = `id, submission_id, overall_band, details, graded_at`
 
 type Repository interface {
-	GetCurrentTest(ctx context.Context, skill string) (*Test, error)
+	CreateTest(ctx context.Context, t *Test) (*Test, error)
 	GetTestByID(ctx context.Context, id uint64) (*Test, error)
+	GetListTest(ctx context.Context, skill string, limit, offset int) ([]Test, int, error)
 
 	CreateSubmission(ctx context.Context, s *Submission) (*Submission, error)
 	GetSubmissionByID(ctx context.Context, id uint64) (*Submission, error)
+	GetListSubmission(ctx context.Context, userID uint64, limit, offset int) ([]Submission, int, error)
+	UpdateSubmissionStatus(ctx context.Context, id uint64, status string) error
 
 	CreateScore(ctx context.Context, sc *Score) (*Score, error)
 	GetScoreBySubmissionID(ctx context.Context, submissionID uint64) (*Score, error)
@@ -52,14 +55,81 @@ func scanTest(row *sql.Row) (*Test, error) {
 	return &test, nil
 }
 
-func (r *repository) GetCurrentTest(ctx context.Context, skill string) (*Test, error) {
-	query := "SELECT " + testColumns + " FROM tests WHERE skill = ? AND is_current = TRUE LIMIT 1"
-	return scanTest(r.db.QueryRowContext(ctx, query, skill))
+func (r *repository) CreateTest(ctx context.Context, t *Test) (*Test, error) {
+	if t == nil {
+		return nil, errors.New("test cannot be nil")
+	}
+	if t.CreatedAt.IsZero() {
+		t.CreatedAt = time.Now()
+	}
+
+	res, err := r.db.ExecContext(ctx,
+		"INSERT INTO tests (skill, task_type, content_data, source, is_current, xp_gain, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		t.Skill, t.TaskType, t.ContentData, t.Source, t.IsCurrent, t.XPGain, t.CreatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("insert test: %w", err)
+	}
+
+	id, err := res.LastInsertId()
+	if err != nil {
+		return nil, fmt.Errorf("get insert id: %w", err)
+	}
+	t.ID = uint64(id)
+	return t, nil
 }
 
 func (r *repository) GetTestByID(ctx context.Context, id uint64) (*Test, error) {
 	query := "SELECT " + testColumns + " FROM tests WHERE id = ?"
 	return scanTest(r.db.QueryRowContext(ctx, query, id))
+}
+
+func (r *repository) GetListTest(ctx context.Context, skill string, limit, offset int) ([]Test, int, error) {
+	rows, err := r.db.QueryContext(ctx,
+		"SELECT "+testColumns+", COUNT(*) OVER() FROM tests WHERE skill = ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
+		skill, limit, offset,
+	)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list tests: %w", err)
+	}
+	defer rows.Close()
+
+	var (
+		tests []Test
+		total int
+	)
+	for rows.Next() {
+		var t Test
+		if err := rows.Scan(&t.ID, &t.Skill, &t.TaskType, &t.ContentData, &t.Source, &t.IsCurrent, &t.XPGain, &t.CreatedAt, &total); err != nil {
+			return nil, 0, fmt.Errorf("scan test: %w", err)
+		}
+		tests = append(tests, t)
+	}
+	return tests, total, rows.Err()
+}
+
+func (r *repository) GetListSubmission(ctx context.Context, userID uint64, limit, offset int) ([]Submission, int, error) {
+	rows, err := r.db.QueryContext(ctx,
+		"SELECT "+submissionColumns+", COUNT(*) OVER() FROM submissions WHERE user_id = ? ORDER BY submitted_at DESC LIMIT ? OFFSET ?",
+		userID, limit, offset,
+	)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list submissions: %w", err)
+	}
+	defer rows.Close()
+
+	var (
+		submissions []Submission
+		total       int
+	)
+	for rows.Next() {
+		var s Submission
+		if err := rows.Scan(&s.ID, &s.UserID, &s.TestID, &s.Payload, &s.Status, &s.SubmittedAt, &total); err != nil {
+			return nil, 0, fmt.Errorf("scan submission: %w", err)
+		}
+		submissions = append(submissions, s)
+	}
+	return submissions, total, rows.Err()
 }
 
 func (r *repository) CreateSubmission(ctx context.Context, s *Submission) (*Submission, error) {
@@ -104,6 +174,21 @@ func (r *repository) GetSubmissionByID(ctx context.Context, id uint64) (*Submiss
 		return nil, fmt.Errorf("find submission by id: %w", err)
 	}
 	return &s, nil
+}
+
+func (r *repository) UpdateSubmissionStatus(ctx context.Context, id uint64, status string) error {
+	res, err := r.db.ExecContext(ctx, "UPDATE submissions SET status = ? WHERE id = ?", status, id)
+	if err != nil {
+		return fmt.Errorf("update submission status: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("update submission status: %w", err)
+	}
+	if n == 0 {
+		return ErrSubmissionNotFound
+	}
+	return nil
 }
 
 func (r *repository) CreateScore(ctx context.Context, sc *Score) (*Score, error) {

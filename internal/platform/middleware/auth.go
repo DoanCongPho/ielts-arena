@@ -27,6 +27,11 @@ func RequireAuth(next http.Handler) http.Handler {
 			return
 		}
 
+		if claims.Type != auth.TokenTypeAccess {
+			httpx.WriteError(w, http.StatusUnauthorized, "auth.invalid_token", "Refresh tokens cannot be used to authenticate requests")
+			return
+		}
+
 		user := &auth.User{
 			ID:    claims.UserID,
 			Email: claims.Email,

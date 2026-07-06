@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import LightPillar from '../components/LightPillar/LightPillar';
+import HoverGrid from '../components/HoverGrid/HoverGrid';
 import './AuthPage.css';
 
 function EyeIcon({ open }) {
@@ -54,23 +54,7 @@ export default function RegisterPage() {
 
   return (
     <div className="auth-page">
-      <div className="threads-bg">
-        <LightPillar
-          topColor="#00C9A7"
-          bottomColor="#845EC2"
-          intensity={0.6}
-          rotationSpeed={0.2}
-          glowAmount={0.006}
-          pillarWidth={3.5}
-          pillarHeight={0.3}
-          noiseIntensity={0.2}
-          pillarRotation={45}
-          interactive={false}
-          mixBlendMode="normal"
-          quality="medium"
-        />
-      </div>
-
+      <HoverGrid />
       <div className="auth-card-wrapper">
         <div className="auth-card-inner">
           <div className="auth-card-header">
