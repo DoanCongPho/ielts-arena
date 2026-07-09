@@ -1,0 +1,96 @@
+/* Two independently scrolling panes (passage / questions), like the real
+   IELTS on-screen test — overrides the shared .attempt-page's whole-page
+   scroll on desktop. Falls back to normal single-page scroll on mobile. */
+.reading-attempt-page {
+  display: flex;
+  flex-direction: column;
+  overflow-y: hidden;
+}
+
+.reading-attempt-page .attempt-header {
+  flex-shrink: 0;
+}
+
+.reading-attempt-body {
+  flex: 1;
+  min-height: 0;
+}
+
+.reading-scroll-panel {
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* The shared .attempt-passage-text rule caps itself at max-height: 480px
+   with its own inner scrollbar — here the outer panel is already the
+   scroll container, so let the passage text flow naturally inside it
+   instead of nesting a second scrollbar. Font size is also bumped up a
+   little over the shared default, just for the reading passage. */
+.reading-scroll-panel .attempt-passage-text {
+  max-height: none;
+  overflow-y: visible;
+  font-size: 17px;
+  line-height: 1.7;
+}
+
+.reading-scroll-panel .attempt-passage-text p {
+  margin: 0 0 20px;
+}
+
+.reading-scroll-panel .attempt-passage-text p:last-child {
+  margin-bottom: 0;
+}
+
+.reading-passage-title {
+  text-align: center;
+  font-size: 20px;
+  font-weight: 800;
+  margin: 0 0 20px;
+}
+
+@media (max-width: 900px) {
+  .reading-attempt-page {
+    overflow-y: auto;
+  }
+
+  .reading-scroll-panel {
+    height: auto;
+    overflow-y: visible;
+  }
+}
+
+.reading-highlight-hint {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: rgba(11, 14, 20, 0.5);
+  margin: 0 0 10px;
+}
+
+.reading-highlight-mark {
+  background: var(--yellow);
+  padding: 0 1px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.reading-highlight-mark:hover {
+  outline: 1px dashed var(--ink);
+}
+
+.reading-highlight-toolbar {
+  position: fixed;
+  z-index: 50;
+  transform: translate(-50%, calc(-100% - 8px));
+  padding: 6px 12px;
+  background: var(--ink);
+  color: var(--yellow);
+  border: var(--border);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-hard);
+}
+
+.reading-highlight-toolbar:hover {
+  transform: translate(-50%, calc(-100% - 10px));
+}

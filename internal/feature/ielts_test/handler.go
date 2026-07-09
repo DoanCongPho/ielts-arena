@@ -81,12 +81,13 @@ func (s *service) createTestHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	created, err := s.PostTest(r.Context(), Test{
-		Skill:       body.Skill,
-		TaskType:    body.TaskType,
-		ContentData: body.ContentData,
-		Source:      body.Source,
-		IsCurrent:   body.IsCurrent,
-		XPGain:      body.XPGain,
+		Skill:        body.Skill,
+		TaskType:     body.TaskType,
+		ContentData:  body.ContentData,
+		ThumbnailURL: body.ThumbnailURL,
+		Source:       body.Source,
+		IsCurrent:    body.IsCurrent,
+		XPGain:       body.XPGain,
 	})
 	if err != nil {
 		httpx.WriteError(w, http.StatusInternalServerError, "ielts_test.create_test", err.Error())
@@ -98,13 +99,7 @@ func (s *service) createTestHandler(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusInternalServerError, "ielts_test.create_test", err.Error())
 		return
 	}
-	httpx.WriteSuccess(w, TestResponse{
-		ID:          created.ID,
-		Skill:       created.Skill,
-		TaskType:    created.TaskType,
-		ContentData: content,
-		XPGain:      created.XPGain,
-	})
+	httpx.WriteSuccess(w, newTestResponse(created, content))
 }
 
 func (s *service) submitAnswerHandler(w http.ResponseWriter, r *http.Request) {

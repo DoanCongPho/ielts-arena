@@ -1,0 +1,61 @@
+.submission-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.submission-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--white);
+  border: var(--border);
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.submission-card:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: 5px 5px 0 var(--ink);
+}
+
+.submission-card-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.submission-card-date {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: rgba(11, 14, 20, 0.5);
+  white-space: nowrap;
+}
+
+.submission-status {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  padding: 4px 10px;
+  border: 1.5px solid var(--ink);
+  letter-spacing: 0.2px;
+}
+
+.submission-status-pending {
+  background: var(--yellow);
+}
+
+.submission-status-submitted {
+  background: var(--blue);
+}
+
+.submission-status-graded {
+  background: var(--green);
+}
+
+.submission-status-failed {
+  background: var(--pink);
+}

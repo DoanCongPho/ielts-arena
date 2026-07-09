@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { getScore, getTest, submitAnswer } from '../lib/api';
+import { safeParse } from '../lib/safeParse';
+import ScoreResult from '../components/ScoreResult/ScoreResult';
 import './WritingAttemptPage.css';
 
 export default function WritingAttemptPage() {
@@ -108,62 +110,6 @@ export default function WritingAttemptPage() {
       </div>
     </div>
   );
-}
-
-function ScoreResult({ score }) {
-  const details = safeParse(score.details) || {};
-  const criteria = details.criteria || {};
-  const corrections = details.corrections || [];
-
-  return (
-    <div className="attempt-result">
-      <div className="attempt-band">
-        <span className="attempt-band-value">{score.overall_band}</span>
-        <span className="attempt-band-label">Overall Band</span>
-      </div>
-
-      <div className="criteria-list">
-        {Object.entries(criteria).map(([name, c]) => (
-          <div key={name} className="criteria-item">
-            <div className="criteria-item-header">
-              <span>{name}</span>
-              <span className="criteria-score">{c.score}</span>
-            </div>
-            <p className="criteria-feedback">{c.feedback}</p>
-          </div>
-        ))}
-      </div>
-
-      {corrections.length > 0 && (
-        <div className="corrections-list">
-          <h3>Corrections</h3>
-          {corrections.map((c, i) => (
-            <div key={i} className="correction-item">
-              <p className="correction-span">"{c.span}"</p>
-              <p className="correction-issue">{c.issue}</p>
-              <p className="correction-suggestion">→ {c.suggestion}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {details.model_answer && (
-        <div className="model-answer">
-          <h3>Model Answer</h3>
-          <p>{details.model_answer}</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function safeParse(raw) {
-  if (raw == null) return null;
-  try {
-    return typeof raw === 'string' ? JSON.parse(raw) : raw;
-  } catch {
-    return null;
-  }
 }
 
 function formatTime(totalSeconds) {

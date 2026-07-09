@@ -1,0 +1,10 @@
+.attempt-audio-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+.attempt-audio-player {
+  width: 100%;
+}

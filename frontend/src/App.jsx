@@ -3,8 +3,13 @@ import ClickSpark from './components/ClickSpark/ClickSpark';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
-import WritingTestsPage from './pages/WritingTestsPage';
+import SkillTestsPage from './pages/SkillTestsPage';
 import WritingAttemptPage from './pages/WritingAttemptPage';
+import ReadingAttemptPage from './pages/ReadingAttemptPage';
+import ListeningAttemptPage from './pages/ListeningAttemptPage';
+import SubmissionsPage from './pages/SubmissionsPage';
+import SubmissionDetailPage from './pages/SubmissionDetailPage';
+import CreateTestPage from './pages/CreateTestPage';
 
 function PrivateRoute({ children }) {
   const token = localStorage.getItem('access_token');
@@ -23,14 +28,39 @@ export default function App() {
               <DashboardPage />
             </PrivateRoute>
           } />
-          <Route path="/practice/writing" element={
+          <Route path="/practice/:skill" element={
             <PrivateRoute>
-              <WritingTestsPage />
+              <SkillTestsPage />
             </PrivateRoute>
           } />
           <Route path="/practice/writing/:testId" element={
             <PrivateRoute>
               <WritingAttemptPage />
+            </PrivateRoute>
+          } />
+          <Route path="/practice/reading/:testId" element={
+            <PrivateRoute>
+              <ReadingAttemptPage />
+            </PrivateRoute>
+          } />
+          <Route path="/practice/listening/:testId" element={
+            <PrivateRoute>
+              <ListeningAttemptPage />
+            </PrivateRoute>
+          } />
+          <Route path="/submissions" element={
+            <PrivateRoute>
+              <SubmissionsPage />
+            </PrivateRoute>
+          } />
+          <Route path="/submissions/:submissionId" element={
+            <PrivateRoute>
+              <SubmissionDetailPage />
+            </PrivateRoute>
+          } />
+          <Route path="/tests/create" element={
+            <PrivateRoute>
+              <CreateTestPage />
             </PrivateRoute>
           } />
           <Route path="*" element={<Navigate to="/login" replace />} />

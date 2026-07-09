@@ -76,6 +76,13 @@ export function getTest(id) {
   return request(`/api/tests/${id}`);
 }
 
+export function createTest(payload) {
+  return request('/api/tests', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
 export function submitAnswer(testId, payload) {
   return request('/api/submissions', {
     method: 'POST',
@@ -85,4 +92,12 @@ export function submitAnswer(testId, payload) {
 
 export function getScore(submissionId) {
   return request(`/api/submissions/${submissionId}/score`);
+}
+
+export function listSubmissions(page = 1) {
+  return request(`/api/submissions?page=${page}`);
+}
+
+export function getSubmission(id) {
+  return request(`/api/submissions/${id}`);
 }

@@ -42,13 +42,8 @@ func (s *service) GetTest(ctx context.Context, id uint64) (*TestResponse, error)
 	if err != nil {
 		return nil, fmt.Errorf("prepare test content: %w", err)
 	}
-	return &TestResponse{
-		ID:          t.ID,
-		Skill:       t.Skill,
-		TaskType:    t.TaskType,
-		ContentData: content,
-		XPGain:      t.XPGain,
-	}, nil
+	resp := newTestResponse(t, content)
+	return &resp, nil
 }
 
 func (s *service) GetListTest(ctx context.Context, skill string, req ListTestRequest) (*ListTestResponse, error) {
@@ -62,13 +57,7 @@ func (s *service) GetListTest(ctx context.Context, skill string, req ListTestReq
 		if err != nil {
 			return nil, fmt.Errorf("prepare test content: %w", err)
 		}
-		resp.Data = append(resp.Data, TestResponse{
-			ID:          t.ID,
-			Skill:       t.Skill,
-			TaskType:    t.TaskType,
-			ContentData: content,
-			XPGain:      t.XPGain,
-		})
+		resp.Data = append(resp.Data, newTestResponse(&t, content))
 	}
 	return resp, nil
 }
@@ -173,13 +162,7 @@ func (s *service) GetListSubmission(ctx context.Context, userID uint64, req List
 	}
 	resp := &ListSubmissionResponse{Pagination: httpx.NewPagination(total, req.Page, req.Limit())}
 	for _, sub := range submissions {
-		resp.Data = append(resp.Data, SubmissionResponse{
-			ID:          sub.ID,
-			TestID:      sub.TestID,
-			Payload:     sub.Payload,
-			Status:      sub.Status,
-			SubmittedAt: sub.SubmittedAt.Format(timeLayout),
-		})
+		resp.Data = append(resp.Data, newSubmissionSummaryResponse(sub))
 	}
 	return resp, nil
 }

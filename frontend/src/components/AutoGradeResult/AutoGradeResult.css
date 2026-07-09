@@ -1,0 +1,93 @@
+.autograde-result-band {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 0 24px;
+  border-bottom: var(--border);
+  margin-bottom: 20px;
+}
+
+.autograde-result-band-value {
+  font-size: 56px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.autograde-result-band-label {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  color: rgba(11, 14, 20, 0.5);
+  letter-spacing: 0.5px;
+}
+
+.autograde-result-count {
+  margin-top: 6px;
+  font-size: 13px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+.autograde-result-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.autograde-result-item {
+  background: var(--cream);
+  border: var(--border);
+  padding: 12px 14px;
+  font-size: 13px;
+}
+
+.autograde-result-item-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.autograde-result-badge {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border: 1.5px solid var(--ink);
+}
+
+.autograde-result-badge-correct {
+  background: var(--green);
+}
+
+.autograde-result-badge-incorrect {
+  background: var(--pink);
+}
+
+.autograde-result-item-answer {
+  color: rgba(11, 14, 20, 0.7);
+  margin-top: 2px;
+}
+
+.autograde-result-item-correct-answer {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.autograde-result-seek-btn {
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: var(--blue);
+  color: var(--white);
+  border: var(--border);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.autograde-result-seek-btn:hover {
+  box-shadow: 2px 2px 0 var(--ink);
+}

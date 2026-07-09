@@ -1,0 +1,255 @@
+{
+  "skill": "listening",
+  "task_type": "test1",
+  "source": "manual",
+  "is_current": true,
+  "xp_gain": 50,
+  "thumbnail_url": "https://example.com/thumbnails/listening-test1.jpg",
+  "content_data": {
+    "audio_url": "https://example.com/audio/listening-test1-full.mp3",
+    "sections": [
+      {
+        "title": "Section 1: Hotel Booking",
+        "section_start_time": 0,
+        "section_end_time": 300,
+        "question_groups": [
+          {
+            "group_order": 1,
+            "question_type": "form-completion",
+            "instructions": "Complete the booking form below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.",
+            "form_structure": {
+              "title": "Hotel Booking Form",
+              "fields": [
+                "Guest name: {{gap}}",
+                "Number of nights: {{gap}}",
+                "Room type: {{gap}}",
+                "Arrival date: {{gap}}",
+                "Contact number: {{gap}}"
+              ]
+            },
+            "questions": [
+              { "question_order": 1, "answer": "John Smith", "accepted_answers": ["John Smith"], "timestamp_hint": 25 },
+              { "question_order": 2, "answer": "3", "accepted_answers": ["3", "three"], "timestamp_hint": 48 },
+              { "question_order": 3, "answer": "double room", "accepted_answers": ["double room", "double"], "timestamp_hint": 70 },
+              { "question_order": 4, "answer": "27th October", "accepted_answers": ["27th October", "27 October", "October 27th", "27th of October"], "timestamp_hint": 95 },
+              { "question_order": 5, "answer": "0797 654 321", "accepted_answers": ["0797 654 321", "07976 54321", "0797654321"], "timestamp_hint": 120 }
+            ]
+          },
+          {
+            "group_order": 2,
+            "question_type": "multiple-choice",
+            "instructions": "Choose the correct letter, A, B or C.",
+            "questions": [
+              {
+                "question_order": 6,
+                "text": "What is included in the room rate?",
+                "options": [
+                  { "id": "A", "text": "Breakfast only" },
+                  { "id": "B", "text": "Breakfast and parking" },
+                  { "id": "C", "text": "Parking only" }
+                ],
+                "answer": "B",
+                "timestamp_hint": 150
+              },
+              {
+                "question_order": 7,
+                "text": "How will the guest pay?",
+                "options": [
+                  { "id": "A", "text": "Credit card" },
+                  { "id": "B", "text": "Cash on arrival" },
+                  { "id": "C", "text": "Bank transfer" }
+                ],
+                "answer": "A",
+                "timestamp_hint": 175
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Section 2: Community Sports Centre",
+        "section_start_time": 300,
+        "section_end_time": 600,
+        "question_groups": [
+          {
+            "group_order": 1,
+            "question_type": "note-completion",
+            "instructions": "Complete the notes below. Write ONE WORD ONLY for each answer.",
+            "note_structure": {
+              "title": "Sports Centre — Key Facts",
+              "items": [
+                "Opening hours: weekdays until {{gap}} pm",
+                "Membership includes free {{gap}} classes",
+                "New pool opens next {{gap}}",
+                "Discounts available for {{gap}}"
+              ]
+            },
+            "questions": [
+              { "question_order": 8, "answer": "22:00", "accepted_answers": ["22:00", "10", "10pm", "10 pm"], "timestamp_hint": 320 },
+              { "question_order": 9, "answer": "yoga", "accepted_answers": ["yoga"], "timestamp_hint": 345 },
+              { "question_order": 10, "answer": "spring", "accepted_answers": ["spring"], "timestamp_hint": 370 },
+              { "question_order": 11, "answer": "students", "accepted_answers": ["students"], "timestamp_hint": 395 }
+            ]
+          },
+          {
+            "group_order": 2,
+            "question_type": "map-plan-labelling",
+            "instructions": "Label the map below. Write the correct letter, A-F, next to questions 12-14.",
+            "map_image_url": "https://example.com/maps/sports-centre-plan.png",
+            "location_key": [
+              { "id": "A", "text": "Main reception" },
+              { "id": "B", "text": "Swimming pool" },
+              { "id": "C", "text": "Gym" },
+              { "id": "D", "text": "Cafe" },
+              { "id": "E", "text": "Car park" },
+              { "id": "F", "text": "New studio (under construction)" }
+            ],
+            "questions": [
+              { "question_order": 12, "text": "The swimming pool", "answer": "B", "timestamp_hint": 420 },
+              { "question_order": 13, "text": "The area currently under construction", "answer": "F", "timestamp_hint": 440 },
+              { "question_order": 14, "text": "The cafe", "answer": "D", "timestamp_hint": 460 }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Section 3: Research Project Discussion",
+        "section_start_time": 600,
+        "section_end_time": 900,
+        "question_groups": [
+          {
+            "group_order": 1,
+            "question_type": "multiple-choice-multi",
+            "instructions": "Choose TWO letters, A-E. Which TWO problems did the students encounter with their survey?",
+            "select_count": 2,
+            "questions": [
+              {
+                "question_order": 15,
+                "options": [
+                  { "id": "A", "text": "Low response rate" },
+                  { "id": "B", "text": "Unclear questions" },
+                  { "id": "C", "text": "Budget overrun" },
+                  { "id": "D", "text": "Data loss" },
+                  { "id": "E", "text": "Scheduling conflicts" }
+                ],
+                "answer": ["A", "B"],
+                "timestamp_hint": 620
+              }
+            ]
+          },
+          {
+            "group_order": 2,
+            "question_type": "matching",
+            "instructions": "What opinion does each speaker express about the survey? Choose the correct answer, A-D.",
+            "shared_options": [
+              { "id": "A", "text": "It should be redesigned" },
+              { "id": "B", "text": "It was a waste of time" },
+              { "id": "C", "text": "It needs a larger sample" },
+              { "id": "D", "text": "It was broadly successful" }
+            ],
+            "questions": [
+              { "question_order": 16, "text": "Tutor", "answer": "C", "timestamp_hint": 680 },
+              { "question_order": 17, "text": "Male student", "answer": "A", "timestamp_hint": 705 },
+              { "question_order": 18, "text": "Female student", "answer": "D", "timestamp_hint": 730 }
+            ]
+          },
+          {
+            "group_order": 3,
+            "question_type": "sentence-completion",
+            "instructions": "Complete the sentences below. Write NO MORE THAN TWO WORDS for each answer.",
+            "word_limit": 2,
+            "questions": [
+              { "question_order": 19, "text": "The students will increase the sample size by contacting the __ department.", "answer": "marketing", "accepted_answers": ["marketing", "marketing department"], "timestamp_hint": 800 },
+              { "question_order": 20, "text": "The revised deadline for the survey is the end of __.", "answer": "November", "accepted_answers": ["November"], "timestamp_hint": 830 }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Section 4: Renewable Energy Lecture",
+        "section_start_time": 900,
+        "section_end_time": 1200,
+        "question_groups": [
+          {
+            "group_order": 1,
+            "question_type": "summary-completion",
+            "instructions": "Complete the summary below. Write NO MORE THAN TWO WORDS for each answer.",
+            "has_word_bank": false,
+            "summary_text": "Wind turbines convert {{gap}} energy into electricity, while solar panels use {{gap}} cells. Both technologies face the shared challenge of {{gap}}.",
+            "questions": [
+              { "question_order": 21, "answer": "kinetic", "accepted_answers": ["kinetic", "kinetic energy"], "timestamp_hint": 920 },
+              { "question_order": 22, "answer": "photovoltaic", "accepted_answers": ["photovoltaic", "photovoltaic cells", "solar cells"], "timestamp_hint": 945 },
+              { "question_order": 23, "answer": "intermittency", "accepted_answers": ["intermittency"], "timestamp_hint": 970 }
+            ]
+          },
+          {
+            "group_order": 2,
+            "question_type": "table-completion",
+            "instructions": "Complete the table below. Write NO MORE THAN TWO WORDS OR A NUMBER for each answer.",
+            "table_structure": {
+              "columns": ["Technology", "Maintenance Cost"],
+              "rows": [
+                ["Wind", "{{gap}}"],
+                ["Solar", "{{gap}}"],
+                ["Battery storage", "{{gap}} lower than a decade ago"]
+              ]
+            },
+            "questions": [
+              { "question_order": 24, "answer": "higher", "accepted_answers": ["higher", "high"], "timestamp_hint": 1000 },
+              { "question_order": 25, "answer": "lower", "accepted_answers": ["lower", "low"], "timestamp_hint": 1020 },
+              { "question_order": 26, "answer": "80 percent", "accepted_answers": ["80 percent", "80%"], "timestamp_hint": 1040 }
+            ]
+          },
+          {
+            "group_order": 3,
+            "question_type": "flow-chart-completion",
+            "instructions": "Complete the flow-chart below. Write ONE WORD ONLY for each answer.",
+            "flow_structure": {
+              "steps": [
+                "Wind pushes the rotor {{gap}}",
+                "The hub turns a connected {{gap}}",
+                "The generator produces {{gap}}",
+                "Excess power is stored in {{gap}}"
+              ]
+            },
+            "questions": [
+              { "question_order": 27, "answer": "blades", "accepted_answers": ["blades"], "timestamp_hint": 1070 },
+              { "question_order": 28, "answer": "shaft", "accepted_answers": ["shaft"], "timestamp_hint": 1090 },
+              { "question_order": 29, "answer": "electricity", "accepted_answers": ["electricity"], "timestamp_hint": 1110 },
+              { "question_order": 30, "answer": "batteries", "accepted_answers": ["batteries", "battery"], "timestamp_hint": 1130 }
+            ]
+          },
+          {
+            "group_order": 4,
+            "question_type": "multiple-choice",
+            "instructions": "Choose the correct letter, A, B or C.",
+            "questions": [
+              {
+                "question_order": 31,
+                "text": "According to the lecturer, the main advantage of solar panels over wind turbines is:",
+                "options": [
+                  { "id": "A", "text": "Higher energy output" },
+                  { "id": "B", "text": "No moving parts" },
+                  { "id": "C", "text": "Lower installation cost" }
+                ],
+                "answer": "B",
+                "timestamp_hint": 1150
+              },
+              {
+                "question_order": 32,
+                "text": "Battery storage costs have fallen over the past decade by approximately:",
+                "options": [
+                  { "id": "A", "text": "20 percent" },
+                  { "id": "B", "text": "50 percent" },
+                  { "id": "C", "text": "80 percent" }
+                ],
+                "answer": "C",
+                "timestamp_hint": 1170
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

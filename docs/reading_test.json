@@ -1,0 +1,297 @@
+{
+  "skill": "reading",
+  "task_type": "test1",
+  "source": "manual",
+  "is_current": true,
+  "xp_gain": 50,
+  "thumbnail_url": "https://example.com/thumbnails/reading-test1.jpg",
+  "content_data": {
+    "passages": [
+      {
+        "title": "The History of Chocolate",
+        "paragraphs": [
+          { "label": "A", "text": "Chocolate has been consumed by humans for over 3000 years, long before it took the sweet, solid form familiar today. The earliest evidence comes from ancient Mesoamerica, where cacao pods were harvested from rainforest trees and processed into a bitter drink." },
+          { "label": "B", "text": "The Aztecs prized cacao beans so highly that they used them as both a beverage ingredient and a form of currency, trading them for goods across their empire. A handful of beans could buy a rabbit; a hundred could buy a slave." },
+          { "label": "C", "text": "It was not until the Spanish introduced sugar in the 16th century that chocolate transformed from a bitter, spiced beverage of the elite into the sweetened drink and, eventually, solid confection that spread across Europe." }
+        ],
+        "question_groups": [
+          {
+            "group_order": 1,
+            "question_type": "true-false-not-given",
+            "instructions": "Do the following statements agree with the information given in the passage? Write TRUE, FALSE or NOT GIVEN.",
+            "questions": [
+              { "question_order": 1, "text": "Cacao was first cultivated in Europe.", "answer": "FALSE" },
+              { "question_order": 2, "text": "The Aztecs used cacao as a form of money.", "answer": "TRUE" },
+              { "question_order": 3, "text": "Chocolate was originally sold as a solid bar.", "answer": "NOT GIVEN" }
+            ]
+          },
+          {
+            "group_order": 2,
+            "question_type": "yes-no-not-given",
+            "instructions": "Do the following statements agree with the claims of the writer? Write YES, NO or NOT GIVEN.",
+            "questions": [
+              { "question_order": 4, "text": "The author believes chocolate's popularity is purely due to sugar.", "answer": "NOT GIVEN" },
+              { "question_order": 5, "text": "The writer suggests the Spanish transformed chocolate's role in society.", "answer": "YES" }
+            ]
+          },
+          {
+            "group_order": 3,
+            "question_type": "multiple-choice",
+            "instructions": "Choose the correct letter, A, B, C or D.",
+            "questions": [
+              {
+                "question_order": 6,
+                "text": "The Aztecs primarily used cacao as:",
+                "options": [
+                  { "id": "A", "text": "A currency" },
+                  { "id": "B", "text": "A beverage only" },
+                  { "id": "C", "text": "A medicine" },
+                  { "id": "D", "text": "A sweetener" }
+                ],
+                "answer": "A"
+              }
+            ]
+          },
+          {
+            "group_order": 4,
+            "question_type": "multiple-choice-multi",
+            "instructions": "Choose TWO letters, A-E. Which TWO uses of cacao are mentioned in the passage?",
+            "select_count": 2,
+            "questions": [
+              {
+                "question_order": 7,
+                "options": [
+                  { "id": "A", "text": "As currency" },
+                  { "id": "B", "text": "As medicine" },
+                  { "id": "C", "text": "As a beverage" },
+                  { "id": "D", "text": "As jewellery" },
+                  { "id": "E", "text": "As a religious offering" }
+                ],
+                "answer": ["A", "C"]
+              }
+            ]
+          },
+          {
+            "group_order": 5,
+            "question_type": "matching-headings",
+            "instructions": "The passage has three paragraphs, A-C. Choose the correct heading for each paragraph from the list of headings below.",
+            "shared_options": [
+              { "id": "i", "text": "An ancient beverage with unusual value" },
+              { "id": "ii", "text": "A European transformation" },
+              { "id": "iii", "text": "Modern manufacturing techniques" },
+              { "id": "iv", "text": "Origins of a global obsession" }
+            ],
+            "allow_reuse": false,
+            "questions": [
+              { "question_order": 8, "text": "Paragraph A", "answer": "iv" },
+              { "question_order": 9, "text": "Paragraph B", "answer": "i" },
+              { "question_order": 10, "text": "Paragraph C", "answer": "ii" }
+            ]
+          },
+          {
+            "group_order": 6,
+            "question_type": "matching-information",
+            "instructions": "Which paragraph contains the following information? Write the correct letter, A-C. NB You may use any letter more than once.",
+            "shared_options": [
+              { "id": "A", "text": "Paragraph A" },
+              { "id": "B", "text": "Paragraph B" },
+              { "id": "C", "text": "Paragraph C" }
+            ],
+            "allow_reuse": true,
+            "questions": [
+              { "question_order": 11, "text": "a reference to chocolate being used as a means of payment", "answer": "B" },
+              { "question_order": 12, "text": "a mention of a specific century when a key ingredient was added", "answer": "C" }
+            ]
+          },
+          {
+            "group_order": 7,
+            "question_type": "matching-features",
+            "instructions": "Match each civilisation with the correct description. Write the correct letter, A-C.",
+            "shared_options": [
+              { "id": "A", "text": "Aztecs" },
+              { "id": "B", "text": "Spanish" },
+              { "id": "C", "text": "Modern Europeans" }
+            ],
+            "allow_reuse": false,
+            "questions": [
+              { "question_order": 13, "text": "Introduced sugar into chocolate production", "answer": "B" },
+              { "question_order": 14, "text": "Used cacao beans as currency", "answer": "A" }
+            ]
+          },
+          {
+            "group_order": 8,
+            "question_type": "matching-sentence-endings",
+            "instructions": "Complete each sentence with the correct ending, A-D, below.",
+            "shared_options": [
+              { "id": "A", "text": "was used as a currency by the Aztecs." },
+              { "id": "B", "text": "became sweet after Spanish influence." },
+              { "id": "C", "text": "was first grown in Europe." },
+              { "id": "D", "text": "is a modern invention." }
+            ],
+            "questions": [
+              { "question_order": 15, "text": "Cacao...", "answer": "A" },
+              { "question_order": 16, "text": "Chocolate...", "answer": "B" }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Community Cycling Schemes",
+        "paragraphs": [
+          { "label": "A", "text": "Over the past decade, cities around the world have introduced bike-share schemes, allowing residents to rent a bicycle from one docking station and return it at another. A 2019 report found that such schemes cut short car trips within city centres by up to 12 percent." },
+          { "label": "B", "text": "Despite this, uptake has been uneven. Surveys consistently identify a lack of safe, separated cycle lanes as the single biggest barrier to more people cycling, ahead of cost or weather concerns." },
+          { "label": "C", "text": "Where cities have invested in a connected network of protected lanes, ridership has grown fastest, sometimes doubling within two years of the network's completion." },
+          { "label": "D", "text": "London's scheme, launched in 2010 with 5,000 bicycles, had grown to over 11,500 bicycles and 800 docking stations by 2020, making it one of the largest in Europe." }
+        ],
+        "question_groups": [
+          {
+            "group_order": 1,
+            "question_type": "sentence-completion",
+            "instructions": "Complete the sentences below. Write NO MORE THAN TWO WORDS from the passage for each answer.",
+            "word_limit": 2,
+            "questions": [
+              { "question_order": 17, "text": "Bike-share schemes have reduced short __ trips in city centres.", "answer": "car trips", "accepted_answers": ["car trips", "car"] },
+              { "question_order": 18, "text": "The biggest obstacle to cycling uptake is a lack of __.", "answer": "cycle lanes", "accepted_answers": ["cycle lanes", "safe cycle lanes"] }
+            ]
+          },
+          {
+            "group_order": 2,
+            "question_type": "summary-completion",
+            "instructions": "Complete the summary using the words from the box below.",
+            "has_word_bank": true,
+            "word_bank": [
+              { "id": "A", "text": "currency" },
+              { "id": "B", "text": "network" },
+              { "id": "C", "text": "docking" },
+              { "id": "D", "text": "ridership" },
+              { "id": "E", "text": "barrier" },
+              { "id": "F", "text": "protected" }
+            ],
+            "summary_text": "Cities that build a connected {{gap}} of cycle lanes see the fastest growth in {{gap}}. Lanes that are physically {{gap}} from traffic are especially effective.",
+            "questions": [
+              { "question_order": 19, "answer": "B" },
+              { "question_order": 20, "answer": "D" },
+              { "question_order": 21, "answer": "F" }
+            ]
+          },
+          {
+            "group_order": 3,
+            "question_type": "summary-completion",
+            "instructions": "Complete the summary below. Choose NO MORE THAN TWO WORDS from the passage for each answer.",
+            "has_word_bank": false,
+            "summary_text": "London's bike-share scheme began in {{gap}} with 5,000 bicycles, and had grown to more than 11,500 bicycles and {{gap}} docking stations within a decade.",
+            "questions": [
+              { "question_order": 22, "answer": "2010", "accepted_answers": ["2010"] },
+              { "question_order": 23, "answer": "800", "accepted_answers": ["800"] }
+            ]
+          },
+          {
+            "group_order": 4,
+            "question_type": "table-completion",
+            "instructions": "Complete the table below. Write NO MORE THAN TWO WORDS OR A NUMBER for each answer.",
+            "table_structure": {
+              "columns": ["Year", "London Scheme"],
+              "rows": [
+                ["2010", "{{gap}} bicycles at launch"],
+                ["2020", "{{gap}} docking stations"]
+              ]
+            },
+            "questions": [
+              { "question_order": 24, "answer": "5,000", "accepted_answers": ["5,000", "5000"] },
+              { "question_order": 25, "answer": "800", "accepted_answers": ["800"] }
+            ]
+          },
+          {
+            "group_order": 5,
+            "question_type": "short-answer",
+            "instructions": "Answer the questions below. Choose NO MORE THAN THREE WORDS from the passage.",
+            "word_limit": 3,
+            "questions": [
+              { "question_order": 26, "text": "What do surveys identify as the biggest barrier to cycling uptake?", "answer": "lack of safe cycle lanes", "accepted_answers": ["lack of safe cycle lanes", "safe cycle lanes", "cycle lanes"] },
+              { "question_order": 27, "text": "By how much did short car trips fall in cities with bike-share schemes?", "answer": "12 percent", "accepted_answers": ["12 percent", "12%", "up to 12 percent"] }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Renewable Energy Adoption",
+        "paragraphs": [
+          { "label": "A", "text": "Wind turbines convert the kinetic energy of moving air into electricity. Modern turbines use large rotor blades connected to a hub; as wind pushes the blades, the hub turns a shaft connected to a generator housed inside the nacelle at the top of the tower." },
+          { "label": "B", "text": "Solar panels work differently, using photovoltaic cells to convert sunlight directly into electrical current. Unlike wind turbines, solar installations have no moving parts, which generally makes them cheaper to maintain over their lifetime." },
+          { "label": "C", "text": "One challenge shared by both technologies is intermittency: wind and sunlight are not constantly available, so grid operators must pair renewable generation with storage or backup capacity to guarantee supply." },
+          { "label": "D", "text": "Battery storage costs have fallen by roughly 80 percent over the past decade, making large-scale storage increasingly viable and helping to smooth out the variability of renewable output." }
+        ],
+        "question_groups": [
+          {
+            "group_order": 1,
+            "question_type": "diagram-label-completion",
+            "instructions": "Label the diagram below. Choose ONE WORD ONLY from the passage for each answer.",
+            "diagram_image_url": "https://example.com/diagrams/wind-turbine.png",
+            "questions": [
+              { "question_order": 28, "text": "Part connecting the rotor blades to the generator shaft", "answer": "hub", "accepted_answers": ["hub"] },
+              { "question_order": 29, "text": "Housing at the top of the tower that contains the generator", "answer": "nacelle", "accepted_answers": ["nacelle"] }
+            ]
+          },
+          {
+            "group_order": 2,
+            "question_type": "flow-chart-completion",
+            "instructions": "Complete the flow-chart below. Write NO MORE THAN TWO WORDS for each answer.",
+            "flow_structure": {
+              "steps": [
+                "Wind pushes the rotor {{gap}}",
+                "The hub turns a {{gap}} connected to the generator",
+                "The generator produces {{gap}}",
+                "Grid operators pair supply with {{gap}} to handle intermittency"
+              ]
+            },
+            "questions": [
+              { "question_order": 30, "answer": "blades", "accepted_answers": ["blades", "rotor blades"] },
+              { "question_order": 31, "answer": "shaft", "accepted_answers": ["shaft"] },
+              { "question_order": 32, "answer": "electricity", "accepted_answers": ["electricity", "electrical current"] },
+              { "question_order": 33, "answer": "storage", "accepted_answers": ["storage", "backup capacity", "storage capacity"] }
+            ]
+          },
+          {
+            "group_order": 3,
+            "question_type": "true-false-not-given",
+            "instructions": "Do the following statements agree with the information given in the passage? Write TRUE, FALSE or NOT GIVEN.",
+            "questions": [
+              { "question_order": 34, "text": "Solar panels have moving parts similar to wind turbines.", "answer": "FALSE" },
+              { "question_order": 35, "text": "Solar installations are generally cheaper to maintain than wind turbines.", "answer": "TRUE" },
+              { "question_order": 36, "text": "Government subsidies for battery storage have increased in the past decade.", "answer": "NOT GIVEN" }
+            ]
+          },
+          {
+            "group_order": 4,
+            "question_type": "multiple-choice",
+            "instructions": "Choose the correct letter, A, B, C or D.",
+            "questions": [
+              {
+                "question_order": 37,
+                "text": "According to the passage, battery storage costs have:",
+                "options": [
+                  { "id": "A", "text": "risen slightly over the past decade" },
+                  { "id": "B", "text": "stayed roughly the same" },
+                  { "id": "C", "text": "fallen by around 80 percent" },
+                  { "id": "D", "text": "fallen to zero" }
+                ],
+                "answer": "C"
+              }
+            ]
+          },
+          {
+            "group_order": 5,
+            "question_type": "sentence-completion",
+            "instructions": "Complete the sentences below. Write NO MORE THAN TWO WORDS from the passage for each answer.",
+            "word_limit": 2,
+            "questions": [
+              { "question_order": 38, "text": "Both wind and solar power share the problem of __.", "answer": "intermittency", "accepted_answers": ["intermittency"] },
+              { "question_order": 39, "text": "Wind turbines use large __ connected to a hub.", "answer": "rotor blades", "accepted_answers": ["rotor blades", "blades"] },
+              { "question_order": 40, "text": "Falling __ costs have made large-scale storage more viable.", "answer": "battery", "accepted_answers": ["battery", "battery storage"] }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

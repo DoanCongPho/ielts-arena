@@ -18,8 +18,20 @@ export default function DashboardPage() {
         <span className="dashboard-tag">IELTS ARENA</span>
         <h1>Dashboard</h1>
         <p>Welcome back. Ready to practice?</p>
+        <button className="dashboard-btn dashboard-btn-primary" onClick={() => navigate('/practice/reading')}>
+          Luyện tập Reading
+        </button>
+        <button className="dashboard-btn dashboard-btn-primary" onClick={() => navigate('/practice/listening')}>
+          Luyện tập Listening
+        </button>
         <button className="dashboard-btn dashboard-btn-primary" onClick={() => navigate('/practice/writing')}>
           Luyện tập Writing
+        </button>
+        <button className="dashboard-btn" onClick={() => navigate('/submissions')}>
+          Bài đã làm
+        </button>
+        <button className="dashboard-btn" onClick={() => navigate('/tests/create')}>
+          + Tạo đề thi
         </button>
         <button className="dashboard-btn" onClick={handleLogout}>
           Logout

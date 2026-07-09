@@ -1,0 +1,12 @@
+{
+  "skill": "writing",
+  "task_type": "task1",
+  "source": "manual",
+  "is_current": true,
+  "xp_gain": 50,
+  "thumbnail_url": "https://example.com/thumbnails/writing-task1-tv-ownership.jpg",
+  "content_data": {
+    "prompt": "The chart below shows the percentage of households with different types of televisions in a certain country between 2005 and 2015.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant. Write at least 150 words.",
+    "image_url": "https://example.com/charts/tv-ownership-2005-2015.png"
+  }
+}
