@@ -7,11 +7,21 @@ import './QuestionList.css';
 // used by SubmissionDetailPage) it's read-only, pre-filled from what was
 // actually submitted, and decorated per-question with a correct/incorrect
 // indicator.
-export default function QuestionList({ groups, answers, onChange, disabled, results }) {
+export default function QuestionList({ groups, answers, onChange, disabled, results, highlights, onHighlightRemove, skill }) {
   return (
     <div className="question-list">
       {(groups || []).map((g) => (
-        <GroupBlock key={g.group_order} group={g} answers={answers} onChange={onChange} disabled={disabled} results={results} />
+        <GroupBlock
+          key={g.group_order}
+          group={g}
+          answers={answers}
+          onChange={onChange}
+          disabled={disabled}
+          results={results}
+          highlights={highlights}
+          onHighlightRemove={onHighlightRemove}
+          skill={skill}
+        />
       ))}
     </div>
   );

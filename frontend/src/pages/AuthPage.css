@@ -5,44 +5,30 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--cream);
-  overflow: hidden;
+  background: var(--paper-50);
+  overflow: auto;
+  padding: var(--space-5);
 }
 
 /* === Auth Card === */
 .auth-card-wrapper {
-  position: relative;
-  z-index: 1;
   width: 100%;
   max-width: 420px;
-  margin: 0 16px;
-  background: var(--white);
-  border: var(--border);
-  box-shadow: 8px 8px 0 var(--ink);
-}
-
-.auth-card-inner {
-  padding: 40px 36px;
 }
 
 /* === Header === */
 .auth-card-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: var(--space-6);
 }
 
 .auth-card-header h1 {
-  font-size: 32px;
-  font-weight: 800;
-  color: var(--ink);
-  letter-spacing: -0.04em;
-  margin: 0 0 10px;
+  color: var(--ink-900);
+  margin: 0 0 var(--space-2);
 }
 
 .auth-card-header p {
-  font-size: 13px;
-  font-family: var(--font-mono);
-  color: rgba(11, 14, 20, 0.55);
+  color: var(--ink-700);
   margin: 0;
 }
 
@@ -50,41 +36,39 @@
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--space-4);
 }
 
 /* === Field === */
 .auth-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .auth-field label {
-  font-size: 11px;
-  font-weight: 700;
-  font-family: var(--font-mono);
-  text-transform: uppercase;
-  color: rgba(11, 14, 20, 0.6);
-  letter-spacing: 0.4px;
+  color: var(--ink-700);
 }
 
 .auth-field input {
-  padding: 12px 14px;
-  background: var(--white);
-  border: var(--border);
-  color: var(--ink);
+  padding: var(--space-3);
+  background: var(--surface-0);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  color: var(--ink-900);
+  font-family: var(--font-ui);
   font-size: 14px;
   outline: none;
   width: 100%;
+  transition: border-color 0.15s ease;
 }
 
 .auth-field input::placeholder {
-  color: rgba(11, 14, 20, 0.35);
+  color: var(--ink-400);
 }
 
 .auth-field input:focus {
-  box-shadow: 3px 3px 0 var(--ink);
+  border-color: var(--ink-900);
 }
 
 /* === Password wrapper === */
@@ -100,77 +84,56 @@
 
 .auth-eye-btn {
   position: absolute;
-  right: 12px;
+  right: var(--space-3);
   background: none;
   border: none;
   cursor: pointer;
   padding: 4px;
-  color: rgba(11, 14, 20, 0.4);
+  color: var(--ink-400);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .auth-eye-btn:hover {
-  color: var(--ink);
+  color: var(--ink-900);
 }
 
-/* === Button === */
-.auth-btn {
-  margin-top: 4px;
-  padding: 13px;
-  background: var(--blue);
-  color: var(--ink);
-  font-size: 15px;
-  font-weight: 700;
-  border: var(--border);
-  box-shadow: 4px 4px 0 var(--ink);
-  cursor: pointer;
-  transition: transform 0.1s, box-shadow 0.1s;
-  letter-spacing: 0.2px;
-}
-
-.auth-btn:hover:not(:disabled) {
-  transform: translate(-2px, -2px);
-  box-shadow: 6px 6px 0 var(--ink);
-}
-
-.auth-btn:active:not(:disabled) {
-  transform: translate(0, 0);
-  box-shadow: 2px 2px 0 var(--ink);
-}
-
-.auth-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+/* === Submit button === */
+.auth-submit-btn {
+  margin-top: var(--space-1);
+  width: 100%;
 }
 
 /* === Error === */
 .auth-error {
-  padding: 12px 14px;
-  background: var(--pink);
-  border: var(--border);
-  color: var(--ink);
+  padding: var(--space-3);
+  background: rgba(193, 68, 58, 0.1);
+  border-radius: var(--radius-sm);
+  color: var(--error-600);
+  font-family: var(--font-ui);
   font-size: 13px;
   font-weight: 600;
 }
 
 /* === Notice (e.g. session expired) === */
 .auth-notice {
-  padding: 12px 14px;
-  background: var(--yellow);
-  border: var(--border);
-  color: var(--ink);
+  padding: var(--space-3);
+  background: var(--gold-100);
+  border-radius: var(--radius-sm);
+  color: var(--warning-600);
+  font-family: var(--font-ui);
   font-size: 13px;
   font-weight: 600;
 }
 
 /* === Success === */
 .auth-success {
-  padding: 12px 14px;
-  background: var(--green);
-  border: var(--border);
-  color: var(--ink);
+  padding: var(--space-3);
+  background: rgba(47, 143, 91, 0.1);
+  border-radius: var(--radius-sm);
+  color: var(--success-600);
+  font-family: var(--font-ui);
   font-size: 13px;
   font-weight: 600;
 }
@@ -178,13 +141,14 @@
 /* === Switch Link === */
 .auth-switch {
   text-align: center;
-  margin-top: 24px;
+  margin-top: var(--space-5);
+  font-family: var(--font-ui);
   font-size: 13px;
-  color: rgba(11, 14, 20, 0.6);
+  color: var(--ink-700);
 }
 
 .auth-switch a {
-  color: var(--ink);
-  font-weight: 700;
+  color: var(--ink-900);
+  font-weight: 600;
   text-decoration: underline;
 }

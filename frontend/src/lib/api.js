@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:8080';
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
 
 function authHeaders() {
   const token = localStorage.getItem('access_token');
@@ -39,6 +39,7 @@ function refreshAccessToken() {
 function forceLogout() {
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
+  localStorage.removeItem('user_role');
   window.location.href = '/login?reason=expired';
 }
 
@@ -83,11 +84,15 @@ export function createTest(payload) {
   });
 }
 
-export function submitAnswer(testId, payload) {
-  return request('/api/submissions', {
+export async function submitAnswer(testId, payload) {
+  const data = await request('/api/submissions', {
     method: 'POST',
     body: JSON.stringify({ test_id: testId, payload }),
   });
+  // A submission may have just been graded, which grants XP server-side —
+  // let ProfileHud know to refetch without prop-drilling the result down.
+  window.dispatchEvent(new Event('profile:refresh'));
+  return data;
 }
 
 export function getScore(submissionId) {
@@ -100,4 +105,15 @@ export function listSubmissions(page = 1) {
 
 export function getSubmission(id) {
   return request(`/api/submissions/${id}`);
+}
+
+export function getProfile() {
+  return request('/api/profile');
+}
+
+export function setEquippedFrame(frameLevel) {
+  return request('/api/profile/frame', {
+    method: 'PUT',
+    body: JSON.stringify({ frame_level: frameLevel }),
+  });
 }

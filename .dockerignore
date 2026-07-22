@@ -1,0 +1,24 @@
+.git
+.gitignore
+
+# Never bake secrets into an image layer — compose injects these at
+# container-start time instead (see docker-compose.yml's env_file).
+.env
+.env.*
+
+# Frontend isn't part of the backend image's build context at all, but
+# excluding it keeps `docker build` from even scanning it.
+frontend/node_modules
+frontend/dist
+
+# Local build artifacts / IDE state, not needed inside the image.
+api
+bin/
+obj/
+*.log
+.vs/
+.DS_Store
+
+# Large design assets consumed only by the frontend build (copied into
+# frontend/public/avatar-frames instead) — irrelevant to the API image.
+asset/

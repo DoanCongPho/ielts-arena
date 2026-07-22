@@ -1,23 +1,37 @@
 # Data Schema
 
-Generated from the current migrations (`migrations/000001`–`000004`).
+Generated from the current migrations (`migrations/000001`–`000006`).
 
 ```mermaid
 erDiagram
     USERS ||--o{ SUBMISSIONS : submits
     TESTS ||--o{ SUBMISSIONS : "attempted via"
     SUBMISSIONS ||--o| SCORES : "graded as"
+    USERS ||--o{ SUBMISSION_XP_GRANTS : "granted xp for"
+    TESTS ||--o{ SUBMISSION_XP_GRANTS : "grants xp via"
+    SUBMISSIONS ||--o| SUBMISSION_XP_GRANTS : "first attempt grants"
 
     USERS {
         bigint id PK
         varchar name
         varchar email UK
         varchar password_hash
-        int level "default 0"
-        int xp "default 0"
+        int level "default 0; denormalized cache of leveling.LevelForXP(xp)"
+        int xp "default 0; lifetime total, source of truth for level"
         int rank_score "default 0"
+        varchar image_url "nullable, avatar URL"
+        varchar role "default 'user'; 'admin' can create tests"
+        int equipped_frame_level "nullable; NULL = use current level's frame; else must be 1..level"
         datetime created_at
         datetime updated_at
+    }
+
+    SUBMISSION_XP_GRANTS {
+        bigint user_id PK_FK
+        bigint test_id PK_FK
+        bigint submission_id FK
+        int xp_awarded
+        datetime granted_at
     }
 
     TESTS {
@@ -49,6 +63,25 @@ erDiagram
         datetime graded_at "nullable"
     }
 ```
+
+## `users`
+
+`image_url` and `role` were added in migration `000005` (`add_image_url_and_role_to_users`). `equipped_frame_level` was added in migration `000006` (`add_profile_and_xp_grants`), which also created `submission_xp_grants`.
+
+- **`image_url`** — nullable avatar URL. `internal/platform/auth` reads/writes it (`User.ImageURL` in `model.go`, threaded through `repository.go`'s `userColumns`/`Scan`/`INSERT`/`UPDATE`), and it round-trips through `/auth/register`/`/auth/login`/`/auth/refresh` responses. As of the profile HUD feature, it's also returned by `GET /api/profile` (`internal/feature/profile`) and rendered by the frontend's `ProfileHud` component, displayed inside the user's equipped avatar frame.
+- **`role`** — `"user"` (default, set by `userRepository.CreateUser` whenever `Role` is empty) or `"admin"`. There's no API path to self-promote — an account only becomes admin via a direct DB update. The role is embedded in the JWT access/refresh token claims at login (`auth.Claims.Role`, set in `token.go`'s `generateToken`) rather than looked up per request, so `internal/platform/middleware.RequireAdmin` (layered on top of `RequireAuth`) can gate a route by checking `auth.CurrentUser(ctx).IsAdmin()` without a DB round-trip. Currently gates `POST /api/tests` (see `ielts_test/handler.go`'s `MountRoutes`) — creating tests is admin-only, everything else (listing/taking tests, submissions, scores) stays open to any authenticated user.
+- **`level`/`xp`** — `xp` is the lifetime-total source of truth; `level` is a denormalized cache of `internal/platform/leveling.LevelForXP(xp)`, a 1–100 curve where each level-up costs 4% more XP than the previous one (compound growth, `leveling.go`). `level` is rewritten only by `auth.Repository.GrantIfFirstAttempt`, the sole XP-granting code path — it's called from `ielts_test.service.SubmitAnswer` after a submission's status becomes `graded`, using that test's `xp_gain`. There is no endpoint that accepts a client-supplied XP delta or level; `GET /api/profile` recomputes level live from `xp` for display rather than trusting the cached column, so a stale/corrupt cache can never reach what the user sees.
+- **`equipped_frame_level`** — nullable; `NULL` means "display the frame matching the current level"; when set, must satisfy `1 <= value <= level` (enforced in `profile.service.SetEquippedFrame`, not a DB constraint — no `CHECK` constraints exist in this schema). A frame `N` (of the 100 avatar-frame images, one per level, served from `frontend/public/avatar-frames/`) is considered **unlocked** iff `N <= level` — this is fully derived from `level`, so there is no separate unlocks table. Changed via `PUT /api/profile/frame`.
+
+## `submission_xp_grants`
+
+Added in migration `000006`. Exists purely to make "XP is granted only for a user's first graded attempt at a given test" atomic and race-safe: its primary key is `(user_id, test_id)`, so `GrantIfFirstAttempt` attempts an `INSERT` and treats a primary-key violation as "already granted, skip." A boolean flag on `submissions` was considered and rejected — the `INSERT`-and-catch-duplicate-key approach enforces the invariant at the database level even under concurrent duplicate submissions, which a `SELECT`-then-`UPDATE` flag can't guarantee without extra locking. Resubmitting an already-attempted test is still allowed (for practice) and still gets graded normally — it just doesn't grant XP again.
+
+## Profile / leveling API (`internal/feature/profile`)
+
+- `GET /api/profile` — returns the current user's `name`, `level`, `xp`, `current_level_xp`, `xp_to_next_level`, `image_url`, `equipped_frame_level`, `unlocked_max_frame_level` (see `ProfileResponse` in `response.go`). Requires auth, no admin gate.
+- `PUT /api/profile/frame` — body `{"frame_level": N}`; sets `equipped_frame_level` if `1 <= N <= level`, else `400 profile.frame_locked`. Cannot affect `xp`/`level`.
+- This package has no table of its own — it reads/writes the same `users` row `internal/platform/auth.Repository` already owns, rather than duplicating a second gateway to it.
 
 ## `content_data`
 

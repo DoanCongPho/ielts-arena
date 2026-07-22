@@ -35,9 +35,25 @@ func RequireAuth(next http.Handler) http.Handler {
 		user := &auth.User{
 			ID:    claims.UserID,
 			Email: claims.Email,
+			Role:  claims.Role,
 		}
 		ctx := auth.SetCurrentUser(r.Context(), user)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// RequireAdmin gates a route to admin users only. It must wrap a handler
+// that's already behind RequireAuth (it reads the user auth.CurrentUser
+// already placed on the request context — it does not verify the token
+// itself).
+func RequireAdmin(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, ok := auth.CurrentUser(r.Context())
+		if !ok || !user.IsAdmin() {
+			httpx.WriteError(w, http.StatusForbidden, "auth.forbidden", "This action requires an admin account")
+			return
+		}
+		next.ServeHTTP(w, r)
 	})
 }

@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"errors"
-	"net/http"
 
 	"github.com/gorilla/mux"
 	"golang.org/x/crypto/bcrypt"
@@ -22,12 +21,6 @@ type service struct {
 
 func NewService(users Repository) Service {
 	return &service{users: users}
-}
-
-func (s *service) MountRoutes(r *mux.Router) {
-	r.HandleFunc("/auth/register", s.registerHandler).Methods(http.MethodPost)
-	r.HandleFunc("/auth/login", s.loginHandler).Methods(http.MethodPost)
-	r.HandleFunc("/auth/refresh", s.refreshHandler).Methods(http.MethodPost)
 }
 
 func (s *service) LoginUser(ctx context.Context, req LoginRequest) (*AuthResponse, error) {

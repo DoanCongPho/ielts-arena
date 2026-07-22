@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import HighlightableText from '../HighlightableText/HighlightableText';
 
 function optionLabel(opt) {
   return opt.id === opt.text ? opt.text : `${opt.id}. ${opt.text}`;
@@ -16,7 +17,7 @@ function optionsFor(group, question) {
 // draggable option chips, and one drop slot per question. Options can also
 // be assigned by clicking a chip (selecting it) then clicking a slot —
 // necessary on touch devices, where HTML5 drag-and-drop doesn't work well.
-export default function MatchingDragDrop({ group, answers, onChange, disabled, results }) {
+export default function MatchingDragDrop({ group, answers, onChange, disabled, results, highlights, onHighlightRemove }) {
   const [selectedChip, setSelectedChip] = useState(null);
   const [dragOverOrder, setDragOverOrder] = useState(null);
 
@@ -82,11 +83,13 @@ export default function MatchingDragDrop({ group, answers, onChange, disabled, r
           const itemClass = result
             ? `question-item ${result.correct ? 'question-item-correct' : 'question-item-incorrect'}`
             : 'question-item';
+          const textKey = `q-${order}-text`;
 
           return (
             <div key={order} id={`question-${order}`} className={itemClass}>
               <p className="question-item-text">
-                <span className="question-item-number">Câu {order}</span> {q.text}
+                <span className="question-item-number">Câu {order}</span>{' '}
+                <HighlightableText id={textKey} text={q.text} ranges={highlights?.[textKey]} onRemoveRange={onHighlightRemove} />
               </p>
 
               {!bankOptions && options && renderBank(options)}

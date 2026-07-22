@@ -1,8 +1,10 @@
+import HighlightableText from '../HighlightableText/HighlightableText';
+
 // PlainInputGroup covers question_types where each question has its own
 // text prompt and a single free-text answer: sentence-completion,
 // short-answer, and diagram-label-completion (which additionally shows the
 // group's diagram image above the question list).
-export default function PlainInputGroup({ group, answers, onChange, disabled, results }) {
+export default function PlainInputGroup({ group, answers, onChange, disabled, results, highlights, onHighlightRemove }) {
   return (
     <div className="plain-input-group">
       {group.diagram_image_url && <img className="plain-input-diagram" src={group.diagram_image_url} alt="Sơ đồ" />}
@@ -14,11 +16,13 @@ export default function PlainInputGroup({ group, answers, onChange, disabled, re
         const itemClass = result
           ? `question-item ${result.correct ? 'question-item-correct' : 'question-item-incorrect'}`
           : 'question-item';
+        const textKey = `q-${order}-text`;
 
         return (
           <div key={order} id={`question-${order}`} className={itemClass}>
             <p className="question-item-text">
-              <span className="question-item-number">Câu {order}</span> {q.text}
+              <span className="question-item-number">Câu {order}</span>{' '}
+              <HighlightableText id={textKey} text={q.text} ranges={highlights?.[textKey]} onRemoveRange={onHighlightRemove} />
               {group.word_limit ? <span className="question-item-hint"> (tối đa {group.word_limit} từ)</span> : null}
             </p>
             <input

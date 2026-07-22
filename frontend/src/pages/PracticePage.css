@@ -2,58 +2,43 @@
   position: fixed;
   inset: 0;
   overflow-y: auto;
-  background: var(--cream);
-  color: var(--ink);
-  padding: 32px 48px 96px;
+  background: var(--paper-50);
+  color: var(--ink-900);
+  padding: var(--layout-fixed-hud-offset) var(--space-6) var(--space-7);
 }
 
 .practice-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 20px;
-  border-bottom: var(--border);
-  margin-bottom: 24px;
-}
-
-.practice-header h1 {
-  font-size: 24px;
-  margin: 0;
-}
-
-.practice-back-btn {
-  padding: 8px 16px;
-  background: var(--white);
-  border: var(--border);
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.1s, box-shadow 0.1s;
-}
-
-.practice-back-btn:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 3px 3px 0 var(--ink);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: var(--space-5);
 }
 
 /* === Skill tabs (segmented bar) === */
 .skill-tabs {
   display: flex;
-  border: var(--border);
-  margin-bottom: 20px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-5);
   overflow: hidden;
 }
 
 .skill-tab {
   flex: 1;
-  padding: 12px 20px;
-  background: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-0);
   border: none;
-  border-right: var(--border);
-  color: var(--ink);
+  border-right: 1px solid var(--hairline);
+  color: var(--ink-900);
+  font-family: var(--font-ui);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -62,45 +47,58 @@
 }
 
 .skill-tab.active {
-  background: var(--blue);
+  background: var(--ink-900);
+  color: var(--surface-0);
 }
 
-.skill-tab.disabled {
+.skill-tab-coming-soon {
   cursor: not-allowed;
-  color: rgba(11, 14, 20, 0.35);
-  background: var(--cream);
+  opacity: 0.5;
+}
+
+.skill-tab-badge {
+  color: var(--ink-400);
+}
+
+.skill-tab.active .skill-tab-badge {
+  color: var(--paper-50);
 }
 
 /* === Task filters === */
 .task-filters {
   display: flex;
-  gap: 10px;
-  margin-bottom: 28px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
 }
 
 .task-filter-pill {
-  padding: 7px 18px;
-  background: var(--white);
-  border: var(--border);
-  color: var(--ink);
+  padding: var(--space-2) var(--space-4);
+  background: var(--surface-0);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-full);
+  color: var(--ink-900);
+  font-family: var(--font-ui);
   font-size: 13px;
-  font-weight: 600;
-  font-family: var(--font-mono);
+  font-weight: 500;
   cursor: pointer;
 }
 
 .task-filter-pill.active {
-  background: var(--yellow);
+  background: var(--ink-900);
+  color: var(--surface-0);
+  border-color: var(--ink-900);
 }
 
 /* === Status text === */
 .practice-status {
+  font-family: var(--font-ui);
   font-size: 14px;
-  padding: 24px 0;
+  color: var(--ink-700);
+  padding: var(--space-5) 0;
 }
 
 .practice-error {
-  color: #b91c1c;
+  color: var(--error-600);
   font-weight: 600;
 }
 
@@ -108,28 +106,27 @@
 .test-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 20px;
+  gap: var(--space-5);
 }
 
 .test-card {
-  background: var(--white);
-  border: var(--border);
   cursor: pointer;
   overflow: hidden;
-  transition: transform 0.1s, box-shadow 0.1s;
+  transition: border-color 0.15s ease;
 }
 
 .test-card:hover {
-  transform: translate(-3px, -3px);
-  box-shadow: 5px 5px 0 var(--ink);
+  border-color: var(--ink-400);
 }
 
 .test-card-media {
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 10;
-  border-bottom: var(--border);
-  background: var(--cream);
+  margin: calc(var(--space-4) * -1) calc(var(--space-4) * -1) 0;
+  width: calc(100% + var(--space-4) * 2);
+  border-bottom: 1px solid var(--hairline);
+  background: var(--paper-50);
 }
 
 .test-card-thumb {
@@ -139,75 +136,53 @@
   display: block;
 }
 
-.test-card-media-badge {
+.test-card-xp-chip {
+  color: var(--gold-600);
+  background: var(--gold-100);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.test-card-media .test-card-xp-chip {
   position: absolute;
-  top: 10px;
-  left: 10px;
-  background: var(--navy);
-  color: var(--white);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  padding: 5px 12px;
-  border-radius: 999px;
-  border: 1.5px solid var(--ink);
+  top: var(--space-2);
+  left: var(--space-2);
 }
 
 .test-card-section-tag {
   position: absolute;
-  bottom: -13px;
-  left: 14px;
-  background: var(--purple);
-  color: var(--ink);
-  font-size: 12px;
-  font-weight: 700;
-  padding: 6px 16px;
-  border-radius: 999px;
-  border: 1.5px solid var(--ink);
+  bottom: var(--space-2);
+  right: var(--space-2);
 }
 
 .test-card-body {
-  padding: 20px;
+  padding-top: var(--space-4);
 }
 
 .test-card-subtitle {
-  margin-top: 8px;
-  font-size: 12px;
-  color: rgba(11, 14, 20, 0.55);
+  margin-top: var(--space-2);
+  color: var(--ink-400);
 }
 
 .test-card-tags {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: var(--space-2);
   flex-wrap: wrap;
-  margin-bottom: 14px;
+  margin-bottom: var(--space-4);
 }
 
-.test-tag {
-  font-size: 11px;
-  font-weight: 700;
-  font-family: var(--font-mono);
+.test-tag-neutral {
+  display: inline-flex;
+  align-items: center;
   padding: 4px 10px;
-  border: 1.5px solid var(--ink);
-  letter-spacing: 0.2px;
-}
-
-.test-tag-task {
-  background: var(--purple);
-}
-
-.test-tag-chart {
-  background: var(--blue);
-}
-
-.test-tag-xp {
-  background: var(--green);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--hairline);
+  color: var(--ink-400);
 }
 
 .test-card-prompt {
-  font-size: 14px;
-  line-height: 1.5;
-  color: rgba(11, 14, 20, 0.8);
+  color: var(--ink-700);
   display: -webkit-box;
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
@@ -219,22 +194,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 20px;
-  margin-top: 32px;
-  font-size: 13px;
-  font-family: var(--font-mono);
-}
-
-.practice-pagination button {
-  padding: 8px 14px;
-  background: var(--white);
-  border: var(--border);
-  color: var(--ink);
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.practice-pagination button:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
+  gap: var(--space-5);
+  margin-top: var(--space-6);
+  color: var(--ink-700);
 }

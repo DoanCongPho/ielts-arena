@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 
 	"github/DoanCongPho/game-arena/internal/platform/httpx"
 
@@ -24,13 +25,23 @@ type Service interface {
 	GetScore(ctx context.Context, userID uint64, submissionID uint64) (*Score, error)
 }
 
-type service struct {
-	repo   Repository
-	grader Grader
+// XPGrantRepository is the minimal user-progression dependency SubmitAnswer
+// needs: granting XP for a graded submission, exactly once per (user, test)
+// pair. Defined here, at the point of use, rather than imported from the
+// auth package, so this package doesn't need to know about auth's other
+// concerns — auth.Repository satisfies this interface structurally.
+type XPGrantRepository interface {
+	GrantIfFirstAttempt(ctx context.Context, userID, testID, submissionID uint64, amount int) (granted bool, level int, xp int, err error)
 }
 
-func NewService(repo Repository, grader Grader) Service {
-	return &service{repo: repo, grader: grader}
+type service struct {
+	repo     Repository
+	grader   Grader
+	xpGrants XPGrantRepository
+}
+
+func NewService(repo Repository, grader Grader, xpGrants XPGrantRepository) Service {
+	return &service{repo: repo, grader: grader, xpGrants: xpGrants}
 }
 
 func (s *service) GetTest(ctx context.Context, id uint64) (*TestResponse, error) {
@@ -99,6 +110,21 @@ func (s *service) SubmitAnswer(ctx context.Context, userID uint64, req SubmitReq
 			sub.Status = StatusFailed
 			_ = s.repo.UpdateSubmissionStatus(ctx, sub.ID, StatusFailed)
 			return sub, nil
+		}
+	}
+
+	// Server-authoritative XP grant: only reached once grading above has set
+	// sub.Status = StatusGraded, and test.XPGain comes from the tests row
+	// (set only via admin-only POST /api/tests) — never from anything the
+	// submitting client sent. GrantIfFirstAttempt also caps this to the
+	// user's first graded attempt at this test, so resubmitting the same
+	// test for practice doesn't grant XP again.
+	if sub.Status == StatusGraded && test.XPGain > 0 && s.xpGrants != nil {
+		if _, _, _, err := s.xpGrants.GrantIfFirstAttempt(ctx, userID, test.ID, sub.ID, test.XPGain); err != nil {
+			log.Printf("ielts_test: xp grant failed user=%d submission=%d: %v", userID, sub.ID, err)
+			// Don't fail the response — the submission/score are already
+			// persisted; XP is a secondary side effect of grading, not the
+			// primary result the client is waiting on.
 		}
 	}
 

@@ -1,0 +1,40 @@
+.ui-icon-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.ui-icon-chip-coming-soon {
+  opacity: 0.5;
+  box-shadow: none;
+}
+
+.ui-icon-chip-neutral {
+  background: var(--paper-50);
+  border: 1px solid var(--hairline);
+  color: var(--ink-400);
+  box-shadow: none;
+}
+
+.ui-icon-chip-reading {
+  background: linear-gradient(135deg, var(--reading-500), var(--reading-600));
+  color: var(--surface-0);
+}
+
+.ui-icon-chip-writing {
+  background: linear-gradient(135deg, var(--writing-500), var(--writing-600));
+  color: var(--surface-0);
+}
+
+.ui-icon-chip-listening {
+  background: linear-gradient(135deg, var(--listening-500), var(--listening-600));
+  color: var(--surface-0);
+}
+
+.ui-icon-chip-speaking {
+  background: linear-gradient(135deg, var(--speaking-500), var(--speaking-600));
+  color: var(--surface-0);
+}

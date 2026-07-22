@@ -25,6 +25,7 @@ export default function GroupsListEditor({ groups, allowedTypes, onChange }) {
       {groups.map((g, i) => (
         <QuestionGroupEditor
           key={i}
+          index={i}
           group={g}
           allowedTypes={allowedTypes}
           onChange={(next) => updateGroup(i, next)}

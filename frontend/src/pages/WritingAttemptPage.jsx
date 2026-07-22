@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import { getScore, getTest, submitAnswer } from '../lib/api';
 import { safeParse } from '../lib/safeParse';
 import ScoreResult from '../components/ScoreResult/ScoreResult';
+import Button from '../components/ui/Button/Button';
 import './WritingAttemptPage.css';
 
 export default function WritingAttemptPage() {
@@ -60,9 +61,9 @@ export default function WritingAttemptPage() {
   return (
     <div className="attempt-page">
       <header className="attempt-header">
-        <button className="practice-back-btn" onClick={() => navigate('/practice/writing')}>
+        <Button variant="secondary" onClick={() => navigate('/practice/writing')}>
           ← Danh sách đề
-        </button>
+        </Button>
         <span className="attempt-timer">{formatTime(seconds)}</span>
       </header>
 
@@ -91,9 +92,9 @@ export default function WritingAttemptPage() {
                 disabled={submitting}
               />
               {error && <p className="practice-status practice-error">{error}</p>}
-              <button className="attempt-submit-btn" onClick={handleSubmit} disabled={submitting || !text.trim()}>
+              <Button variant="primary" className="attempt-submit-btn" onClick={handleSubmit} disabled={submitting || !text.trim()}>
                 {submitting ? 'Đang chấm điểm...' : 'Nộp bài'}
-              </button>
+              </Button>
             </>
           )}
 

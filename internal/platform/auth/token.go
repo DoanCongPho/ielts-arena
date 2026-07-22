@@ -26,6 +26,7 @@ const (
 type Claims struct {
 	UserID uint64 `json:"user_id"`
 	Email  string `json:"email"`
+	Role   string `json:"role"`
 	Type   string `json:"type"`
 	jwt.RegisteredClaims
 }
@@ -43,6 +44,7 @@ func generateToken(user *User, tokenType string, ttl time.Duration) (string, err
 	claims := Claims{
 		UserID: user.ID,
 		Email:  user.Email,
+		Role:   user.Role,
 		Type:   tokenType,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(now),

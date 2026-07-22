@@ -5,6 +5,8 @@ import { buildTestPayload } from '../lib/buildTestPayload';
 import WritingBuilder from '../components/TestBuilder/WritingBuilder';
 import PassagesEditor from '../components/TestBuilder/PassagesEditor';
 import SectionsEditor from '../components/TestBuilder/SectionsEditor';
+import Button from '../components/ui/Button/Button';
+import Card from '../components/ui/Card/Card';
 import './CreateTestPage.css';
 
 export default function CreateTestPage() {
@@ -63,14 +65,14 @@ export default function CreateTestPage() {
   return (
     <div className="tb-page">
       <header className="tb-header">
-        <button className="practice-back-btn" onClick={() => navigate('/dashboard')}>
+        <Button variant="secondary" onClick={() => navigate('/dashboard')}>
           ← Trang chủ
-        </button>
-        <h1>Tạo đề thi</h1>
+        </Button>
+        <h1 className="text-h1">Tạo đề thi</h1>
       </header>
 
       <form className="tb-form" onSubmit={handleSubmit}>
-        <div className="tb-meta-card">
+        <Card className="tb-meta-card">
           <label className="tb-field tb-field-inline">
             <span>Kỹ năng</span>
             <select className="tb-select" value={skill} onChange={(e) => setSkill(e.target.value)}>
@@ -110,7 +112,7 @@ export default function CreateTestPage() {
             <input type="checkbox" checked={isCurrent} onChange={(e) => setIsCurrent(e.target.checked)} />
             <span>Hiển thị đề này (is_current)</span>
           </label>
-        </div>
+        </Card>
 
         {skill === 'writing' && <WritingBuilder content={writingContent} onChange={setWritingContent} />}
 
@@ -136,9 +138,9 @@ export default function CreateTestPage() {
           </p>
         )}
 
-        <button type="submit" className="tb-submit-btn" disabled={submitting}>
+        <Button type="submit" variant="primary" className="tb-submit-btn" disabled={submitting}>
           {submitting ? 'Đang tạo...' : 'Tạo đề'}
-        </button>
+        </Button>
       </form>
     </div>
   );

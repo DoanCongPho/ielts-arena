@@ -1,12 +1,12 @@
 .question-list {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--space-5);
 }
 
 .question-item {
-  padding-bottom: 18px;
-  border-bottom: 1px solid rgba(11, 14, 20, 0.12);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--hairline);
 }
 
 .question-item:last-child {
@@ -15,111 +15,105 @@
 }
 
 .question-item-text {
+  font-family: var(--font-ui);
   font-size: 16px;
   line-height: 1.6;
-  margin-bottom: 10px;
+  margin-bottom: var(--space-3);
 }
 
 .question-item-number {
   display: inline-block;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
+  font-family: var(--font-data);
+  font-size: 12px;
+  font-weight: 600;
   padding: 2px 8px;
-  background: var(--yellow);
-  border: 1.5px solid var(--ink);
-  margin-right: 8px;
+  border-radius: var(--radius-sm);
+  background: var(--paper-50);
+  border: 1px solid var(--hairline);
+  color: var(--ink-700);
+  margin-right: var(--space-2);
 }
 
 .question-item-options {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .question-item-option {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
+  font-family: var(--font-ui);
   font-size: 15px;
   cursor: pointer;
 }
 
 .question-item-option input {
-  accent-color: var(--blue);
+  accent-color: var(--ink-900);
   cursor: pointer;
 }
 
 .question-item-input {
   width: 100%;
-  padding: 10px 12px;
-  background: var(--white);
-  border: var(--border);
-  color: var(--ink);
+  padding: var(--space-3);
+  background: var(--surface-0);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  color: var(--ink-900);
+  font-family: var(--font-ui);
   font-size: 15px;
   outline: none;
+  transition: border-color 0.15s ease;
 }
 
 .question-item-input:focus {
-  box-shadow: 3px 3px 0 var(--ink);
+  border-color: var(--ink-900);
 }
 
 .question-item-input:disabled {
-  background: var(--cream);
-  color: rgba(11, 14, 20, 0.7);
+  background: var(--paper-50);
+  color: var(--ink-700);
 }
 
 .question-item-correct-answer {
-  margin-top: 8px;
+  margin-top: var(--space-2);
+  font-family: var(--font-ui);
   font-size: 12px;
   font-weight: 600;
-  color: #b91c1c;
+  color: var(--error-600);
 }
 
 /* Review-mode decoration */
 .question-item-correct {
-  border-left: 4px solid var(--green);
-  padding-left: 12px;
+  border-left: 3px solid var(--success-600);
+  padding-left: var(--space-3);
 }
 
 .question-item-incorrect {
-  border-left: 4px solid var(--pink);
-  padding-left: 12px;
+  border-left: 3px solid var(--error-600);
+  padding-left: var(--space-3);
 }
 
-/* Group-level header (question_range + shared instructions) */
+/* Group-level card (question_range + shared instructions) */
 .question-group-block {
-  padding-bottom: 22px;
-  margin-bottom: 22px;
-  border-bottom: 2px solid rgba(11, 14, 20, 0.12);
-}
-
-.question-group-block:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-  margin-bottom: 0;
+  overflow: hidden;
 }
 
 .question-group-header {
-  margin-bottom: 14px;
+  margin-bottom: var(--space-4);
 }
 
 .question-group-range {
-  display: inline-block;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 8px;
-  background: var(--purple);
-  color: var(--white);
-  border: 1.5px solid var(--ink);
-  margin-bottom: 6px;
+  margin-bottom: var(--space-2);
 }
 
 .question-group-instructions {
+  font-family: var(--font-ui);
   font-size: 15px;
   font-weight: 600;
   line-height: 1.5;
+  color: var(--ink-900);
 }
 
 .question-item-hint {
@@ -132,27 +126,31 @@
 .plain-input-diagram {
   display: block;
   max-width: 100%;
-  margin-bottom: 16px;
-  border: var(--border);
+  margin-bottom: var(--space-4);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
 }
 
 /* Structured completion types (summary/table/note/flow-chart/form) */
 .structured-text {
+  font-family: var(--font-ui);
   font-size: 16px;
   line-height: 2;
 }
 
 .structured-heading {
+  font-family: var(--font-ui);
   font-size: 15px;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .structured-note-list,
 .structured-flow {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding-left: 20px;
+  gap: var(--space-3);
+  padding-left: var(--space-5);
+  font-family: var(--font-ui);
   font-size: 16px;
   line-height: 1.8;
 }
@@ -160,18 +158,20 @@
 .structured-table {
   width: 100%;
   border-collapse: collapse;
+  font-family: var(--font-ui);
   font-size: 15px;
 }
 
 .structured-table th,
 .structured-table td {
-  border: 1.5px solid var(--ink);
-  padding: 8px 10px;
+  border: 1px solid var(--hairline);
+  padding: var(--space-2) var(--space-3);
   text-align: left;
 }
 
 .structured-table th {
-  background: var(--yellow);
+  background: var(--paper-50);
+  font-weight: 600;
 }
 
 .gap-select-wrapper {
@@ -185,9 +185,11 @@
   display: inline-block;
   width: 150px;
   padding: 4px 8px;
-  background: var(--white);
-  border: var(--border);
-  color: var(--ink);
+  background: var(--surface-0);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  color: var(--ink-900);
+  font-family: var(--font-ui);
   font-size: 15px;
   vertical-align: middle;
 }
@@ -198,39 +200,44 @@
 
 .gap-input:disabled,
 .dropdown-trigger.gap-select:disabled {
-  background: var(--cream);
-  color: rgba(11, 14, 20, 0.7);
+  background: var(--paper-50);
+  color: var(--ink-700);
 }
 
 .gap-input.gap-correct,
 .dropdown-trigger.gap-select.gap-correct {
-  border-color: var(--green);
-  box-shadow: 2px 2px 0 var(--green);
+  border-color: var(--success-600);
+  border-width: 2px;
 }
 
 .gap-input.gap-incorrect,
 .dropdown-trigger.gap-select.gap-incorrect {
-  border-color: var(--pink);
-  box-shadow: 2px 2px 0 var(--pink);
+  border-color: var(--error-600);
+  border-width: 2px;
 }
 
-/* Matching drag-and-drop (matching-*, map-plan-labelling) */
+/* Matching drag-and-drop (matching-*, map-plan-labelling) — interaction
+   chrome, deliberately neutral rather than skill-colored. */
 .matching-dnd-bank {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 18px;
-  padding: 12px;
-  background: var(--cream);
-  border: var(--border);
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+  padding: var(--space-3);
+  background: var(--paper-50);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
 }
 
 .matching-chip {
-  padding: 8px 12px;
-  background: var(--yellow);
-  border: 1.5px solid var(--ink);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-0);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
   font-size: 15px;
   font-weight: 600;
+  color: var(--ink-900);
   cursor: grab;
 }
 
@@ -239,21 +246,21 @@
 }
 
 .matching-chip-selected {
-  background: var(--blue);
-  color: var(--white);
-  box-shadow: 2px 2px 0 var(--ink);
+  background: var(--ink-900);
+  color: var(--surface-0);
+  border-color: var(--ink-900);
 }
 
 .matching-chip-used {
-  background: var(--white);
-  color: rgba(11, 14, 20, 0.35);
+  background: var(--paper-50);
+  color: var(--ink-400);
   cursor: not-allowed;
 }
 
 .matching-dnd-questions {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--space-5);
 }
 
 .matching-drop-slot {
@@ -261,25 +268,27 @@
   align-items: center;
   justify-content: space-between;
   min-height: 40px;
-  padding: 8px 12px;
-  background: var(--white);
-  border: 2px dashed rgba(11, 14, 20, 0.35);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-0);
+  border: 2px dashed var(--hairline);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
   font-size: 15px;
   cursor: pointer;
 }
 
 .matching-drop-slot-filled {
   border-style: solid;
-  border-color: var(--ink);
+  border-color: var(--ink-400);
 }
 
 .matching-drop-slot-over {
-  background: var(--cream);
-  border-color: var(--blue);
+  background: var(--paper-50);
+  border-color: var(--ink-900);
 }
 
 .matching-drop-placeholder {
-  color: rgba(11, 14, 20, 0.4);
+  color: var(--ink-400);
   font-style: italic;
 }
 
@@ -288,7 +297,7 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  gap: 8px;
+  gap: var(--space-2);
   font-weight: 600;
 }
 
@@ -296,8 +305,10 @@
   flex-shrink: 0;
   width: 20px;
   height: 20px;
-  border: 1.5px solid var(--ink);
-  background: var(--pink);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--error-600);
+  color: var(--surface-0);
   font-size: 13px;
   line-height: 1;
   cursor: pointer;

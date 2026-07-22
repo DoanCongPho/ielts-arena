@@ -18,7 +18,7 @@ import {
 // fields (shared_options / word_bank / table_structure / ...), and the
 // nested list of questions, each rendered according to the type's answer
 // archetype (choice / plain-text / structured-gap).
-export default function QuestionGroupEditor({ group, allowedTypes, onChange, onRemove }) {
+export default function QuestionGroupEditor({ group, allowedTypes, onChange, onRemove, index }) {
   function set(field, value) {
     onChange({ ...group, [field]: value });
   }
@@ -45,6 +45,7 @@ export default function QuestionGroupEditor({ group, allowedTypes, onChange, onR
 
   return (
     <div className="tb-group-card">
+      <span className="tb-card-eyebrow text-label">Nhóm câu hỏi {index + 1}</span>
       <div className="tb-group-header">
         <select
           className="tb-select"

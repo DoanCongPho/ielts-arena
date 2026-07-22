@@ -7,6 +7,9 @@ import { SKILL_CONFIG } from '../lib/skillConfig';
 import ScoreResult from '../components/ScoreResult/ScoreResult';
 import QuestionList from '../components/QuestionList/QuestionList';
 import AutoGradeResult from '../components/AutoGradeResult/AutoGradeResult';
+import QuestionNavBar from '../components/QuestionNavBar/QuestionNavBar';
+import Button from '../components/ui/Button/Button';
+import './PracticePage.css';
 import './WritingAttemptPage.css';
 
 export default function SubmissionDetailPage() {
@@ -65,9 +68,9 @@ export default function SubmissionDetailPage() {
   return (
     <div className="attempt-page">
       <header className="attempt-header">
-        <button className="practice-back-btn" onClick={() => navigate('/submissions')}>
+        <Button variant="secondary" onClick={() => navigate('/submissions')}>
           ← Bài đã làm
-        </button>
+        </Button>
         <span className="attempt-timer">{formatDate(submission?.submitted_at)}</span>
       </header>
 
@@ -104,76 +107,123 @@ export default function SubmissionDetailPage() {
   );
 }
 
-// MultiUnitReview renders a reading/listening submission as a stacked block
-// per passage/section, since a multi-unit test doesn't fit the single
-// prompt-panel-vs-answer-panel layout used by writing/speaking. Listening
-// units share ONE audio file at the test level, so the player lives once
-// at the top of the review and each section header gets a "listen here"
-// button that seeks it, rather than one <audio> per section.
+// MultiUnitReview mirrors the live attempt page's layout — a tabbed
+// passage/section switcher with a two-pane body — instead of stacking
+// every unit vertically, so reviewing a 3-passage test works the same way
+// as taking it: switch tabs, don't scroll through everything at once.
 function MultiUnitReview({ skill, test, content, payload, score, notGradedMessage }) {
   const audioRef = useRef(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  // Set after clicking a QuestionNavBar pill for a question in a different
+  // passage/section — the target element doesn't exist until the tab
+  // switch re-renders, so the actual scroll happens in an effect keyed on
+  // this (same pattern as ReadingAttemptPage/ListeningAttemptPage).
+  const [pendingScrollOrder, setPendingScrollOrder] = useState(null);
+
   const units = skill === 'reading' ? (content?.passages || []) : (content?.sections || []);
+  const activeUnit = units[activeIndex];
+  const activeGroups = activeUnit?.question_groups || [];
   const scoreResults = score ? safeParse(score.details)?.results : undefined;
   const allQuestions = units.flatMap((u) => (u.question_groups || []).flatMap((g) => g.questions));
   const config = SKILL_CONFIG[skill];
 
-  function seekAudio(time) {
-    if (audioRef.current) {
-      audioRef.current.currentTime = time;
-      audioRef.current.play();
+  useEffect(() => {
+    if (pendingScrollOrder == null) return;
+    const el = document.getElementById(`question-${pendingScrollOrder}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setPendingScrollOrder(null);
     }
+  }, [pendingScrollOrder, activeIndex]);
+
+  function handleSelectUnit(i) {
+    setActiveIndex(i);
+    if (skill === 'listening' && audioRef.current) {
+      audioRef.current.currentTime = units[i]?.section_start_time ?? 0;
+    }
+  }
+
+  function handleJumpToQuestion(order) {
+    const targetIndex = units.findIndex((u) =>
+      (u.question_groups || []).some((g) => g.questions.some((q) => q.question_order === order)),
+    );
+    if (targetIndex === -1) return;
+    handleSelectUnit(targetIndex);
+    if (skill === 'listening' && audioRef.current) {
+      const question = allQuestions.find((q) => q.question_order === order);
+      if (question?.timestamp_hint != null) {
+        audioRef.current.currentTime = question.timestamp_hint;
+      }
+    }
+    setPendingScrollOrder(order);
   }
 
   return (
     <div className="submission-multi-review">
-      <h2>{skill === 'reading' ? 'Reading' : 'Listening'} — {config.taskTypeLabel(test.task_type)}</h2>
+      {score && <AutoGradeResult score={score} skill={skill} compact />}
 
-      {skill === 'listening' && (
-        <div className="attempt-audio-panel">
-          <audio ref={audioRef} className="attempt-audio-player" controls src={content?.audio_url} />
-        </div>
-      )}
+      <div className="attempt-body">
+        <div className="attempt-prompt-panel">
+          <h2>{skill === 'reading' ? 'Reading' : 'Listening'} — {config.taskTypeLabel(test.task_type)}</h2>
 
-      {units.map((u, i) => (
-        <section key={i} className="submission-multi-block">
-          <h3 className="submission-multi-heading">
-            {u.title || `${skill === 'reading' ? 'Passage' : 'Section'} ${i + 1}`}
-            {skill === 'listening' && (
-              <button type="button" className="submission-multi-seek-btn" onClick={() => seekAudio(u.section_start_time)}>
-                ▶ Nghe đoạn này
-              </button>
-            )}
-          </h3>
-          <div className="submission-multi-body">
-            <div className="attempt-prompt-panel">
-              {skill === 'reading' ? (
-                <div className="attempt-passage-text">
-                  {(u.paragraphs || []).map((p, pi) => (
-                    <p key={`${i}-${pi}`}>
-                      {p.label && <strong>{p.label}. </strong>}
-                      {p.text}
-                    </p>
-                  ))}
-                </div>
-              ) : (
-                <p className="practice-status">
-                  Đoạn ghi âm: {formatSeconds(u.section_start_time)} – {formatSeconds(u.section_end_time)}
+          {units.length > 1 && (
+            <nav className="skill-tabs attempt-multi-tabs">
+              {units.map((u, i) => (
+                <button
+                  key={i}
+                  className={`skill-tab ${i === activeIndex ? 'active' : ''}`}
+                  onClick={() => handleSelectUnit(i)}
+                >
+                  {u.title || `${skill === 'reading' ? 'Passage' : 'Section'} ${i + 1}`}
+                </button>
+              ))}
+            </nav>
+          )}
+
+          {skill === 'reading' ? (
+            <div className="attempt-passage-text">
+              {activeUnit?.title && <h3 className="reading-passage-title">{activeUnit.title}</h3>}
+              {(activeUnit?.paragraphs || []).map((p, pi) => (
+                <p key={pi}>
+                  {p.label && <strong>{p.label}. </strong>}
+                  {p.text}
                 </p>
-              )}
+              ))}
             </div>
-            <div className="attempt-answer-panel">
-              <QuestionList
-                groups={u.question_groups}
-                answers={payload?.answers}
-                results={scoreResults}
-                disabled
-              />
-            </div>
-          </div>
-        </section>
-      ))}
+          ) : (
+            <>
+              <div className="attempt-audio-panel">
+                <audio ref={audioRef} className="attempt-audio-player" controls src={content?.audio_url} />
+              </div>
+              <p className="practice-status">
+                Đoạn ghi âm: {formatSeconds(activeUnit?.section_start_time)} – {formatSeconds(activeUnit?.section_end_time)}
+              </p>
+            </>
+          )}
+        </div>
+
+        <div className="attempt-answer-panel">
+          <QuestionList
+            groups={activeGroups}
+            answers={payload?.answers}
+            results={scoreResults}
+            disabled
+            skill={skill}
+          />
+        </div>
+      </div>
+
       {notGradedMessage}
-      {score && <AutoGradeResult score={score} questions={allQuestions} onSeek={skill === 'listening' ? seekAudio : undefined} />}
+
+      {allQuestions.length > 0 && (
+        <QuestionNavBar
+          questions={allQuestions}
+          answers={payload?.answers}
+          results={scoreResults}
+          onJump={handleJumpToQuestion}
+        />
+      )}
     </div>
   );
 }

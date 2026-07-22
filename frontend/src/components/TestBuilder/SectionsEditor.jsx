@@ -22,6 +22,7 @@ export default function SectionsEditor({ sections, onChange }) {
     <div className="tb-passages">
       {sections.map((s, si) => (
         <div key={si} className="tb-passage-card">
+          <span className="tb-card-eyebrow text-label">Section {si + 1}</span>
           <div className="tb-passage-header">
             <input
               className="tb-input tb-input-grow"

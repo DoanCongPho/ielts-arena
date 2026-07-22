@@ -13,15 +13,16 @@ const submissionColumns = `id, user_id, test_id, payload, status, submitted_at`
 const scoreColumns = `id, submission_id, overall_band, details, graded_at`
 
 type Repository interface {
+	// ---test---
 	CreateTest(ctx context.Context, t *Test) (*Test, error)
 	GetTestByID(ctx context.Context, id uint64) (*Test, error)
 	GetListTest(ctx context.Context, skill string, limit, offset int) ([]Test, int, error)
-
+	// --- submission ---
 	CreateSubmission(ctx context.Context, s *Submission) (*Submission, error)
 	GetSubmissionByID(ctx context.Context, id uint64) (*Submission, error)
 	GetListSubmission(ctx context.Context, userID uint64, limit, offset int) ([]SubmissionSummary, int, error)
 	UpdateSubmissionStatus(ctx context.Context, id uint64, status string) error
-
+	// ---score---
 	CreateScore(ctx context.Context, sc *Score) (*Score, error)
 	GetScoreBySubmissionID(ctx context.Context, submissionID uint64) (*Score, error)
 }

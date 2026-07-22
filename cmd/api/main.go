@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github/DoanCongPho/game-arena/internal/feature/ielts_test"
+	"github/DoanCongPho/game-arena/internal/feature/profile"
 	"github/DoanCongPho/game-arena/internal/platform"
 	"github/DoanCongPho/game-arena/internal/platform/auth"
 	"github/DoanCongPho/game-arena/internal/platform/config"
@@ -63,8 +64,12 @@ func main() {
 	grader := ielts_test.NewOpenAIGrader(llmClient)
 
 	testRepo := ielts_test.NewRepository(plat.DB)
-	testSvc := ielts_test.NewService(testRepo, grader)
+	testSvc := ielts_test.NewService(testRepo, grader, authRepo)
 	testSvc.MountRoutes(api)
+
+	// --profile--
+	profileSvc := profile.NewService(authRepo)
+	profileSvc.MountRoutes(api) // mounted on /api subrouter, RequireAuth already applies
 
 	addr := fmt.Sprintf(":%d", cfg.App.Port)
 	srv := &http.Server{

@@ -1,3 +1,6 @@
+@import './styles/tokens.css';
+@import './styles/typography.css';
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -11,50 +14,19 @@ body,
   height: 100%;
 }
 
-:root {
-  --cream: #f2efe6;
-  --ink: #0b0e14;
-  --navy: #0a0e1a;
-  --white: #ffffff;
-
-  --blue: #4c7cff;
-  --yellow: #ffd447;
-  --green: #34d399;
-  --purple: #9b8afb;
-  --pink: #ff7aa2;
-
-  --border-w: 2px;
-  --border: var(--border-w) solid var(--ink);
-  --shadow-hard: 4px 4px 0 var(--ink);
-
-  --font-sans: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-
-  color-scheme: light;
-}
-
 body {
-  font-family: var(--font-sans);
-  background: var(--cream);
-  color: var(--ink);
+  font-family: var(--font-ui);
+  background: var(--paper-50);
+  color: var(--ink-900);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 h1, h2, h3 {
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 0.95;
+  font-family: var(--font-ui);
+  font-weight: 600;
 }
 
 a {
   color: inherit;
-}
-
-/* Subtle graph-paper texture for section backgrounds */
-.grid-bg {
-  background-image:
-    linear-gradient(rgba(11, 14, 20, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(11, 14, 20, 0.06) 1px, transparent 1px);
-  background-size: 32px 32px;
 }

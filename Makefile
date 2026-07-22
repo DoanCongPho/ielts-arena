@@ -13,3 +13,6 @@ migrate-down:
 
 migrate-status:
 	go run ./cmd/api migrate status
+
+test:
+	go test ./...

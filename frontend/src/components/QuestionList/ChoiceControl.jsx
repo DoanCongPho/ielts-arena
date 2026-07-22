@@ -1,3 +1,5 @@
+import HighlightableText from '../HighlightableText/HighlightableText';
+
 const TFNG_OPTIONS = ['TRUE', 'FALSE', 'NOT GIVEN'].map((v) => ({ id: v, text: v }));
 const YNNG_OPTIONS = ['YES', 'NO', 'NOT GIVEN'].map((v) => ({ id: v, text: v }));
 
@@ -16,7 +18,7 @@ function optionLabel(opt) {
 // (capped at select_count). The matching-* family and map-plan-labelling
 // live in MatchingDragDrop instead — they're "match to one item from a
 // shared list" rather than "pick from this question's own options".
-export default function ChoiceControl({ group, answers, onChange, disabled, results }) {
+export default function ChoiceControl({ group, answers, onChange, disabled, results, highlights, onHighlightRemove }) {
   const isMulti = group.question_type === 'multiple-choice-multi';
 
   return (
@@ -30,6 +32,7 @@ export default function ChoiceControl({ group, answers, onChange, disabled, resu
         const itemClass = result
           ? `question-item ${result.correct ? 'question-item-correct' : 'question-item-incorrect'}`
           : 'question-item';
+        const textKey = `q-${order}-text`;
 
         function toggleMulti(optionId) {
           const current = Array.isArray(value) ? value : [];
@@ -43,7 +46,8 @@ export default function ChoiceControl({ group, answers, onChange, disabled, resu
         return (
           <div key={order} id={`question-${order}`} className={itemClass}>
             <p className="question-item-text">
-              <span className="question-item-number">Câu {order}</span> {q.text}
+              <span className="question-item-number">Câu {order}</span>{' '}
+              <HighlightableText id={textKey} text={q.text} ranges={highlights?.[textKey]} onRemoveRange={onHighlightRemove} />
             </p>
 
             <div className="question-item-options">

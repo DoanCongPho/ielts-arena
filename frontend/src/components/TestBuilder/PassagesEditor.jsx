@@ -35,6 +35,7 @@ export default function PassagesEditor({ passages, onChange }) {
     <div className="tb-passages">
       {passages.map((p, pi) => (
         <div key={pi} className="tb-passage-card">
+          <span className="tb-card-eyebrow text-label">Passage {pi + 1}</span>
           <div className="tb-passage-header">
             <input
               className="tb-input tb-input-grow"

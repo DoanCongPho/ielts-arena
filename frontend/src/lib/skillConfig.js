@@ -9,6 +9,7 @@ export const SKILL_CONFIG = {
   writing: {
     label: 'Writing',
     enabled: true,
+    colorToken: 'writing',
     attemptPath: (id) => `/practice/writing/${id}`,
     taskFilters: [
       { key: 'all', label: 'Tất cả' },
@@ -21,6 +22,7 @@ export const SKILL_CONFIG = {
   reading: {
     label: 'Reading',
     enabled: true,
+    colorToken: 'reading',
     attemptPath: (id) => `/practice/reading/${id}`,
     // Category filters, not one pill per numbered edition — "Passage"
     // matches passage1/passage2/... and "Test" matches test1/test2/...
@@ -50,6 +52,7 @@ export const SKILL_CONFIG = {
   listening: {
     label: 'Listening',
     enabled: true,
+    colorToken: 'listening',
     attemptPath: (id) => `/practice/listening/${id}`,
     // Category filters — see the equivalent comment on reading's taskFilters.
     taskFilters: [
@@ -69,5 +72,7 @@ export const SKILL_CONFIG = {
   speaking: {
     label: 'Speaking',
     enabled: false,
+    colorToken: 'speaking',
+    comingSoon: true,
   },
 };

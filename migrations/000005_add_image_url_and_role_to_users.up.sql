@@ -1,0 +1,2 @@
+ALTER TABLE users ADD COLUMN image_url VARCHAR(500) NULL AFTER rank_score;
+ALTER TABLE users ADD COLUMN role VARCHAR(50) NOT NULL DEFAULT 'user' AFTER image_url;

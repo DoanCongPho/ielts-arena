@@ -1,4 +1,5 @@
 import { safeParse } from '../../lib/safeParse';
+import ScoreCard from '../ui/ScoreCard/ScoreCard';
 import './ScoreResult.css';
 
 export default function ScoreResult({ score }) {
@@ -8,10 +9,7 @@ export default function ScoreResult({ score }) {
 
   return (
     <div className="score-result">
-      <div className="score-result-band">
-        <span className="score-result-band-value">{score.overall_band}</span>
-        <span className="score-result-band-label">Overall Band</span>
-      </div>
+      <ScoreCard skill="writing" band={score.overall_band} />
 
       <div className="score-result-criteria-list">
         {Object.entries(criteria).map(([name, c]) => (

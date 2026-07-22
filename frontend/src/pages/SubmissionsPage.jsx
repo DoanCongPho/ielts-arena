@@ -1,15 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listSubmissions } from '../lib/api';
+import Button from '../components/ui/Button/Button';
+import SkillTag from '../components/ui/SkillTag/SkillTag';
+import StatusBadge from '../components/ui/StatusBadge/StatusBadge';
 import './PracticePage.css';
 import './SubmissionsPage.css';
-
-const STATUS_LABEL = {
-  pending: 'Đang chờ',
-  submitted: 'Đã nộp',
-  graded: 'Đã chấm',
-  failed: 'Chấm lỗi',
-};
 
 const SKILL_LABEL = {
   writing: 'Writing',
@@ -50,10 +46,10 @@ export default function SubmissionsPage() {
   return (
     <div className="practice-page">
       <header className="practice-header">
-        <h1>Bài đã làm</h1>
-        <button className="practice-back-btn" onClick={() => navigate('/dashboard')}>
+        <h1 className="text-h1">Bài đã làm</h1>
+        <Button variant="secondary" onClick={() => navigate('/dashboard')}>
           ← Dashboard
-        </button>
+        </Button>
       </header>
 
       {loading && <p className="practice-status">Đang tải...</p>}
@@ -67,37 +63,33 @@ export default function SubmissionsPage() {
         {submissions.map((sub) => (
           <div
             key={sub.id}
-            className="submission-card"
+            className="submission-row"
             onClick={() => navigate(`/submissions/${sub.id}`)}
           >
-            <div className="submission-card-tags">
-              <span className="test-tag test-tag-task">
-                {SKILL_LABEL[sub.test_skill] || sub.test_skill}
-                {sub.test_task_type ? ` · ${sub.test_task_type}` : ''}
-              </span>
-              <span className={`submission-status submission-status-${sub.status}`}>
-                {STATUS_LABEL[sub.status] || sub.status}
-              </span>
-              {sub.overall_band != null && (
-                <span className="test-tag test-tag-xp">Band {sub.overall_band}</span>
-              )}
-            </div>
-            <span className="submission-card-date">{formatDate(sub.submitted_at)}</span>
+            <SkillTag skill={sub.test_skill} className="submission-row-skill">
+              {SKILL_LABEL[sub.test_skill] || sub.test_skill}
+              {sub.test_task_type ? ` · ${sub.test_task_type}` : ''}
+            </SkillTag>
+            <span className="submission-row-date text-data-sm">{formatDate(sub.submitted_at)}</span>
+            <span className="submission-row-band text-data-sm">
+              {sub.overall_band != null ? `Band ${sub.overall_band}` : ''}
+            </span>
+            <StatusBadge status={sub.status} className="submission-row-status" />
           </div>
         ))}
       </div>
 
       {pagination && (
         <div className="practice-pagination">
-          <button disabled={!pagination.has_prev} onClick={() => setPage((p) => p - 1)}>
+          <Button variant="secondary" disabled={!pagination.has_prev} onClick={() => setPage((p) => p - 1)}>
             ← Trước
-          </button>
-          <span>
+          </Button>
+          <span className="text-data-sm">
             Trang {pagination.page} / {pagination.total_pages || 1}
           </span>
-          <button disabled={!pagination.has_next} onClick={() => setPage((p) => p + 1)}>
+          <Button variant="secondary" disabled={!pagination.has_next} onClick={() => setPage((p) => p + 1)}>
             Sau →
-          </button>
+          </Button>
         </div>
       )}
     </div>

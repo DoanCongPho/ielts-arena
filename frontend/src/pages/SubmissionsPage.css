@@ -1,61 +1,41 @@
+/* Dense divided list, not boxed cards (design-system.md §5). */
 .submission-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
 }
 
-.submission-card {
+.submission-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  background: var(--white);
-  border: var(--border);
-  padding: 16px 20px;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--hairline);
   cursor: pointer;
-  transition: transform 0.1s, box-shadow 0.1s;
+  transition: background 0.15s ease;
 }
 
-.submission-card:hover {
-  transform: translate(-3px, -3px);
-  box-shadow: 5px 5px 0 var(--ink);
+.submission-row:first-child {
+  border-top: 1px solid var(--hairline);
 }
 
-.submission-card-tags {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+.submission-row:hover {
+  background: var(--paper-50);
 }
 
-.submission-card-date {
-  font-size: 12px;
-  font-family: var(--font-mono);
-  color: rgba(11, 14, 20, 0.5);
-  white-space: nowrap;
+.submission-row-skill {
+  flex-shrink: 0;
 }
 
-.submission-status {
-  font-size: 11px;
-  font-weight: 700;
-  font-family: var(--font-mono);
-  padding: 4px 10px;
-  border: 1.5px solid var(--ink);
-  letter-spacing: 0.2px;
+.submission-row-date {
+  color: var(--ink-400);
+  flex-shrink: 0;
 }
 
-.submission-status-pending {
-  background: var(--yellow);
+.submission-row-band {
+  color: var(--gold-600);
+  margin-left: auto;
 }
 
-.submission-status-submitted {
-  background: var(--blue);
-}
-
-.submission-status-graded {
-  background: var(--green);
-}
-
-.submission-status-failed {
-  background: var(--pink);
+.submission-row-status {
+  flex-shrink: 0;
 }

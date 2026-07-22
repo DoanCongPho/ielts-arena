@@ -1,88 +1,75 @@
-.score-result-band {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px 0 24px;
-  border-bottom: var(--border);
-  margin-bottom: 20px;
-}
-
-.score-result-band-value {
-  font-size: 56px;
-  font-weight: 800;
-  color: var(--ink);
-}
-
-.score-result-band-label {
-  font-size: 12px;
-  font-family: var(--font-mono);
-  text-transform: uppercase;
-  color: rgba(11, 14, 20, 0.5);
-  letter-spacing: 0.5px;
-}
-
 .score-result-criteria-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  margin-bottom: 20px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
 }
 
 .score-result-criteria-header {
   display: flex;
   justify-content: space-between;
+  font-family: var(--font-ui);
   font-size: 13px;
-  font-weight: 700;
-  margin-bottom: 4px;
+  font-weight: 600;
+  margin-bottom: var(--space-1);
 }
 
 .score-result-criteria-score {
-  font-family: var(--font-mono);
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
   padding: 1px 8px;
-  background: var(--purple);
-  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--writing-fill);
+  color: var(--writing-600);
 }
 
 .score-result-criteria-feedback {
+  font-family: var(--font-ui);
   font-size: 13px;
-  color: rgba(11, 14, 20, 0.7);
+  color: var(--ink-700);
   line-height: 1.5;
 }
 
 .score-result-corrections h3,
 .score-result-model-answer h3 {
+  font-family: var(--font-ui);
   font-size: 13px;
-  font-family: var(--font-mono);
+  font-weight: 600;
   text-transform: uppercase;
-  margin: 0 0 10px;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.04em;
+  color: var(--ink-400);
+  margin: 0 0 var(--space-3);
 }
 
 .score-result-correction-item {
-  background: var(--cream);
-  border: var(--border);
-  padding: 10px 12px;
-  margin-bottom: 8px;
+  background: var(--paper-50);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  margin-bottom: var(--space-2);
+  font-family: var(--font-ui);
   font-size: 13px;
 }
 
 .score-result-correction-span {
   font-style: italic;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 
 .score-result-correction-issue {
-  color: rgba(11, 14, 20, 0.6);
-  margin-bottom: 4px;
+  color: var(--ink-700);
+  margin-bottom: var(--space-1);
 }
 
 .score-result-correction-suggestion {
   font-weight: 600;
+  color: var(--success-600);
 }
 
 .score-result-model-answer p {
+  font-family: var(--font-ui);
   font-size: 13px;
   line-height: 1.6;
-  color: rgba(11, 14, 20, 0.75);
+  color: var(--ink-700);
   white-space: pre-wrap;
 }

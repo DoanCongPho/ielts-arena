@@ -8,13 +8,18 @@ import (
 
 	"github/DoanCongPho/game-arena/internal/platform/auth"
 	"github/DoanCongPho/game-arena/internal/platform/httpx"
+	"github/DoanCongPho/game-arena/internal/platform/middleware"
 
 	"github.com/gorilla/mux"
 )
 
 func (s *service) MountRoutes(r *mux.Router) {
 	r.HandleFunc("/tests", s.listTestsHandler).Methods(http.MethodGet)
-	r.HandleFunc("/tests", s.createTestHandler).Methods(http.MethodPost)
+	// Creating tests is admin-only — RequireAuth (already applied to the
+	// whole /api subrouter, see cmd/api/main.go) has run by this point, so
+	// RequireAdmin only needs to check the role already on the request
+	// context, not re-verify the token.
+	r.Handle("/tests", middleware.RequireAdmin(http.HandlerFunc(s.createTestHandler))).Methods(http.MethodPost)
 	r.HandleFunc("/tests/{id}", s.getTestHandler).Methods(http.MethodGet)
 	r.HandleFunc("/submissions", s.submitAnswerHandler).Methods(http.MethodPost)
 	r.HandleFunc("/submissions", s.listSubmissionsHandler).Methods(http.MethodGet)

@@ -1,0 +1,72 @@
+/* Design tokens — transcribed 1:1 from docs/design-system.md §1-3.
+   This file is the single source of truth for color/font/spacing/radius
+   values; nothing outside it should introduce a new hex/px value. */
+
+:root {
+  /* §1.1 Neutrals */
+  --ink-900: #16233f;
+  --ink-700: #3a4457;
+  --ink-400: #7a8296;
+  --paper-50: #eef1ee;
+  --surface-0: #ffffff;
+  --hairline: rgba(22, 35, 63, 0.1);
+
+  /* §1.2 Skill identity colors */
+  --reading-600: #1c7a6c;
+  --reading-500: #22a68f;
+  --reading-fill: #e4f3f0;
+  --writing-600: #6d4fc9;
+  --writing-500: #8a6ae0;
+  --writing-fill: #eeeafb;
+  --listening-600: #2c6fd1;
+  --listening-500: #4a90f0;
+  --listening-fill: #e7effc;
+  --speaking-600: #b8623d;
+  --speaking-500: #d68556;
+  --speaking-fill: #f5eae3;
+
+  /* §1.3 Signature accent — Band Gold */
+  --gold-600: #b8862e;
+  --gold-100: #f7edd9;
+
+  /* §1.4 Semantic */
+  --success-600: #2f8f5b;
+  --error-600: #c1443a;
+  --warning-600: var(--gold-600);
+
+  /* §2 Typefaces */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-ui: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-data: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* §3 Spacing — 4px unit */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* §3 Radius */
+  --radius-sm: 8px;
+  --radius-card: 12px;
+  --radius-full: 999px;
+
+  /* §3 Elevation */
+  --shadow-modal: 0 8px 24px rgba(22, 35, 63, 0.12);
+  --shadow-sm: 0 1px 2px rgba(22, 35, 63, 0.05), 0 1px 3px rgba(22, 35, 63, 0.06);
+  --shadow-hover: 0 12px 28px rgba(22, 35, 63, 0.14);
+
+  /* v2.0 — vibrant accents (§0 changelog) */
+  --gradient-primary: linear-gradient(135deg, #26385f, var(--ink-900));
+
+  /* Vertical space reserved at the top of authenticated, top-anchored pages
+     so content never sits underneath the fixed ProfileHud. Placeholder
+     value carried over from the old design — re-measure against the
+     rebuilt ProfileHud's actual rendered height and update this once. */
+  --layout-fixed-hud-offset: 176px;
+
+  color-scheme: light;
+}

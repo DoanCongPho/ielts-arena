@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getScore, getTest, submitAnswer } from '../lib/api';
 import { safeParse } from '../lib/safeParse';
-import { splitHighlightSegments, mergeRanges, textOffset } from '../lib/highlightText';
+import { mergeRanges, textOffset } from '../lib/highlightText';
 import { SKILL_CONFIG } from '../lib/skillConfig';
 import QuestionList from '../components/QuestionList/QuestionList';
 import AutoGradeResult from '../components/AutoGradeResult/AutoGradeResult';
 import QuestionNavBar from '../components/QuestionNavBar/QuestionNavBar';
+import HighlightableText from '../components/HighlightableText/HighlightableText';
+import Button from '../components/ui/Button/Button';
 import './PracticePage.css';
 import './WritingAttemptPage.css';
 import './ReadingAttemptPage.css';
@@ -14,7 +16,7 @@ import './ReadingAttemptPage.css';
 export default function ReadingAttemptPage() {
   const { testId } = useParams();
   const navigate = useNavigate();
-  const passageRef = useRef(null);
+  const highlightAreaRef = useRef(null);
   const toolbarRef = useRef(null);
 
   const [test, setTest] = useState(null);
@@ -28,9 +30,13 @@ export default function ReadingAttemptPage() {
   const [score, setScore] = useState(null);
   const [gradeFailed, setGradeFailed] = useState(false);
 
-  // Text highlighting in the passage panel — a plain frontend convenience
-  // (like the highlighter tool in the real IELTS on-screen test), keyed by
-  // passage index then paragraph label, never submitted to the backend.
+  // Text highlighting — works anywhere in either panel (passage paragraphs,
+  // group instructions, question text), a plain frontend convenience (like
+  // the highlighter tool in the real IELTS on-screen test). Keyed by
+  // passage index, then a highlight key identifying which text element
+  // (`p-{i}` for a paragraph, `group-{order}-instructions`, `q-{order}-text`
+  // — see data-highlight-key on HighlightableText). Never submitted to the
+  // backend.
   const [highlights, setHighlights] = useState({});
   const [selectionInfo, setSelectionInfo] = useState(null);
 
@@ -59,7 +65,7 @@ export default function ReadingAttemptPage() {
   useEffect(() => {
     function handleDocMouseDown(e) {
       if (toolbarRef.current?.contains(e.target)) return;
-      if (passageRef.current?.contains(e.target)) return;
+      if (highlightAreaRef.current?.contains(e.target)) return;
       setSelectionInfo(null);
     }
     document.addEventListener('mousedown', handleDocMouseDown);
@@ -91,7 +97,12 @@ export default function ReadingAttemptPage() {
     setPendingScrollOrder(order);
   }
 
-  function handlePassageMouseUp() {
+  // Fires on mouseup anywhere in either panel (passage or questions) — the
+  // nearest ancestor with data-highlight-key identifies which text element
+  // was selected (a paragraph, a group's instructions, or a question's
+  // text), and offsets are computed relative to that element specifically,
+  // so distinct elements never share one bucket of character ranges.
+  function handleHighlightAreaMouseUp() {
     const sel = window.getSelection();
     if (!sel || sel.isCollapsed || sel.rangeCount === 0) {
       setSelectionInfo(null);
@@ -101,14 +112,14 @@ export default function ReadingAttemptPage() {
     const anchorEl = range.commonAncestorContainer.nodeType === Node.TEXT_NODE
       ? range.commonAncestorContainer.parentElement
       : range.commonAncestorContainer;
-    const paragraphEl = anchorEl?.closest?.('[data-paragraph-label]');
-    if (!paragraphEl) {
+    const targetEl = anchorEl?.closest?.('[data-highlight-key]');
+    if (!targetEl) {
       setSelectionInfo(null);
       return;
     }
-    const label = paragraphEl.dataset.paragraphLabel;
-    const from = textOffset(paragraphEl, range.startContainer, range.startOffset);
-    const to = textOffset(paragraphEl, range.endContainer, range.endOffset);
+    const key = targetEl.dataset.highlightKey;
+    const from = textOffset(targetEl, range.startContainer, range.startOffset);
+    const to = textOffset(targetEl, range.endContainer, range.endOffset);
     const start = Math.min(from, to);
     const end = Math.max(from, to);
     if (start === end) {
@@ -116,25 +127,25 @@ export default function ReadingAttemptPage() {
       return;
     }
     const rect = range.getBoundingClientRect();
-    setSelectionInfo({ label, start, end, x: rect.left + rect.width / 2, y: rect.top });
+    setSelectionInfo({ key, start, end, x: rect.left + rect.width / 2, y: rect.top });
   }
 
   function applyHighlight() {
     if (!selectionInfo) return;
-    const { label, start, end } = selectionInfo;
+    const { key, start, end } = selectionInfo;
     setHighlights((prev) => {
       const passageMap = { ...(prev[activeIndex] || {}) };
-      passageMap[label] = mergeRanges([...(passageMap[label] || []), { start, end }]);
+      passageMap[key] = mergeRanges([...(passageMap[key] || []), { start, end }]);
       return { ...prev, [activeIndex]: passageMap };
     });
     window.getSelection()?.removeAllRanges();
     setSelectionInfo(null);
   }
 
-  function removeHighlight(label, start, end) {
+  function removeHighlight(key, start, end) {
     setHighlights((prev) => {
       const passageMap = { ...(prev[activeIndex] || {}) };
-      passageMap[label] = (passageMap[label] || []).filter((r) => !(r.start === start && r.end === end));
+      passageMap[key] = (passageMap[key] || []).filter((r) => !(r.start === start && r.end === end));
       return { ...prev, [activeIndex]: passageMap };
     });
   }
@@ -165,17 +176,18 @@ export default function ReadingAttemptPage() {
   const activePassage = passages[activeIndex];
   const activeGroups = activePassage?.question_groups || [];
   const allQuestions = passages.flatMap((p) => (p.question_groups || []).flatMap((g) => g.questions));
+  const scoreResults = score ? safeParse(score.details)?.results : undefined;
 
   return (
     <div className="attempt-page reading-attempt-page">
       <header className="attempt-header">
-        <button className="practice-back-btn" onClick={() => navigate('/practice/reading')}>
+        <Button variant="secondary" onClick={() => navigate('/practice/reading')}>
           ← Danh sách đề
-        </button>
+        </Button>
         <span className="attempt-timer">{formatTime(seconds)}</span>
       </header>
 
-      <div className="attempt-body reading-attempt-body">
+      <div className="attempt-body reading-attempt-body" ref={highlightAreaRef} onMouseUp={handleHighlightAreaMouseUp}>
         <div className="attempt-prompt-panel reading-scroll-panel">
           <h2>Reading — {SKILL_CONFIG.reading.taskTypeLabel(test.task_type)}</h2>
           {passages.length > 1 && (
@@ -185,38 +197,22 @@ export default function ReadingAttemptPage() {
                   key={i}
                   className={`skill-tab ${i === activeIndex ? 'active' : ''}`}
                   onClick={() => setActiveIndex(i)}
-                  disabled={submitting || !!score || gradeFailed}
+                  disabled={submitting}
                 >
                   {p.title || `Passage ${i + 1}`}
                 </button>
               ))}
             </nav>
           )}
-          <p className="reading-highlight-hint">Bôi đen văn bản để tô đậm — bấm vào phần đã tô để bỏ.</p>
-          <div className="attempt-passage-text" ref={passageRef} onMouseUp={handlePassageMouseUp}>
+          <p className="reading-highlight-hint">Bôi đen văn bản để tô đậm (đề hoặc câu hỏi) — bấm vào phần đã tô để bỏ.</p>
+          <div className="attempt-passage-text">
             {activePassage?.title && <h3 className="reading-passage-title">{activePassage.title}</h3>}
             {(activePassage?.paragraphs || []).map((p, pi) => {
-              const ranges = highlights[activeIndex]?.[p.label] || [];
-              const segments = splitHighlightSegments(p.text, ranges);
+              const key = `p-${pi}`;
               return (
                 <p key={`${activeIndex}-${pi}`}>
                   {p.label && <strong>{p.label}. </strong>}
-                  <span data-paragraph-label={p.label}>
-                    {segments.map((seg, i) =>
-                      seg.highlighted ? (
-                        <mark
-                          key={i}
-                          className="reading-highlight-mark"
-                          title="Bấm để bỏ tô đậm"
-                          onClick={() => removeHighlight(p.label, seg.start, seg.end)}
-                        >
-                          {seg.text}
-                        </mark>
-                      ) : (
-                        <span key={i}>{seg.text}</span>
-                      ),
-                    )}
-                  </span>
+                  <HighlightableText id={key} text={p.text} ranges={highlights[activeIndex]?.[key]} onRemoveRange={removeHighlight} />
                 </p>
               );
             })}
@@ -224,20 +220,7 @@ export default function ReadingAttemptPage() {
         </div>
 
         <div className="attempt-answer-panel reading-scroll-panel">
-          {!score && !gradeFailed && (
-            <>
-              <QuestionList
-                groups={activeGroups}
-                answers={answers}
-                onChange={handleAnswerChange}
-                disabled={submitting}
-              />
-              {error && <p className="practice-status practice-error">{error}</p>}
-              <button className="attempt-submit-btn" onClick={handleSubmit} disabled={submitting}>
-                {submitting ? 'Đang chấm điểm...' : 'Nộp bài'}
-              </button>
-            </>
-          )}
+          {score && <AutoGradeResult score={score} skill="reading" compact />}
 
           {gradeFailed && (
             <div className="attempt-result">
@@ -247,12 +230,36 @@ export default function ReadingAttemptPage() {
             </div>
           )}
 
-          {score && <AutoGradeResult score={score} questions={allQuestions} />}
+          {!gradeFailed && (
+            <QuestionList
+              groups={activeGroups}
+              answers={answers}
+              onChange={score ? undefined : handleAnswerChange}
+              disabled={submitting || !!score}
+              results={scoreResults}
+              highlights={highlights[activeIndex]}
+              onHighlightRemove={removeHighlight}
+              skill="reading"
+            />
+          )}
+
+          {error && <p className="practice-status practice-error">{error}</p>}
+
+          {!score && !gradeFailed && (
+            <Button variant="primary" className="attempt-submit-btn" onClick={handleSubmit} disabled={submitting}>
+              {submitting ? 'Đang chấm điểm...' : 'Nộp bài'}
+            </Button>
+          )}
         </div>
       </div>
 
-      {!score && !gradeFailed && (
-        <QuestionNavBar questions={allQuestions} answers={answers} onJump={handleJumpToQuestion} />
+      {!gradeFailed && (
+        <QuestionNavBar
+          questions={allQuestions}
+          answers={answers}
+          results={scoreResults}
+          onJump={handleJumpToQuestion}
+        />
       )}
 
       {selectionInfo && (

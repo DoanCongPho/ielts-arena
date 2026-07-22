@@ -1,0 +1,37 @@
+.ui-band-meter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.ui-band-meter-labels {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.ui-band-meter-label {
+  color: var(--gold-600);
+}
+
+.ui-band-meter-trailing {
+  color: var(--ink-400);
+}
+
+.ui-band-meter-track {
+  display: flex;
+  gap: 4px;
+  height: 6px;
+}
+
+.ui-band-meter-segment {
+  flex: 1;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--hairline);
+}
+
+.ui-band-meter-segment-filled {
+  background: var(--gold-600);
+}

@@ -1,0 +1,36 @@
+.ui-skill-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.ui-skill-tag-coming-soon {
+  opacity: 0.5;
+}
+
+.ui-skill-tag-reading {
+  background: var(--reading-fill);
+  color: var(--reading-600);
+}
+
+.ui-skill-tag-writing {
+  background: var(--writing-fill);
+  color: var(--writing-600);
+}
+
+.ui-skill-tag-listening {
+  background: var(--listening-fill);
+  color: var(--listening-600);
+}
+
+.ui-skill-tag-speaking {
+  background: var(--speaking-fill);
+  color: var(--speaking-600);
+}

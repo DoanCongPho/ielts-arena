@@ -3,6 +3,9 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { listTests } from '../lib/api';
 import { safeParse } from '../lib/safeParse';
 import { SKILLS, SKILL_CONFIG } from '../lib/skillConfig';
+import Button from '../components/ui/Button/Button';
+import SkillTag from '../components/ui/SkillTag/SkillTag';
+import Card from '../components/ui/Card/Card';
 import './PracticePage.css';
 
 export default function SkillTestsPage() {
@@ -64,10 +67,10 @@ export default function SkillTestsPage() {
   return (
     <div className="practice-page">
       <header className="practice-header">
-        <h1>IELTS Arena</h1>
-        <button className="practice-back-btn" onClick={() => navigate('/dashboard')}>
+        <h1 className="text-h1">IELTS Arena</h1>
+        <Button variant="secondary" onClick={() => navigate('/dashboard')}>
           ← Dashboard
-        </button>
+        </Button>
       </header>
 
       <nav className="skill-tabs">
@@ -76,12 +79,16 @@ export default function SkillTestsPage() {
           return (
             <button
               key={s.key}
-              className={`skill-tab ${s.key === skill ? 'active' : sConfig?.enabled ? '' : 'disabled'}`}
+              className={
+                `skill-tab ${s.key === skill ? 'active' : ''}` +
+                (!sConfig?.enabled ? ' skill-tab-coming-soon' : '')
+              }
               disabled={!sConfig?.enabled}
               title={!sConfig?.enabled ? 'Sắp ra mắt' : undefined}
               onClick={() => navigate(`/practice/${s.key}`)}
             >
               {s.label}
+              {sConfig?.comingSoon && <span className="skill-tab-badge text-label">Soon</span>}
             </button>
           );
         })}
@@ -111,51 +118,52 @@ export default function SkillTestsPage() {
           const content = safeParse(t.content_data);
           const summary = config.cardSummary(content);
           return (
-            <div
+            <Card
               key={t.id}
+              padding="compact"
               className="test-card"
               onClick={() => navigate(config.attemptPath(t.id))}
             >
               {t.thumbnail_url && (
                 <div className="test-card-media">
                   <img className="test-card-thumb" src={t.thumbnail_url} alt="" />
-                  <span className="test-card-media-badge">+{t.xp_gain} XP</span>
+                  <span className="test-card-xp-chip text-data-sm">+{t.xp_gain} XP</span>
                   <span className="test-card-section-tag">
-                    {config.taskTypeLabel(t.task_type)}
+                    <SkillTag skill={skill}>{config.taskTypeLabel(t.task_type)}</SkillTag>
                   </span>
                 </div>
               )}
               <div className="test-card-body">
                 {!t.thumbnail_url && (
                   <div className="test-card-tags">
-                    <span className="test-tag test-tag-task">
-                      {config.taskTypeLabel(t.task_type)}
-                    </span>
-                    {content?.image_url && <span className="test-tag test-tag-chart">Có biểu đồ</span>}
-                    <span className="test-tag test-tag-xp">+{t.xp_gain} XP</span>
+                    <SkillTag skill={skill}>{config.taskTypeLabel(t.task_type)}</SkillTag>
+                    {content?.image_url && (
+                      <span className="test-tag-neutral text-label">Có biểu đồ</span>
+                    )}
+                    <span className="test-card-xp-chip text-data-sm">+{t.xp_gain} XP</span>
                   </div>
                 )}
-                {summary && <p className="test-card-prompt">{summary}</p>}
+                {summary && <p className="test-card-prompt text-body-sm">{summary}</p>}
                 {t.thumbnail_url && content?.image_url && (
-                  <p className="test-card-subtitle">• Có biểu đồ</p>
+                  <p className="test-card-subtitle text-body-sm">• Có biểu đồ</p>
                 )}
               </div>
-            </div>
+            </Card>
           );
         })}
       </div>
 
       {pagination && (
         <div className="practice-pagination">
-          <button disabled={!pagination.has_prev} onClick={() => setPage((p) => p - 1)}>
+          <Button variant="secondary" disabled={!pagination.has_prev} onClick={() => setPage((p) => p - 1)}>
             ← Trước
-          </button>
-          <span>
+          </Button>
+          <span className="text-data-sm">
             Trang {pagination.page} / {pagination.total_pages || 1}
           </span>
-          <button disabled={!pagination.has_next} onClick={() => setPage((p) => p + 1)}>
+          <Button variant="secondary" disabled={!pagination.has_next} onClick={() => setPage((p) => p + 1)}>
             Sau →
-          </button>
+          </Button>
         </div>
       )}
     </div>

@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "vite": {
+      "source": "uni-helper/skills",
+      "sourceType": "github",
+      "skillPath": "skills/vite/SKILL.md",
+      "computedHash": "8e190c3bcc18634fdcb7a022c476d052fb58d2e2cae6926303e3e662e94a18ee"
+    }
+  }
+}

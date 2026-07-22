@@ -1,0 +1,77 @@
+.profile-hud {
+  position: fixed;
+  top: var(--space-6);
+  left: var(--space-4);
+  z-index: 1000;
+  font-family: var(--font-ui);
+}
+
+.profile-hud-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4) var(--space-2) var(--space-2);
+  background: var(--surface-0);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+}
+
+.profile-hud-avatar-btn {
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.profile-hud-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 160px;
+}
+
+.profile-hud-name-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.profile-hud-level {
+  color: var(--gold-600);
+}
+
+.profile-hud-name {
+  font-weight: 600;
+  color: var(--ink-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-hud-xp-meter {
+  width: 100%;
+}
+
+.profile-hud-picker {
+  margin-top: var(--space-2);
+  padding: var(--space-3);
+  background: var(--surface-0);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-modal);
+  display: grid;
+  grid-template-columns: repeat(6, 32px);
+  gap: var(--space-2);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.profile-hud-picker-item {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}

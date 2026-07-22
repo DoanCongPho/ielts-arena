@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import HoverGrid from '../components/HoverGrid/HoverGrid';
+import Card from '../components/ui/Card/Card';
+import Button from '../components/ui/Button/Button';
 import './AuthPage.css';
 
 function EyeIcon({ open }) {
@@ -54,71 +55,68 @@ export default function RegisterPage() {
 
   return (
     <div className="auth-page">
-      <HoverGrid />
-      <div className="auth-card-wrapper">
-        <div className="auth-card-inner">
-          <div className="auth-card-header">
-            <h1>IELTS Arena</h1>
-            <p>Create your account to get started.</p>
+      <Card className="auth-card-wrapper">
+        <div className="auth-card-header">
+          <h1 className="text-display-sm">IELTS Arena</h1>
+          <p className="text-body-sm">Create your account to get started.</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="auth-form">
+          {error && <div className="auth-error">{error}</div>}
+          {success && <div className="auth-success">Account created! Redirecting to login...</div>}
+
+          <div className="auth-field">
+            <label className="text-label" htmlFor="name">Full Name</label>
+            <input
+              id="name" name="name" type="text"
+              placeholder="John Doe"
+              value={form.name} onChange={handleChange}
+              required autoComplete="name"
+            />
           </div>
 
-          <form onSubmit={handleSubmit} className="auth-form">
-            {error && <div className="auth-error">{error}</div>}
-            {success && <div className="auth-success">Account created! Redirecting to login...</div>}
+          <div className="auth-field">
+            <label className="text-label" htmlFor="email">Email</label>
+            <input
+              id="email" name="email" type="email"
+              placeholder="you@example.com"
+              value={form.email} onChange={handleChange}
+              required autoComplete="email"
+            />
+          </div>
 
-            <div className="auth-field">
-              <label htmlFor="name">Full Name</label>
+          <div className="auth-field">
+            <label className="text-label" htmlFor="password">Password</label>
+            <div className="auth-password-wrapper">
               <input
-                id="name" name="name" type="text"
-                placeholder="John Doe"
-                value={form.name} onChange={handleChange}
-                required autoComplete="name"
+                id="password" name="password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Min. 8 characters"
+                value={form.password} onChange={handleChange}
+                required autoComplete="new-password"
               />
+              <button
+                type="button"
+                className="auth-eye-btn"
+                onClick={() => setShowPassword(v => !v)}
+                tabIndex={-1}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                <EyeIcon open={showPassword} />
+              </button>
             </div>
+          </div>
 
-            <div className="auth-field">
-              <label htmlFor="email">Email</label>
-              <input
-                id="email" name="email" type="email"
-                placeholder="you@example.com"
-                value={form.email} onChange={handleChange}
-                required autoComplete="email"
-              />
-            </div>
+          <Button type="submit" variant="primary" className="auth-submit-btn" disabled={loading}>
+            {loading ? 'Creating account...' : 'Create Account'}
+          </Button>
+        </form>
 
-            <div className="auth-field">
-              <label htmlFor="password">Password</label>
-              <div className="auth-password-wrapper">
-                <input
-                  id="password" name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Min. 8 characters"
-                  value={form.password} onChange={handleChange}
-                  required autoComplete="new-password"
-                />
-                <button
-                  type="button"
-                  className="auth-eye-btn"
-                  onClick={() => setShowPassword(v => !v)}
-                  tabIndex={-1}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  <EyeIcon open={showPassword} />
-                </button>
-              </div>
-            </div>
-
-            <button type="submit" className="auth-btn" disabled={loading}>
-              {loading ? 'Creating account...' : 'Create Account'}
-            </button>
-          </form>
-
-          <p className="auth-switch">
-            Already have an account?{' '}
-            <Link to="/login">Sign In</Link>
-          </p>
-        </div>
-      </div>
+        <p className="auth-switch">
+          Already have an account?{' '}
+          <Link to="/login">Sign In</Link>
+        </p>
+      </Card>
     </div>
   );
 }
