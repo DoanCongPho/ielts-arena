@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Card from '../components/ui/Card/Card';
 import Button from '../components/ui/Button/Button';
+import { API_BASE } from '../lib/api';
 import './AuthPage.css';
 
 function EyeIcon({ open }) {
@@ -37,7 +38,7 @@ export default function RegisterPage() {
     if (form.password.length < 8) { setError('Password must be at least 8 characters'); return; }
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:8080/auth/register', {
+      const res = await fetch(`${API_BASE}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
