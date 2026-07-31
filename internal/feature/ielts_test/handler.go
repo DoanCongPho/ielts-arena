@@ -27,18 +27,6 @@ func (s *service) MountRoutes(r *mux.Router) {
 	r.HandleFunc("/submissions/{id}/score", s.getScoreHandler).Methods(http.MethodGet)
 }
 
-func currentUserID(r *http.Request) (uint64, bool) {
-	user, ok := auth.CurrentUser(r.Context())
-	if !ok {
-		return 0, false
-	}
-	return user.ID, true
-}
-
-func idFromPath(r *http.Request) (uint64, error) {
-	return strconv.ParseUint(mux.Vars(r)["id"], 10, 64)
-}
-
 func (s *service) listTestsHandler(w http.ResponseWriter, r *http.Request) {
 	skill := r.URL.Query().Get("skill")
 	if skill == "" {
@@ -56,7 +44,7 @@ func (s *service) listTestsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *service) getTestHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := idFromPath(r)
+	id, err := httpx.IDFromPath(r)
 	if err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "ielts_test.invalid_input", "invalid test id")
 		return
@@ -108,7 +96,7 @@ func (s *service) createTestHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *service) submitAnswerHandler(w http.ResponseWriter, r *http.Request) {
-	userID, ok := currentUserID(r)
+	userID, ok := auth.CurrentUserID(r)
 	if !ok {
 		httpx.WriteError(w, http.StatusUnauthorized, "auth.invalid_credentials", "missing authenticated user")
 		return
@@ -137,7 +125,7 @@ func (s *service) submitAnswerHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *service) listSubmissionsHandler(w http.ResponseWriter, r *http.Request) {
-	userID, ok := currentUserID(r)
+	userID, ok := auth.CurrentUserID(r)
 	if !ok {
 		httpx.WriteError(w, http.StatusUnauthorized, "auth.invalid_credentials", "missing authenticated user")
 		return
@@ -153,12 +141,12 @@ func (s *service) listSubmissionsHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *service) getSubmissionHandler(w http.ResponseWriter, r *http.Request) {
-	userID, ok := currentUserID(r)
+	userID, ok := auth.CurrentUserID(r)
 	if !ok {
 		httpx.WriteError(w, http.StatusUnauthorized, "auth.invalid_credentials", "missing authenticated user")
 		return
 	}
-	id, err := idFromPath(r)
+	id, err := httpx.IDFromPath(r)
 	if err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "ielts_test.invalid_input", "invalid submission id")
 		return
@@ -177,12 +165,12 @@ func (s *service) getSubmissionHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *service) getScoreHandler(w http.ResponseWriter, r *http.Request) {
-	userID, ok := currentUserID(r)
+	userID, ok := auth.CurrentUserID(r)
 	if !ok {
 		httpx.WriteError(w, http.StatusUnauthorized, "auth.invalid_credentials", "missing authenticated user")
 		return
 	}
-	id, err := idFromPath(r)
+	id, err := httpx.IDFromPath(r)
 	if err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "ielts_test.invalid_input", "invalid submission id")
 		return

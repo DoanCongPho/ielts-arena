@@ -16,16 +16,8 @@ func (s *service) MountRoutes(r *mux.Router) {
 	r.HandleFunc("/profile/frame", s.setEquippedFrameHandler).Methods(http.MethodPut)
 }
 
-func currentUserID(r *http.Request) (uint64, bool) {
-	user, ok := auth.CurrentUser(r.Context())
-	if !ok {
-		return 0, false
-	}
-	return user.ID, true
-}
-
 func (s *service) getProfileHandler(w http.ResponseWriter, r *http.Request) {
-	userID, ok := currentUserID(r)
+	userID, ok := auth.CurrentUserID(r)
 	if !ok {
 		httpx.WriteError(w, http.StatusUnauthorized, "auth.invalid_credentials", "missing authenticated user")
 		return
@@ -44,7 +36,7 @@ func (s *service) getProfileHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *service) setEquippedFrameHandler(w http.ResponseWriter, r *http.Request) {
-	userID, ok := currentUserID(r)
+	userID, ok := auth.CurrentUserID(r)
 	if !ok {
 		httpx.WriteError(w, http.StatusUnauthorized, "auth.invalid_credentials", "missing authenticated user")
 		return
