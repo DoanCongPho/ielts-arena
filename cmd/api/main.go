@@ -53,7 +53,8 @@ func main() {
 	// -- Auth --
 	authRepo := auth.NewUserRepository(plat.DB)
 	authSvc := auth.NewService(authRepo)
-	authSvc.MountRoutes(r)
+	pubAPI := r.PathPrefix("/api").Subrouter()
+	authSvc.MountRoutes(pubAPI)
 	auth.Init(cfg.App.SecretKey)
 	middleware.CorsInit(cfg.App.AllowedOrigins...)
 
