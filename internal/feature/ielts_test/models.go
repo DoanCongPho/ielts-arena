@@ -6,9 +6,14 @@ import (
 	"time"
 )
 
+// Submission lifecycle. A submission is created "pending", a grading
+// worker claims it into "grading", and it settles as "graded" or "failed".
+// A transient failure goes back to "pending" with next_attempt_at set,
+// so "failed" means permanently failed — out of retries, or ungradable.
 const (
 	StatusPending   = "pending"
 	StatusSubmitted = "submitted"
+	StatusGrading   = "grading"
 	StatusGraded    = "graded"
 	StatusFailed    = "failed"
 )
@@ -32,6 +37,12 @@ type Submission struct {
 	Payload     []byte
 	Status      string
 	SubmittedAt time.Time
+
+	// Grading-queue bookkeeping, written only by the grading worker.
+	Attempts      int
+	LastError     string
+	NextAttemptAt *time.Time
+	ClaimedAt     *time.Time
 }
 
 // dto for viewing the submission

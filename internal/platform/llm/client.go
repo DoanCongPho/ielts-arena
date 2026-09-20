@@ -2,10 +2,16 @@ package llm
 
 import (
 	"context"
+	"errors"
 
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
 )
+
+// ErrNoCompletion means the API returned successfully but with no usable
+// message — a content filter fired, or generation stopped before emitting
+// anything. Callers treat it as a transient failure worth retrying.
+var ErrNoCompletion = errors.New("llm returned no completion choices")
 
 type Client struct {
 	ai    openai.Client
@@ -57,6 +63,11 @@ func (c *Client) Complete(ctx context.Context, system, user, imageURL string, pa
 	resp, err := c.ai.Chat.Completions.New(ctx, req)
 	if err != nil {
 		return "", err
+	}
+	// A successful HTTP response does not guarantee a choice: indexing
+	// Choices[0] blindly panics whenever the model returns none.
+	if len(resp.Choices) == 0 {
+		return "", ErrNoCompletion
 	}
 	return resp.Choices[0].Message.Content, nil
 }

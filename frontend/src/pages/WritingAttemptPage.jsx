@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
-import { getScore, getTest, submitAnswer } from '../lib/api';
+import { getScore, getTest, submitAnswer, waitForGrading } from '../lib/api';
 import { safeParse } from '../lib/safeParse';
 import ScoreResult from '../components/ScoreResult/ScoreResult';
 import Button from '../components/ui/Button/Button';
@@ -38,10 +38,12 @@ export default function WritingAttemptPage() {
     setSubmitting(true);
     setError('');
     try {
-      const sub = await submitAnswer(Number(testId), { text });
-      if (sub.status === 'graded') {
-        const result = await getScore(sub.id);
-        setScore(result);
+      // The API only queues the answer; a background worker grades it, so
+      // poll the submission until its status settles.
+      const queued = await submitAnswer(Number(testId), { text });
+      const settled = await waitForGrading(queued.id);
+      if (settled.status === 'graded') {
+        setScore(await getScore(settled.id));
       } else {
         setGradeFailed(true);
       }
@@ -101,7 +103,7 @@ export default function WritingAttemptPage() {
           {gradeFailed && (
             <div className="attempt-result">
               <p className="practice-status practice-error">
-                Bài đã được lưu nhưng chấm điểm thất bại. Vui lòng thử lại sau.
+                Bài đã được lưu nhưng chấm điểm thất bại. Xem lại trong mục Lịch sử làm bài.
               </p>
             </div>
           )}

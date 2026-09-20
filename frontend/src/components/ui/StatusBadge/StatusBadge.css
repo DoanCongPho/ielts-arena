@@ -18,6 +18,13 @@
   color: var(--warning-600);
 }
 
+/* In the worker's hands right now — same gold family as pending, since
+   both mean "not settled yet", but filled in to read as active. */
+.ui-status-badge-grading {
+  background: var(--gold-100);
+  color: var(--warning-600);
+}
+
 .ui-status-badge-graded {
   background: rgba(47, 143, 91, 0.12);
   color: var(--success-600);

@@ -5,16 +5,21 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github/DoanCongPho/game-arena/internal/platform/leveling"
 
 	"github.com/go-sql-driver/mysql"
-	"github.com/gorilla/mux"
 )
 
-var ErrUserNotFound = errors.New("user not found")
+var (
+	ErrUserNotFound = errors.New("user not found")
+	// ErrEmailTaken is the unique-index violation on users.email, turned
+	// into a domain error at the repository boundary. Without this the
+	// driver's raw "Error 1062 ... Duplicate entry 'x' for key
+	// 'idx_users_email'" went straight into the registration response.
+	ErrEmailTaken = errors.New("email already registered")
+)
 
 type Repository interface {
 	FindByEmail(ctx context.Context, email string) (*User, error)
@@ -36,12 +41,6 @@ type userRepository struct {
 
 func NewUserRepository(db *sql.DB) Repository {
 	return &userRepository{db: db}
-}
-
-func (s *service) MountRoutes(r *mux.Router) {
-	r.HandleFunc("/auth/register", s.registerHandler).Methods(http.MethodPost)
-	r.HandleFunc("/auth/login", s.loginHandler).Methods(http.MethodPost)
-	r.HandleFunc("/auth/refresh", s.refreshHandler).Methods(http.MethodPost)
 }
 
 const userColumns = `id, name, email, password_hash, level, xp, rank_score, image_url, role, equipped_frame_level, created_at, updated_at`
@@ -117,6 +116,9 @@ func (u *userRepository) CreateUser(ctx context.Context, user *User) (*User, err
 		"INSERT INTO users (name, email, password_hash, level, xp, rank_score, image_url, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 		user.Name, user.Email, user.PasswordHash, user.Level, user.XP, user.RankScore, user.ImageURL, user.Role, user.CreatedAt, user.UpdatedAt,
 	)
+	if isDuplicateKeyErr(err) {
+		return nil, ErrEmailTaken
+	}
 	if err != nil {
 		return nil, fmt.Errorf("insert user: %w", err)
 	}

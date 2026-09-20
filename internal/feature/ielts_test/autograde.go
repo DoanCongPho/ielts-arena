@@ -319,12 +319,12 @@ type gradableQuestion struct {
 func (s *service) autoGradeSubmission(ctx context.Context, test *Test, sub *Submission) error {
 	questions, err := questionsFromContent(test.Skill, test.ContentData)
 	if err != nil {
-		return fmt.Errorf("unmarshal test content: %w", err)
+		return fmt.Errorf("%w: unmarshal test content: %v", ErrUngradable, err)
 	}
 
 	var payload AnswerPayload
 	if err := json.Unmarshal(sub.Payload, &payload); err != nil {
-		return fmt.Errorf("unmarshal submission payload: %w", err)
+		return fmt.Errorf("%w: unmarshal submission payload: %v", ErrUngradable, err)
 	}
 
 	results := make(map[string]QuestionResult, len(questions))

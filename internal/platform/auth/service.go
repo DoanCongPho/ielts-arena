@@ -4,12 +4,10 @@ import (
 	"context"
 	"errors"
 
-	"github.com/gorilla/mux"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type Service interface {
-	MountRoutes(r *mux.Router)
 	RegisterUser(ctx context.Context, req RegisterRequest) (*AuthResponse, error)
 	LoginUser(ctx context.Context, req LoginRequest) (*AuthResponse, error)
 	RefreshToken(ctx context.Context, refreshToken string) (*AuthResponse, error)

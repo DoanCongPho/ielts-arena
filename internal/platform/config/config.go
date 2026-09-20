@@ -6,9 +6,14 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 )
+
+// minSecretKeyLen is 32 bytes = 256 bits, matching HS256's block size.
+// A shorter key weakens the signature; an empty one removes it entirely.
+const minSecretKeyLen = 32
 
 type Config struct {
 	App AppConfig
@@ -16,13 +21,26 @@ type Config struct {
 }
 
 type AppConfig struct {
-	Env            string
-	Port           int
-	AutoMigrate    bool
-	SecretKey      []byte
+	Env         string
+	Port        int
+	AutoMigrate bool
+	SecretKey   []byte
+	// AllowedOrigins is empty for the default same-origin deployment (the
+	// SPA and this API behind one nginx). Set it only when the browser
+	// loads the frontend from a different origin than this API.
 	AllowedOrigins []string
 	OpenAIAPIKey   string
 	OpenAIModel    string
+	Grading        GradingConfig
+}
+
+// GradingConfig tunes the background grading worker pool. Workers is also
+// the ceiling on concurrent OpenAI calls, so it doubles as the cost and
+// rate control for LLM grading.
+type GradingConfig struct {
+	Workers      int
+	PollInterval time.Duration
+	JobTimeout   time.Duration
 }
 type DBConfig struct {
 	Host     string
@@ -81,15 +99,43 @@ func loadFromMap(env map[string]string) (*Config, error) {
 		return nil, fmt.Errorf("PORT: %w", err)
 	}
 	cfg.App.Port = port
-	cfg.App.SecretKey = []byte(get("SECRET_KEY", ""))
+	// No default. An unset SECRET_KEY used to fall back to "", which means
+	// every JWT was signed with an empty key — anyone could mint a token
+	// with "role":"admin" and the server would accept it. Refusing to boot
+	// is the only safe behaviour.
+	secret := get("SECRET_KEY", "")
+	if len(secret) < minSecretKeyLen {
+		return nil, fmt.Errorf(
+			"SECRET_KEY must be set and at least %d characters (got %d) — generate one with: openssl rand -base64 48",
+			minSecretKeyLen, len(secret))
+	}
+	cfg.App.SecretKey = []byte(secret)
 	if raw := get("ALLOWED_ORIGINS", ""); raw != "" {
-		cfg.App.AllowedOrigins = strings.Split(raw, ",")
-		for i, o := range cfg.App.AllowedOrigins {
-			cfg.App.AllowedOrigins[i] = strings.TrimSpace(o)
+		for _, o := range strings.Split(raw, ",") {
+			if o = strings.TrimSpace(o); o != "" {
+				cfg.App.AllowedOrigins = append(cfg.App.AllowedOrigins, o)
+			}
 		}
 	}
 	cfg.App.OpenAIAPIKey = get("OPENAI_API_KEY", "")
 	cfg.App.OpenAIModel = get("OPENAI_MODEL", "gpt-4o-mini")
+
+	// Grading workers
+	gradingWorkers, err := getInt("GRADING_WORKERS", 2)
+	if err != nil {
+		return nil, fmt.Errorf("GRADING_WORKERS: %w", err)
+	}
+	cfg.App.Grading.Workers = gradingWorkers
+	pollSeconds, err := getInt("GRADING_POLL_SECONDS", 3)
+	if err != nil {
+		return nil, fmt.Errorf("GRADING_POLL_SECONDS: %w", err)
+	}
+	cfg.App.Grading.PollInterval = time.Duration(pollSeconds) * time.Second
+	jobTimeoutSeconds, err := getInt("GRADING_JOB_TIMEOUT_SECONDS", 90)
+	if err != nil {
+		return nil, fmt.Errorf("GRADING_JOB_TIMEOUT_SECONDS: %w", err)
+	}
+	cfg.App.Grading.JobTimeout = time.Duration(jobTimeoutSeconds) * time.Second
 
 	// DB
 	cfg.DB.Host = get("DB_HOST", "localhost")
@@ -100,7 +146,7 @@ func loadFromMap(env map[string]string) (*Config, error) {
 	cfg.DB.Port = dbPort
 	cfg.DB.User = get("DB_USER", "root")
 	cfg.DB.Password = get("DB_PASSWORD", "")
-	cfg.DB.Name = get("DB_NAME", " tutor-portal-test")
+	cfg.DB.Name = get("DB_NAME", "ielts_arena")
 
 	return cfg, nil
 }

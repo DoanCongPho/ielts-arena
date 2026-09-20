@@ -11,31 +11,40 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func (s *service) MountRoutes(r *mux.Router) {
-	r.HandleFunc("/profile", s.getProfileHandler).Methods(http.MethodGet)
-	r.HandleFunc("/profile/frame", s.setEquippedFrameHandler).Methods(http.MethodPut)
+// Handler is the HTTP transport for the profile feature.
+type Handler struct {
+	svc Service
 }
 
-func (s *service) getProfileHandler(w http.ResponseWriter, r *http.Request) {
+func NewHandler(svc Service) *Handler {
+	return &Handler{svc: svc}
+}
+
+func (h *Handler) MountRoutes(r *mux.Router) {
+	r.HandleFunc("/profile", h.getProfileHandler).Methods(http.MethodGet)
+	r.HandleFunc("/profile/frame", h.setEquippedFrameHandler).Methods(http.MethodPut)
+}
+
+func (h *Handler) getProfileHandler(w http.ResponseWriter, r *http.Request) {
 	userID, ok := auth.CurrentUserID(r)
 	if !ok {
 		httpx.WriteError(w, http.StatusUnauthorized, "auth.invalid_credentials", "missing authenticated user")
 		return
 	}
 
-	resp, err := s.GetProfile(r.Context(), userID)
+	resp, err := h.svc.GetProfile(r.Context(), userID)
 	if err != nil {
 		if errors.Is(err, auth.ErrUserNotFound) {
 			httpx.WriteError(w, http.StatusNotFound, "profile.not_found", err.Error())
 			return
 		}
-		httpx.WriteError(w, http.StatusInternalServerError, "profile.get_profile", err.Error())
+		httpx.WriteInternalError(w, "profile.get_profile", err)
 		return
 	}
 	httpx.WriteSuccess(w, resp)
 }
 
-func (s *service) setEquippedFrameHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) setEquippedFrameHandler(w http.ResponseWriter, r *http.Request) {
 	userID, ok := auth.CurrentUserID(r)
 	if !ok {
 		httpx.WriteError(w, http.StatusUnauthorized, "auth.invalid_credentials", "missing authenticated user")
@@ -52,7 +61,7 @@ func (s *service) setEquippedFrameHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	resp, err := s.SetEquippedFrame(r.Context(), userID, body.FrameLevel)
+	resp, err := h.svc.SetEquippedFrame(r.Context(), userID, body.FrameLevel)
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrFrameLocked):
@@ -60,7 +69,7 @@ func (s *service) setEquippedFrameHandler(w http.ResponseWriter, r *http.Request
 		case errors.Is(err, auth.ErrUserNotFound):
 			httpx.WriteError(w, http.StatusNotFound, "profile.not_found", err.Error())
 		default:
-			httpx.WriteError(w, http.StatusInternalServerError, "profile.set_equipped_frame", err.Error())
+			httpx.WriteInternalError(w, "profile.set_equipped_frame", err)
 		}
 		return
 	}

@@ -6,11 +6,11 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-# ARG only exists during the build; ENV re-exposes it as an actual env var
-# so `vite build` (the RUN below) can read it and bake it into the JS via
-# import.meta.env.VITE_API_BASE. Override at build time with:
-#   docker build --build-arg VITE_API_BASE=http://192.168.1.50:8080 .
-ARG VITE_API_BASE=http://localhost:8080
+# Empty by default and that is the intended setting: the app calls its own
+# origin and nginx.conf proxies /api to the backend, so this image is not
+# tied to any environment's API hostname and can be promoted unchanged from
+# dev to prod. Only set it to point a build at an API on another origin.
+ARG VITE_API_BASE=
 ENV VITE_API_BASE=$VITE_API_BASE
 RUN npm run build
 

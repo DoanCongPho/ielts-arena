@@ -1,4 +1,8 @@
-export const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
+// Empty by default: the app talks to its own origin and a proxy routes
+// /api to the backend (nginx in production, Vite's dev server locally).
+// That keeps every request same-origin, so there is no CORS anywhere in
+// the stack. Set VITE_API_BASE only to point a build at a remote API.
+export const API_BASE = import.meta.env.VITE_API_BASE || '';
 
 function authHeaders() {
   const token = localStorage.getItem('access_token');
@@ -84,15 +88,50 @@ export function createTest(payload) {
   });
 }
 
-export async function submitAnswer(testId, payload) {
-  const data = await request('/api/submissions', {
+// submitAnswer queues an answer for grading. The API answers 202 with a
+// "pending" submission — grading happens in a background worker — so the
+// caller follows up with waitForGrading() rather than reading a score off
+// this response.
+export function submitAnswer(testId, payload) {
+  return request('/api/submissions', {
     method: 'POST',
     body: JSON.stringify({ test_id: testId, payload }),
   });
-  // A submission may have just been graded, which grants XP server-side —
-  // let ProfileHud know to refetch without prop-drilling the result down.
-  window.dispatchEvent(new Event('profile:refresh'));
-  return data;
+}
+
+// Statuses that mean the grading worker is done with a submission, one way
+// or another. Anything else ("pending", "grading") means keep waiting.
+const SETTLED_STATUSES = new Set(['graded', 'failed']);
+
+export function isSettled(status) {
+  return SETTLED_STATUSES.has(status);
+}
+
+/**
+ * Polls a submission until grading settles, then returns it.
+ *
+ * Writing/speaking go out to an LLM, so this can legitimately take tens of
+ * seconds; reading/listening are graded in-process and usually settle on
+ * the first or second poll. onTick is called with each intermediate
+ * submission so the UI can show progress.
+ */
+export async function waitForGrading(submissionId, { intervalMs = 1500, timeoutMs = 180000, onTick } = {}) {
+  const deadline = Date.now() + timeoutMs;
+
+  for (;;) {
+    const sub = await getSubmission(submissionId);
+    if (isSettled(sub.status)) {
+      // Grading just finished, which may have granted XP server-side —
+      // let ProfileHud know to refetch without prop-drilling it down.
+      window.dispatchEvent(new Event('profile:refresh'));
+      return sub;
+    }
+    if (onTick) onTick(sub);
+    if (Date.now() >= deadline) {
+      throw new Error('Bài đang được chấm lâu hơn dự kiến. Bạn có thể xem lại trong mục Lịch sử làm bài.');
+    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
 }
 
 export function getScore(submissionId) {

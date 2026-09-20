@@ -4,6 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github/DoanCongPho/game-arena/internal/feature/ielts_test"
 	"github/DoanCongPho/game-arena/internal/feature/profile"
 	"github/DoanCongPho/game-arena/internal/platform"
@@ -13,31 +20,39 @@ import (
 	"github/DoanCongPho/game-arena/internal/platform/llm"
 	"github/DoanCongPho/game-arena/internal/platform/middleware"
 	"github/DoanCongPho/game-arena/migrations"
-	"log"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
 	"github.com/gorilla/mux"
 )
 
-func helloWorld(w http.ResponseWriter, r *http.Request) { w.Write([]byte("hello, world!\r\n")) }
+func helloWorld(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("hello, world!\r\n")) }
 
 func checkhealth(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "OK")
 }
+
 func main() {
 	cfg := config.MustLoad()
 	if len(os.Args) > 1 && os.Args[1] == "migrate" {
 		os.Exit(database.RunMigrateCmd(cfg, migrations.FS, os.Args[2:]))
 	}
+	// AUTO_MIGRATE was parsed into config and then never read by anything,
+	// so a fresh database booted with no tables and every request failed
+	// against a schema that was never created. Run pending migrations
+	// before opening the runtime pool.
+	if cfg.App.AutoMigrate {
+		if err := database.Migrate(&cfg.DB, migrations.FS); err != nil {
+			log.Fatalf("auto-migrate: %v", err)
+		}
+		log.Println("migrations: up to date")
+	}
+
 	plat, err := platform.Build(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer func() { _ = plat.Close(context.Background()) }()
+
+	auth.Init(cfg.App.SecretKey)
 
 	r := mux.NewRouter()
 	r.HandleFunc("/", helloWorld)
@@ -54,11 +69,7 @@ func main() {
 	authRepo := auth.NewUserRepository(plat.DB)
 	authSvc := auth.NewService(authRepo)
 	pubAPI := r.PathPrefix("/api").Subrouter()
-	authSvc.MountRoutes(pubAPI)
-	auth.Init(cfg.App.SecretKey)
-	middleware.CorsInit(cfg.App.AllowedOrigins...)
-
-	// --internal--
+	auth.NewHandler(authSvc).MountRoutes(pubAPI)
 
 	// --ielts_test--
 	llmClient := llm.NewClient(cfg.App.OpenAIAPIKey, cfg.App.OpenAIModel)
@@ -66,16 +77,38 @@ func main() {
 
 	testRepo := ielts_test.NewRepository(plat.DB)
 	testSvc := ielts_test.NewService(testRepo, grader, authRepo)
-	testSvc.MountRoutes(api)
+	ielts_test.NewHandler(testSvc).MountRoutes(api)
+
+	// Grading runs here, not in the request that submitted the answer:
+	// writing/speaking need a slow paid API call, and a fixed-size pool
+	// caps how many of those can be in flight at once no matter how many
+	// submissions arrive. workerCtx is cancelled before the HTTP server
+	// shuts down so in-flight grades return to the queue.
+	workerCtx, stopWorkers := context.WithCancel(context.Background())
+	workers := ielts_test.StartGradingWorkers(workerCtx, testSvc, ielts_test.WorkerConfig{
+		Count:        cfg.App.Grading.Workers,
+		PollInterval: cfg.App.Grading.PollInterval,
+		JobTimeout:   cfg.App.Grading.JobTimeout,
+	})
 
 	// --profile--
 	profileSvc := profile.NewService(authRepo)
-	profileSvc.MountRoutes(api) // mounted on /api subrouter, RequireAuth already applies
+	// mounted on /api subrouter, RequireAuth already applies
+	profile.NewHandler(profileSvc).MountRoutes(api)
+
+	// CORS is off unless ALLOWED_ORIGINS says otherwise. The default
+	// deployment puts the SPA and this API behind one nginx, so every
+	// request is same-origin and there is nothing to negotiate.
+	var handler http.Handler = r
+	if cors := middleware.NewCORS(cfg.App.AllowedOrigins); cors != nil {
+		handler = cors.Handler(r)
+		log.Printf("cors: enabled for %v", cfg.App.AllowedOrigins)
+	}
 
 	addr := fmt.Sprintf(":%d", cfg.App.Port)
 	srv := &http.Server{
 		Addr:              addr,
-		Handler:           middleware.CORS(r),
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	go func() {
@@ -83,14 +116,24 @@ func main() {
 			log.Fatalf("server failure: %v", err)
 		}
 	}()
+	log.Printf("api listening on %s", addr)
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 	<-stop
+	log.Println("shutting down...")
+
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Fatalf("server failure")
+		log.Printf("http shutdown: %v", err)
 	}
 
+	// Stop accepting new grading jobs and wait for in-flight ones. A grade
+	// interrupted here leaves its submission claimed; the lease expires
+	// and another worker (or the next boot) reclaims it, so nothing is
+	// silently dropped.
+	stopWorkers()
+	workers.Wait()
+	log.Println("shutdown complete")
 }

@@ -9,12 +9,9 @@ import (
 	"context"
 
 	"github/DoanCongPho/game-arena/internal/platform/auth"
-
-	"github.com/gorilla/mux"
 )
 
 type Service interface {
-	MountRoutes(r *mux.Router)
 	GetProfile(ctx context.Context, userID uint64) (*ProfileResponse, error)
 	SetEquippedFrame(ctx context.Context, userID uint64, frameLevel int) (*ProfileResponse, error)
 }
