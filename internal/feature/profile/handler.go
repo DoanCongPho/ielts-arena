@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github/DoanCongPho/game-arena/internal/feature/progression"
 	"github/DoanCongPho/game-arena/internal/platform/auth"
 	"github/DoanCongPho/game-arena/internal/platform/httpx"
 
@@ -34,7 +35,7 @@ func (h *Handler) getProfileHandler(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.svc.GetProfile(r.Context(), userID)
 	if err != nil {
-		if errors.Is(err, auth.ErrUserNotFound) {
+		if errors.Is(err, auth.ErrUserNotFound) || errors.Is(err, progression.ErrNotFound) {
 			httpx.WriteError(w, http.StatusNotFound, "profile.not_found", err.Error())
 			return
 		}
@@ -64,9 +65,9 @@ func (h *Handler) setEquippedFrameHandler(w http.ResponseWriter, r *http.Request
 	resp, err := h.svc.SetEquippedFrame(r.Context(), userID, body.FrameLevel)
 	if err != nil {
 		switch {
-		case errors.Is(err, ErrFrameLocked):
+		case errors.Is(err, progression.ErrFrameLocked):
 			httpx.WriteError(w, http.StatusBadRequest, "profile.frame_locked", err.Error())
-		case errors.Is(err, auth.ErrUserNotFound):
+		case errors.Is(err, auth.ErrUserNotFound), errors.Is(err, progression.ErrNotFound):
 			httpx.WriteError(w, http.StatusNotFound, "profile.not_found", err.Error())
 		default:
 			httpx.WriteInternalError(w, "profile.set_equipped_frame", err)

@@ -35,12 +35,14 @@ type Service interface {
 	GradeNextPending(ctx context.Context) (worked bool, err error)
 }
 
-// XPGrantRepository is the minimal user-progression dependency SubmitAnswer
-// needs: granting XP for a graded submission, exactly once per (user, test)
-// pair. Defined here, at the point of use, rather than imported from the
-// auth package, so this package doesn't need to know about auth's other
-// concerns — auth.Repository satisfies this interface structurally.
-type XPGrantRepository interface {
+// XPGranter is the minimal progression dependency grading needs: award
+// XP for a graded submission, exactly once per (user, test) pair.
+//
+// Declared here at the point of use rather than imported, which is the
+// usual Go shape for a consumer-side interface and keeps features from
+// depending on each other. progression.Repository satisfies it
+// structurally; main.go does the wiring.
+type XPGranter interface {
 	GrantIfFirstAttempt(ctx context.Context, userID, testID, submissionID uint64, amount int) (granted bool, level int, xp int, err error)
 }
 
@@ -67,10 +69,10 @@ var ErrUngradable = errors.New("submission cannot be graded")
 type service struct {
 	repo     Repository
 	grader   Grader
-	xpGrants XPGrantRepository
+	xpGrants XPGranter
 }
 
-func NewService(repo Repository, grader Grader, xpGrants XPGrantRepository) Service {
+func NewService(repo Repository, grader Grader, xpGrants XPGranter) Service {
 	return &service{repo: repo, grader: grader, xpGrants: xpGrants}
 }
 

@@ -1,8 +1,8 @@
 package profile
 
 import (
+	"github/DoanCongPho/game-arena/internal/feature/progression"
 	"github/DoanCongPho/game-arena/internal/platform/auth"
-	"github/DoanCongPho/game-arena/internal/platform/leveling"
 )
 
 type ProfileResponse struct {
@@ -17,26 +17,19 @@ type ProfileResponse struct {
 	UnlockedMaxFrameLevel int    `json:"unlocked_max_frame_level"`
 }
 
-// newProfileResponse recomputes level from lifetime XP rather than trusting
-// the denormalized users.level cache, so a stale cache can never make it
-// into what the user sees.
-func newProfileResponse(u *auth.User) *ProfileResponse {
-	level, currentLevelXP, xpToNext := leveling.LevelForXP(u.XP)
-
-	equipped := level
-	if u.EquippedFrameLevel != nil {
-		equipped = *u.EquippedFrameLevel
-	}
-
+// newProfileResponse joins the two halves of a user. Every progression
+// number comes from the Progression value, whose Level is derived from
+// lifetime XP rather than read from the denormalised users.level column.
+func newProfileResponse(u *auth.User, p *progression.Progression) *ProfileResponse {
 	return &ProfileResponse{
 		ID:                    u.ID,
 		Name:                  u.Name,
-		Level:                 level,
-		XP:                    u.XP,
-		CurrentLevelXP:        currentLevelXP,
-		XPToNextLevel:         xpToNext,
 		ImageURL:              u.ImageURL,
-		EquippedFrameLevel:    equipped,
-		UnlockedMaxFrameLevel: level,
+		Level:                 p.Level,
+		XP:                    p.XP,
+		CurrentLevelXP:        p.CurrentLevelXP(),
+		XPToNextLevel:         p.XPToNextLevel(),
+		EquippedFrameLevel:    p.EquippedOrDefaultFrame(),
+		UnlockedMaxFrameLevel: p.UnlockedMaxFrameLevel(),
 	}
 }
