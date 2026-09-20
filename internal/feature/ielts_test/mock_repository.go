@@ -137,6 +137,67 @@ func (r *MockTestRepository) UpdateSubmissionStatus(ctx context.Context, id uint
 	return nil
 }
 
+// --- grading queue ---
+
+// ClaimNextForGrading mirrors the real repository's claim semantics:
+// oldest eligible submission first, marked "grading" with its attempt
+// count bumped, and (nil, nil) when nothing is eligible. Abandoned
+// "grading" rows past leaseCutoff are reclaimed the same way.
+func (r *MockTestRepository) ClaimNextForGrading(ctx context.Context, now, leaseCutoff time.Time) (*Submission, error) {
+	eligible := func(s *Submission) bool {
+		switch s.Status {
+		case StatusPending:
+			return s.NextAttemptAt == nil || !s.NextAttemptAt.After(now)
+		case StatusGrading:
+			return s.ClaimedAt != nil && s.ClaimedAt.Before(leaseCutoff)
+		default:
+			return false
+		}
+	}
+
+	var claimed *Submission
+	for _, s := range r.submissions {
+		if !eligible(s) {
+			continue
+		}
+		if claimed == nil || s.SubmittedAt.Before(claimed.SubmittedAt) {
+			claimed = s
+		}
+	}
+	if claimed == nil {
+		return nil, nil
+	}
+
+	claimed.Status = StatusGrading
+	claimed.Attempts++
+	claimed.ClaimedAt = &now
+	return claimed, nil
+}
+
+func (r *MockTestRepository) RescheduleGrading(ctx context.Context, id uint64, cause string, nextAttemptAt time.Time) error {
+	submission, ok := r.submissions[int(id)]
+	if !ok {
+		return ErrSubmissionNotFound
+	}
+	submission.Status = StatusPending
+	submission.LastError = cause
+	submission.NextAttemptAt = &nextAttemptAt
+	submission.ClaimedAt = nil
+	return nil
+}
+
+func (r *MockTestRepository) FailGrading(ctx context.Context, id uint64, cause string) error {
+	submission, ok := r.submissions[int(id)]
+	if !ok {
+		return ErrSubmissionNotFound
+	}
+	submission.Status = StatusFailed
+	submission.LastError = cause
+	submission.NextAttemptAt = nil
+	submission.ClaimedAt = nil
+	return nil
+}
+
 func (r *MockTestRepository) CreateScore(ctx context.Context, sc *Score) (*Score, error) {
 	if sc.ID == 0 {
 		r.nextScoreID++
@@ -154,3 +215,6 @@ func (r *MockTestRepository) GetScoreBySubmissionID(ctx context.Context, submiss
 
 	return score, nil
 }
+
+// Compile-time guarantee that the mock stays in step with Repository.
+var _ Repository = (*MockTestRepository)(nil)

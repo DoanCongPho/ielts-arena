@@ -3,6 +3,7 @@ import './StatusBadge.css';
 const DEFAULT_LABEL = {
   pending: 'Đang chờ',
   submitted: 'Đã nộp',
+  grading: 'Đang chấm',
   graded: 'Đã chấm',
   failed: 'Lỗi',
 };

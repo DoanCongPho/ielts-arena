@@ -2,6 +2,7 @@ package httpx
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 )
 
@@ -33,17 +34,37 @@ func NewPagination(total, page, limit int) Pagination {
 	}
 }
 
+// WriteInternalError reports a server-side failure without handing the
+// caller its details. The underlying error goes to the log, where it is
+// useful; the client gets a stable code and a generic message.
+//
+// Passing err.Error() through to the response (as every 500 in this
+// codebase used to) leaks SQL text, table and column names, driver
+// details and upstream API error bodies to anyone who can trigger the
+// failure — a free map of the system's internals.
+func WriteInternalError(w http.ResponseWriter, code string, err error) {
+	log.Printf("http 500 [%s]: %v", code, err)
+	WriteError(w, http.StatusInternalServerError, code, "Something went wrong on our side. Please try again.")
+}
+
 func WriteError(w http.ResponseWriter, status int, code, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(ErrorResponse{
+	_ = json.NewEncoder(w).Encode(ErrorResponse{
 		Code:    code,
 		Message: message,
 	})
 }
 
 func WriteSuccess(w http.ResponseWriter, data interface{}) {
-	w.Header().Set("Content-type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(SuccessReponse{Data: data})
+	WriteStatus(w, http.StatusOK, data)
+}
+
+// WriteStatus is WriteSuccess with an explicit status code, for the cases
+// where 200 is the wrong answer — e.g. 202 Accepted when work has been
+// queued rather than completed.
+func WriteStatus(w http.ResponseWriter, status int, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(SuccessReponse{Data: data})
 }

@@ -60,8 +60,8 @@ export default function SubmissionDetailPage() {
   const notGradedMessage = submission?.status !== 'graded' && (
     <p className="practice-status practice-error" style={{ marginTop: 16 }}>
       {submission?.status === 'failed'
-        ? 'Bài này chấm điểm thất bại.'
-        : 'Bài này chưa được chấm điểm.'}
+        ? 'Bài này chấm điểm thất bại và đã dừng thử lại.'
+        : 'Bài này đang chờ chấm điểm. Tải lại trang sau ít phút.'}
     </p>
   );
 

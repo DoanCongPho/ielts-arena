@@ -6,6 +6,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 )
 
 // fakeGrader is a controllable Grader stub so writing/speaking submissions
@@ -30,6 +31,50 @@ type fakeXPGrantRepository struct{}
 
 func (f *fakeXPGrantRepository) GrantIfFirstAttempt(ctx context.Context, userID, testID, submissionID uint64, amount int) (bool, int, int, error) {
 	return true, 1, amount, nil
+}
+
+// drainGradingQueue runs the worker's unit of work until the queue is
+// empty. Grading is asynchronous in production, but GradeNextPending is a
+// plain synchronous call, so a test can submit and then observe the
+// settled result with no goroutines, no sleeps and no clock.
+func drainGradingQueue(t *testing.T, svc Service) {
+	t.Helper()
+	ctx := context.Background()
+	for i := 0; i < 50; i++ {
+		worked, err := svc.GradeNextPending(ctx)
+		if err != nil {
+			// Not fatal: a grading failure is recorded on the submission,
+			// which is exactly what the failure tests then assert on.
+			t.Logf("grading job reported: %v", err)
+		}
+		if !worked {
+			return
+		}
+	}
+	t.Fatal("grading queue did not drain after 50 jobs")
+}
+
+// submitAndGrade performs the full "user submits, worker picks it up"
+// flow and returns the submission as it settled in the repository.
+func submitAndGrade(t *testing.T, svc Service, repo *MockTestRepository, userID uint64, req SubmitRequest) *Submission {
+	t.Helper()
+	ctx := context.Background()
+
+	sub, err := svc.SubmitAnswer(ctx, userID, req)
+	if err != nil {
+		t.Fatalf("SubmitAnswer: %v", err)
+	}
+	if sub.Status != StatusPending {
+		t.Fatalf("SubmitAnswer must queue rather than grade: status = %q, want %q", sub.Status, StatusPending)
+	}
+
+	drainGradingQueue(t, svc)
+
+	settled, err := repo.GetSubmissionByID(ctx, sub.ID)
+	if err != nil {
+		t.Fatalf("reload submission: %v", err)
+	}
+	return settled
 }
 
 func mustMarshal(t *testing.T, v any) []byte {
@@ -172,13 +217,10 @@ func TestService_SubmitAnswer_WritingGradedSuccessfully(t *testing.T) {
 		t.Fatalf("seed test: %v", err)
 	}
 
-	sub, err := svc.SubmitAnswer(ctx, 1, SubmitRequest{
+	sub := submitAndGrade(t, svc, repo, 1, SubmitRequest{
 		TestID:  test.ID,
 		Payload: mustMarshal(t, WritingPayload{Text: "My essay."}),
 	})
-	if err != nil {
-		t.Fatalf("SubmitAnswer: %v", err)
-	}
 	if sub.Status != StatusGraded {
 		t.Errorf("Status = %q, want %q", sub.Status, StatusGraded)
 	}
@@ -192,7 +234,47 @@ func TestService_SubmitAnswer_WritingGradedSuccessfully(t *testing.T) {
 	}
 }
 
-func TestService_SubmitAnswer_WritingGraderFailureMarksSubmissionFailed(t *testing.T) {
+func TestService_GradeNextPending_TransientGraderFailureIsRescheduled(t *testing.T) {
+	repo := NewMockTestRepository()
+	grader := &fakeGrader{err: errors.New("llm unavailable")}
+	svc := newTestService(repo, grader)
+	ctx := context.Background()
+
+	test, err := repo.CreateTest(ctx, &Test{
+		Skill:       "writing",
+		TaskType:    "task2",
+		ContentData: mustMarshal(t, WritingContent{Prompt: "Describe the chart."}),
+	})
+	if err != nil {
+		t.Fatalf("seed test: %v", err)
+	}
+
+	sub := submitAndGrade(t, svc, repo, 1, SubmitRequest{
+		TestID:  test.ID,
+		Payload: mustMarshal(t, WritingPayload{Text: "My essay."}),
+	})
+
+	// An unreachable LLM is transient: the submission goes back on the
+	// queue rather than being written off, which is the whole point of
+	// moving grading out of the request.
+	if sub.Status != StatusPending {
+		t.Errorf("Status = %q, want %q (queued for retry)", sub.Status, StatusPending)
+	}
+	if sub.Attempts != 1 {
+		t.Errorf("Attempts = %d, want 1", sub.Attempts)
+	}
+	if !strings.Contains(sub.LastError, "llm unavailable") {
+		t.Errorf("LastError = %q, want it to mention the grader failure", sub.LastError)
+	}
+	if sub.NextAttemptAt == nil || !sub.NextAttemptAt.After(time.Now()) {
+		t.Errorf("NextAttemptAt = %v, want a future retry time", sub.NextAttemptAt)
+	}
+	if _, err := repo.GetScoreBySubmissionID(ctx, sub.ID); !errors.Is(err, ErrScoreNotFound) {
+		t.Errorf("expected no score to be created, got err = %v", err)
+	}
+}
+
+func TestService_GradeNextPending_GiveUpAfterMaxAttempts(t *testing.T) {
 	repo := NewMockTestRepository()
 	grader := &fakeGrader{err: errors.New("llm unavailable")}
 	svc := newTestService(repo, grader)
@@ -211,16 +293,122 @@ func TestService_SubmitAnswer_WritingGraderFailureMarksSubmissionFailed(t *testi
 		TestID:  test.ID,
 		Payload: mustMarshal(t, WritingPayload{Text: "My essay."}),
 	})
-	// The submission is preserved so the client can see/retry it, so the
-	// grading failure surfaces via Status rather than as a returned error.
 	if err != nil {
-		t.Fatalf("expected no error, grading failure should surface via status: %v", err)
+		t.Fatalf("SubmitAnswer: %v", err)
 	}
+
+	// Each pass is one attempt; clearing the backoff stands in for the
+	// wait between them so the test doesn't depend on wall-clock time.
+	for i := 0; i < maxGradingAttempts; i++ {
+		drainGradingQueue(t, svc)
+		current, err := repo.GetSubmissionByID(ctx, sub.ID)
+		if err != nil {
+			t.Fatalf("reload submission: %v", err)
+		}
+		if current.Status == StatusFailed {
+			break
+		}
+		current.NextAttemptAt = nil
+	}
+
+	settled, err := repo.GetSubmissionByID(ctx, sub.ID)
+	if err != nil {
+		t.Fatalf("reload submission: %v", err)
+	}
+	if settled.Status != StatusFailed {
+		t.Errorf("Status = %q, want %q after %d attempts", settled.Status, StatusFailed, maxGradingAttempts)
+	}
+	if settled.Attempts != maxGradingAttempts {
+		t.Errorf("Attempts = %d, want %d", settled.Attempts, maxGradingAttempts)
+	}
+	if settled.NextAttemptAt != nil {
+		t.Errorf("NextAttemptAt = %v, want nil once permanently failed", settled.NextAttemptAt)
+	}
+}
+
+func TestService_GradeNextPending_UngradablePayloadFailsWithoutRetrying(t *testing.T) {
+	repo := NewMockTestRepository()
+	svc := newTestService(repo, &fakeGrader{result: &GradingResult{OverallBand: 7}})
+	ctx := context.Background()
+
+	test, err := repo.CreateTest(ctx, &Test{
+		Skill:       "writing",
+		TaskType:    "task2",
+		ContentData: mustMarshal(t, WritingContent{Prompt: "Describe the chart."}),
+	})
+	if err != nil {
+		t.Fatalf("seed test: %v", err)
+	}
+
+	// A payload that can never unmarshal into WritingPayload. Retrying
+	// cannot fix it, so it must not consume attempts (or, for a real
+	// grader, paid API calls).
+	sub := submitAndGrade(t, svc, repo, 1, SubmitRequest{
+		TestID:  test.ID,
+		Payload: []byte(`"not an object"`),
+	})
+
 	if sub.Status != StatusFailed {
 		t.Errorf("Status = %q, want %q", sub.Status, StatusFailed)
 	}
-	if _, err := repo.GetScoreBySubmissionID(ctx, sub.ID); !errors.Is(err, ErrScoreNotFound) {
-		t.Errorf("expected no score to be created, got err = %v", err)
+	if sub.Attempts != 1 {
+		t.Errorf("Attempts = %d, want 1 — an ungradable submission must not be retried", sub.Attempts)
+	}
+}
+
+func TestService_GradeNextPending_EmptyQueueIsNotAnError(t *testing.T) {
+	svc := newTestService(NewMockTestRepository(), &fakeGrader{})
+
+	worked, err := svc.GradeNextPending(context.Background())
+	if err != nil {
+		t.Fatalf("GradeNextPending on an empty queue: %v", err)
+	}
+	if worked {
+		t.Error("worked = true on an empty queue, want false")
+	}
+}
+
+func TestService_GradeNextPending_ReclaimsSubmissionAbandonedByDeadWorker(t *testing.T) {
+	repo := NewMockTestRepository()
+	grader := &fakeGrader{result: &GradingResult{
+		OverallBand: 7,
+		Criteria:    map[string]CriterionScore{"Task Achievement": {Score: 7}},
+	}}
+	svc := newTestService(repo, grader)
+	ctx := context.Background()
+
+	test, err := repo.CreateTest(ctx, &Test{
+		Skill:       "writing",
+		TaskType:    "task2",
+		ContentData: mustMarshal(t, WritingContent{Prompt: "Describe the chart."}),
+	})
+	if err != nil {
+		t.Fatalf("seed test: %v", err)
+	}
+
+	// A worker claimed this submission and then died: it is stuck in
+	// "grading" with a claim older than the lease.
+	staleClaim := time.Now().Add(-2 * gradingLease)
+	stuck, err := repo.CreateSubmission(ctx, &Submission{
+		UserID:    1,
+		TestID:    test.ID,
+		Payload:   mustMarshal(t, WritingPayload{Text: "My essay."}),
+		Status:    StatusGrading,
+		Attempts:  1,
+		ClaimedAt: &staleClaim,
+	})
+	if err != nil {
+		t.Fatalf("seed stuck submission: %v", err)
+	}
+
+	drainGradingQueue(t, svc)
+
+	settled, err := repo.GetSubmissionByID(ctx, stuck.ID)
+	if err != nil {
+		t.Fatalf("reload submission: %v", err)
+	}
+	if settled.Status != StatusGraded {
+		t.Errorf("Status = %q, want %q — an expired lease must be reclaimed", settled.Status, StatusGraded)
 	}
 }
 
@@ -259,10 +447,7 @@ func TestService_SubmitAnswer_ReadingAutoGradesAllCorrect(t *testing.T) {
 		"3": json.RawMessage(`["A","B"]`),
 	}}
 
-	sub, err := svc.SubmitAnswer(ctx, 1, SubmitRequest{TestID: test.ID, Payload: mustMarshal(t, payload)})
-	if err != nil {
-		t.Fatalf("SubmitAnswer: %v", err)
-	}
+	sub := submitAndGrade(t, svc, repo, 1, SubmitRequest{TestID: test.ID, Payload: mustMarshal(t, payload)})
 	if sub.Status != StatusGraded {
 		t.Errorf("Status = %q, want %q", sub.Status, StatusGraded)
 	}
@@ -304,10 +489,7 @@ func TestService_SubmitAnswer_ReadingAutoGradesPartialCredit(t *testing.T) {
 		"3": json.RawMessage(`["A","B"]`), // correct
 	}}
 
-	sub, err := svc.SubmitAnswer(ctx, 1, SubmitRequest{TestID: test.ID, Payload: mustMarshal(t, payload)})
-	if err != nil {
-		t.Fatalf("SubmitAnswer: %v", err)
-	}
+	sub := submitAndGrade(t, svc, repo, 1, SubmitRequest{TestID: test.ID, Payload: mustMarshal(t, payload)})
 
 	score, err := repo.GetScoreBySubmissionID(ctx, sub.ID)
 	if err != nil {
@@ -362,10 +544,7 @@ func TestService_GetScore_EnforcesOwnershipAndPendingState(t *testing.T) {
 		t.Fatalf("seed test: %v", err)
 	}
 
-	sub, err := svc.SubmitAnswer(ctx, 1, SubmitRequest{TestID: test.ID, Payload: mustMarshal(t, WritingPayload{Text: "essay"})})
-	if err != nil {
-		t.Fatalf("SubmitAnswer: %v", err)
-	}
+	sub := submitAndGrade(t, svc, repo, 1, SubmitRequest{TestID: test.ID, Payload: mustMarshal(t, WritingPayload{Text: "essay"})})
 
 	score, err := svc.GetScore(ctx, 1, sub.ID)
 	if err != nil {
@@ -403,10 +582,8 @@ func TestService_GetListSubmission_ReturnsOnlyOwnedSubmissionsIncludingPending(t
 		t.Fatalf("seed test: %v", err)
 	}
 
-	// Owned + graded.
-	if _, err := svc.SubmitAnswer(ctx, 1, SubmitRequest{TestID: test.ID, Payload: mustMarshal(t, WritingPayload{Text: "essay"})}); err != nil {
-		t.Fatalf("SubmitAnswer: %v", err)
-	}
+	// Owned + graded. Drained first, so the rows seeded below stay pending.
+	submitAndGrade(t, svc, repo, 1, SubmitRequest{TestID: test.ID, Payload: mustMarshal(t, WritingPayload{Text: "essay"})})
 	// Owned + still pending (no score yet) — must still show up in the list.
 	if _, err := repo.CreateSubmission(ctx, &Submission{UserID: 1, TestID: test.ID, Payload: []byte(`{}`), Status: StatusPending}); err != nil {
 		t.Fatalf("seed pending submission: %v", err)

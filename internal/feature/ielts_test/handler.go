@@ -13,21 +13,34 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func (s *service) MountRoutes(r *mux.Router) {
-	r.HandleFunc("/tests", s.listTestsHandler).Methods(http.MethodGet)
+// Handler is the HTTP transport for this feature. It owns everything that
+// knows about routers, status codes and JSON bodies; Service below it owns
+// the business rules and knows nothing about HTTP. Keeping the two apart is
+// what lets Service be tested without a router and swapped behind a
+// different transport without touching its contract.
+type Handler struct {
+	svc Service
+}
+
+func NewHandler(svc Service) *Handler {
+	return &Handler{svc: svc}
+}
+
+func (h *Handler) MountRoutes(r *mux.Router) {
+	r.HandleFunc("/tests", h.listTestsHandler).Methods(http.MethodGet)
 	// Creating tests is admin-only — RequireAuth (already applied to the
 	// whole /api subrouter, see cmd/api/main.go) has run by this point, so
 	// RequireAdmin only needs to check the role already on the request
 	// context, not re-verify the token.
-	r.Handle("/tests", middleware.RequireAdmin(http.HandlerFunc(s.createTestHandler))).Methods(http.MethodPost)
-	r.HandleFunc("/tests/{id}", s.getTestHandler).Methods(http.MethodGet)
-	r.HandleFunc("/submissions", s.submitAnswerHandler).Methods(http.MethodPost)
-	r.HandleFunc("/submissions", s.listSubmissionsHandler).Methods(http.MethodGet)
-	r.HandleFunc("/submissions/{id}", s.getSubmissionHandler).Methods(http.MethodGet)
-	r.HandleFunc("/submissions/{id}/score", s.getScoreHandler).Methods(http.MethodGet)
+	r.Handle("/tests", middleware.RequireAdmin(http.HandlerFunc(h.createTestHandler))).Methods(http.MethodPost)
+	r.HandleFunc("/tests/{id}", h.getTestHandler).Methods(http.MethodGet)
+	r.HandleFunc("/submissions", h.submitAnswerHandler).Methods(http.MethodPost)
+	r.HandleFunc("/submissions", h.listSubmissionsHandler).Methods(http.MethodGet)
+	r.HandleFunc("/submissions/{id}", h.getSubmissionHandler).Methods(http.MethodGet)
+	r.HandleFunc("/submissions/{id}/score", h.getScoreHandler).Methods(http.MethodGet)
 }
 
-func (s *service) listTestsHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) listTestsHandler(w http.ResponseWriter, r *http.Request) {
 	skill := r.URL.Query().Get("skill")
 	if skill == "" {
 		httpx.WriteError(w, http.StatusBadRequest, "ielts_test.invalid_input", "skill is required")
@@ -35,34 +48,34 @@ func (s *service) listTestsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 
-	resp, err := s.GetListTest(r.Context(), skill, ListTestRequest{Page: page})
+	resp, err := h.svc.GetListTest(r.Context(), skill, ListTestRequest{Page: page})
 	if err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "ielts_test.list_tests", err.Error())
+		httpx.WriteInternalError(w, "ielts_test.list_tests", err)
 		return
 	}
 	httpx.WriteSuccess(w, resp)
 }
 
-func (s *service) getTestHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) getTestHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := httpx.IDFromPath(r)
 	if err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "ielts_test.invalid_input", "invalid test id")
 		return
 	}
 
-	test, err := s.GetTest(r.Context(), id)
+	test, err := h.svc.GetTest(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, ErrTestNotFound) {
 			httpx.WriteError(w, http.StatusNotFound, "ielts_test.test_not_found", err.Error())
 			return
 		}
-		httpx.WriteError(w, http.StatusInternalServerError, "ielts_test.get_test", err.Error())
+		httpx.WriteInternalError(w, "ielts_test.get_test", err)
 		return
 	}
 	httpx.WriteSuccess(w, test)
 }
 
-func (s *service) createTestHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) createTestHandler(w http.ResponseWriter, r *http.Request) {
 	var body CreateTestRequest
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "ielts_test.invalid_input", "invalid JSON body")
@@ -73,7 +86,7 @@ func (s *service) createTestHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	created, err := s.PostTest(r.Context(), Test{
+	created, err := h.svc.PostTest(r.Context(), Test{
 		Skill:        body.Skill,
 		TaskType:     body.TaskType,
 		ContentData:  body.ContentData,
@@ -83,19 +96,19 @@ func (s *service) createTestHandler(w http.ResponseWriter, r *http.Request) {
 		XPGain:       body.XPGain,
 	})
 	if err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "ielts_test.create_test", err.Error())
+		httpx.WriteInternalError(w, "ielts_test.create_test", err)
 		return
 	}
 
 	content, err := publicContentData(created.Skill, created.ContentData)
 	if err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "ielts_test.create_test", err.Error())
+		httpx.WriteInternalError(w, "ielts_test.create_test", err)
 		return
 	}
 	httpx.WriteSuccess(w, newTestResponse(created, content))
 }
 
-func (s *service) submitAnswerHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) submitAnswerHandler(w http.ResponseWriter, r *http.Request) {
 	userID, ok := auth.CurrentUserID(r)
 	if !ok {
 		httpx.WriteError(w, http.StatusUnauthorized, "auth.invalid_credentials", "missing authenticated user")
@@ -112,19 +125,22 @@ func (s *service) submitAnswerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sub, err := s.SubmitAnswer(r.Context(), userID, body)
+	sub, err := h.svc.SubmitAnswer(r.Context(), userID, body)
 	if err != nil {
 		if errors.Is(err, ErrTestNotFound) {
 			httpx.WriteError(w, http.StatusNotFound, "ielts_test.test_not_found", err.Error())
 			return
 		}
-		httpx.WriteError(w, http.StatusInternalServerError, "ielts_test.submit_answer", err.Error())
+		httpx.WriteInternalError(w, "ielts_test.submit_answer", err)
 		return
 	}
-	httpx.WriteSuccess(w, newSubmissionResponse(sub))
+	// 202: the submission is persisted and queued, but grading happens in
+	// the background worker — the client polls GET /submissions/{id} until
+	// status leaves "pending"/"grading".
+	httpx.WriteStatus(w, http.StatusAccepted, newSubmissionResponse(sub))
 }
 
-func (s *service) listSubmissionsHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) listSubmissionsHandler(w http.ResponseWriter, r *http.Request) {
 	userID, ok := auth.CurrentUserID(r)
 	if !ok {
 		httpx.WriteError(w, http.StatusUnauthorized, "auth.invalid_credentials", "missing authenticated user")
@@ -132,15 +148,15 @@ func (s *service) listSubmissionsHandler(w http.ResponseWriter, r *http.Request)
 	}
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 
-	resp, err := s.GetListSubmission(r.Context(), userID, ListSubmissionRequest{Page: page})
+	resp, err := h.svc.GetListSubmission(r.Context(), userID, ListSubmissionRequest{Page: page})
 	if err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "ielts_test.list_submissions", err.Error())
+		httpx.WriteInternalError(w, "ielts_test.list_submissions", err)
 		return
 	}
 	httpx.WriteSuccess(w, resp)
 }
 
-func (s *service) getSubmissionHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) getSubmissionHandler(w http.ResponseWriter, r *http.Request) {
 	userID, ok := auth.CurrentUserID(r)
 	if !ok {
 		httpx.WriteError(w, http.StatusUnauthorized, "auth.invalid_credentials", "missing authenticated user")
@@ -152,19 +168,19 @@ func (s *service) getSubmissionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sub, err := s.GetSubmissionByID(r.Context(), userID, id)
+	sub, err := h.svc.GetSubmissionByID(r.Context(), userID, id)
 	if err != nil {
 		if errors.Is(err, ErrSubmissionNotFound) {
 			httpx.WriteError(w, http.StatusNotFound, "ielts_test.submission_not_found", err.Error())
 			return
 		}
-		httpx.WriteError(w, http.StatusInternalServerError, "ielts_test.get_submission", err.Error())
+		httpx.WriteInternalError(w, "ielts_test.get_submission", err)
 		return
 	}
 	httpx.WriteSuccess(w, newSubmissionResponse(sub))
 }
 
-func (s *service) getScoreHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) getScoreHandler(w http.ResponseWriter, r *http.Request) {
 	userID, ok := auth.CurrentUserID(r)
 	if !ok {
 		httpx.WriteError(w, http.StatusUnauthorized, "auth.invalid_credentials", "missing authenticated user")
@@ -176,13 +192,13 @@ func (s *service) getScoreHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	score, err := s.GetScore(r.Context(), userID, id)
+	score, err := h.svc.GetScore(r.Context(), userID, id)
 	if err != nil {
 		if errors.Is(err, ErrSubmissionNotFound) || errors.Is(err, ErrScoreNotFound) {
 			httpx.WriteError(w, http.StatusNotFound, "ielts_test.score_not_found", err.Error())
 			return
 		}
-		httpx.WriteError(w, http.StatusInternalServerError, "ielts_test.get_score", err.Error())
+		httpx.WriteInternalError(w, "ielts_test.get_score", err)
 		return
 	}
 	httpx.WriteSuccess(w, newScoreResponse(score))

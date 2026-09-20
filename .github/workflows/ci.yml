@@ -1,0 +1,129 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A new push to the same branch makes the previous run irrelevant.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (Go)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: gofmt
+        run: |
+          unformatted=$(gofmt -l ./cmd ./internal ./migrations)
+          if [ -n "$unformatted" ]; then
+            echo "These files are not gofmt'd:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: Build
+        run: go build ./...
+
+      - name: Test
+        run: go test ./... -race -coverprofile=coverage.out
+
+      - name: Coverage summary
+        run: |
+          go tool cover -func=coverage.out | tail -1
+          go tool cover -func=coverage.out >> "$GITHUB_STEP_SUMMARY"
+
+  migrations:
+    name: Migrations (real MySQL)
+    runs-on: ubuntu-latest
+    # The migrations use MySQL-specific DDL (JSON columns, DATETIME(3),
+    # ADD COLUMN ... AFTER, ON DELETE RESTRICT). The only way to know they
+    # apply is to run them against the engine production uses.
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci-password
+          MYSQL_DATABASE: ielts_arena_ci
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -uroot -pci-password"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: '3306'
+      DB_USER: root
+      DB_PASSWORD: ci-password
+      DB_NAME: ielts_arena_ci
+      SECRET_KEY: ci-secret-key-at-least-32-characters-long
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Apply every migration
+        run: go run ./cmd/api migrate up
+
+      - name: Roll every migration back
+        # Proves the .down.sql files are real, not placeholders — the only
+        # thing standing between you and a bad deploy you cannot undo.
+        run: go run ./cmd/api migrate down 7
+
+      - name: Re-apply from scratch
+        run: go run ./cmd/api migrate up
+
+      - name: Show final version
+        run: go run ./cmd/api migrate status
+
+  frontend:
+    name: Frontend (React)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npx oxlint .
+
+      - name: Build
+        run: npm run build
+
+  docker:
+    name: Docker images build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API image
+        run: docker build -t ielts-arena-api:ci .
+
+      - name: Build frontend image
+        run: docker build -t ielts-arena-frontend:ci ./frontend
