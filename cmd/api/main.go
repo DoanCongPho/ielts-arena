@@ -19,6 +19,7 @@ import (
 	"github/DoanCongPho/game-arena/internal/platform/database"
 	"github/DoanCongPho/game-arena/internal/platform/llm"
 	"github/DoanCongPho/game-arena/internal/platform/middleware"
+	"github/DoanCongPho/game-arena/internal/platform/storage"
 	"github/DoanCongPho/game-arena/migrations"
 
 	"github.com/gorilla/mux"
@@ -68,7 +69,26 @@ func main() {
 	r.HandleFunc("/health", checkhealth)
 
 	// Static assets (e.g. Writing Task 1 chart images) — public, no auth.
-	r.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir("internal/assets"))))
+	// With S3_BUCKET set (production), the files live in a private bucket and
+	// this redirects to a short-lived presigned link, so stored URLs like
+	// /assets/audio/x.mp3 keep working.
+	if a := cfg.App.Assets; a.Bucket != "" {
+		bucket := &storage.Bucket{
+			Endpoint: a.Endpoint, Region: a.Region, Name: a.Bucket,
+			AccessKeyID: a.AccessKeyID, SecretAccessKey: a.SecretAccessKey,
+		}
+		r.PathPrefix("/assets/").Handler(http.StripPrefix("/assets", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			link, err := bucket.PresignGet(req.URL.Path, time.Hour, time.Now())
+			if err != nil {
+				http.Error(w, "asset unavailable", http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Cache-Control", "no-store")
+			http.Redirect(w, req, link, http.StatusFound)
+		})))
+	} else {
+		r.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir("internal/assets"))))
+	}
 
 	// Protected routes
 	api := r.PathPrefix("/api").Subrouter()
