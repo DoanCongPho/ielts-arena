@@ -84,35 +84,57 @@ def clean(s):
 
 
 class _BlockParser(HTMLParser):
-    """Flattens HTML into (tag, text) blocks. Only the innermost block
-    element owns its text, so <li><div>x</div></li> yields one block."""
+    """Flattens HTML into (tag, text) blocks, in document order. A block's
+    own text is emitted as a run whenever a child block starts or the block
+    ends, so text around children keeps its place; text outside any block
+    (YouPass fragments sometimes start mid-paragraph, "<br>x</p>") forms
+    runs of its own. With br_breaks, <br> also ends a run — explanations use
+    it as a line break."""
 
-    def __init__(self):
+    def __init__(self, br_breaks=False):
         super().__init__(convert_charrefs=True)
-        self.stack = []  # [tag, text_parts, has_child_block]
-        self.blocks = []
+        self.br_breaks = br_breaks
+        self.stack = []  # [tag, text_parts]
         self.loose = []  # text outside any block element
+        self.blocks = []
+
+    def _flush(self, parts, tag):
+        text = clean("".join(parts))
+        parts.clear()
+        if text:
+            # <li><div>x</div></li>: the div owns the text, but it's still a
+            # list item.
+            in_li = tag == "li" or any(t == "li" for t, _ in self.stack)
+            self.blocks.append(("li" if in_li else tag, text))
+
+    def _flush_current(self):
+        if self.stack:
+            self._flush(self.stack[-1][1], self.stack[-1][0])
+        else:
+            self._flush(self.loose, "text")
 
     def handle_starttag(self, tag, attrs):
         if tag == "br":
-            self._text(" ")
+            if self.br_breaks:
+                self._flush_current()
+            else:
+                self._text(" ")
         elif tag in BLOCK_TAGS:
-            if self.stack:
-                self.stack[-1][2] = True
-            self.stack.append([tag, [], False])
+            self._flush_current()
+            self.stack.append([tag, []])
 
     def handle_endtag(self, tag):
-        if tag not in BLOCK_TAGS or not self.stack:
+        if tag not in BLOCK_TAGS:
+            return
+        if not any(t == tag for t, _ in self.stack):
+            # A closing tag with no opener ends the loose run before it.
+            if not self.stack:
+                self._flush(self.loose, "text")
             return
         # Tolerate sloppy nesting: close up to the matching tag.
         while self.stack:
-            t, parts, _ = self.stack.pop()
-            text = clean("".join(parts))
-            if text:
-                # <li><div>x</div></li>: the div owns the text, but it's
-                # still a list item.
-                in_li = any(s[0] == "li" for s in self.stack)
-                self.blocks.append(("li" if in_li else t, text))
+            t, parts = self.stack.pop()
+            self._flush(parts, t)
             if t == tag:
                 break
 
@@ -122,17 +144,20 @@ class _BlockParser(HTMLParser):
     def _text(self, s):
         (self.stack[-1][1] if self.stack else self.loose).append(s)
 
+    def close(self):
+        super().close()
+        while self.stack:
+            t, parts = self.stack.pop()
+            self._flush(parts, t)
+        self._flush(self.loose, "text")
 
-def html_blocks(src):
+
+def html_blocks(src, br_breaks=False):
     src = re.sub(r'<span[^>]*class="gap-placeholder"[^>]*>.*?</span>', GAP, src or "", flags=re.S)
-    p = _BlockParser()
+    p = _BlockParser(br_breaks)
     p.feed(src)
     p.close()
-    blocks = p.blocks
-    loose = clean("".join(p.loose))
-    if loose:
-        blocks.append(("text", loose))
-    return blocks
+    return p.blocks
 
 
 def html_text(src):
@@ -190,9 +215,13 @@ def convert_paragraphs(part):
 
 
 def convert_explanation(src):
-    """YouPass's explanation HTML as plain text: one line per block, list
-    items bulleted."""
-    return "\n".join(f"• {text}" if tag == "li" else text for tag, text in html_blocks(src))
+    """YouPass's explanation HTML as plain text: one line per block or <br>
+    line, list items bulleted (unless the text already starts with one)."""
+    lines = []
+    for tag, text in html_blocks(src, br_breaks=True):
+        bullet = tag == "li" and not text.startswith("•")
+        lines.append(f"• {text}" if bullet else text)
+    return "\n".join(lines)
 
 
 def locate_ranges(locate):
