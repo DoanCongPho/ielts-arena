@@ -13,6 +13,7 @@ import (
 
 	"github/DoanCongPho/game-arena/internal/feature/ielts_test"
 	"github/DoanCongPho/game-arena/internal/feature/profile"
+	"github/DoanCongPho/game-arena/internal/feature/progression"
 	"github/DoanCongPho/game-arena/internal/platform"
 	"github/DoanCongPho/game-arena/internal/platform/auth"
 	"github/DoanCongPho/game-arena/internal/platform/config"
@@ -100,12 +101,20 @@ func main() {
 	pubAPI := r.PathPrefix("/api").Subrouter()
 	auth.NewHandler(authSvc).MountRoutes(pubAPI)
 
+	// --progression--
+	// Game progress (xp, level, rank, avatar frames). Shares the users
+	// table with auth but owns a disjoint set of its columns.
+	progRepo := progression.NewRepository(plat.DB)
+	progSvc := progression.NewService(progRepo)
+
 	// --ielts_test--
 	llmClient := llm.NewClient(cfg.App.OpenAIAPIKey, cfg.App.OpenAIModel)
 	grader := ielts_test.NewOpenAIGrader(llmClient)
 
 	testRepo := ielts_test.NewRepository(plat.DB)
-	testSvc := ielts_test.NewService(testRepo, grader, authRepo)
+	// progRepo satisfies ielts_test.XPGranter structurally — grading knows
+	// only "something that can award XP", not the progression package.
+	testSvc := ielts_test.NewService(testRepo, grader, progRepo)
 	ielts_test.NewHandler(testSvc).MountRoutes(api)
 
 	// Grading runs here, not in the request that submitted the answer:
@@ -121,7 +130,7 @@ func main() {
 	})
 
 	// --profile--
-	profileSvc := profile.NewService(authRepo)
+	profileSvc := profile.NewService(authRepo, progSvc)
 	// mounted on /api subrouter, RequireAuth already applies
 	profile.NewHandler(profileSvc).MountRoutes(api)
 
