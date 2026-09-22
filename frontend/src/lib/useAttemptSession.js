@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-// Every attempt gets the same fixed time allowance.
+// Reading and writing attempts get a fixed time allowance.
 export const ATTEMPT_SECONDS = 60 * 60;
+
+// A listening attempt lasts as long as its recording plus this, to check
+// answers once the last part has played.
+export const LISTENING_CHECK_SECONDS = 2 * 60;
 
 const LEAVE_MESSAGE = 'Bài làm chưa nộp sẽ bị mất. Bạn có chắc muốn rời trang?';
 
@@ -17,6 +21,12 @@ export function useCountdown(totalSeconds, running, onExpire) {
   // Always call the latest onExpire, so it sees current answers/state.
   const onExpireRef = useRef(onExpire);
   onExpireRef.current = onExpire;
+
+  // The allowance can depend on the test (a listening recording's length),
+  // so until the clock starts, show whatever it currently is.
+  useEffect(() => {
+    if (startedAt.current == null) setRemaining(totalSeconds);
+  }, [totalSeconds]);
 
   useEffect(() => {
     if (!running) return;

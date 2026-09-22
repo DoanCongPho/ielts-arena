@@ -45,6 +45,20 @@ func newMigrator(cfg *config.DBConfig, fsys fs.FS) (*migrate.Migrate, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open migration db: %w", err)
 	}
+	// golang-migrate writes schema_migrations inside a SERIALIZABLE
+	// transaction, which TiDB rejects unless told to skip the check. The
+	// variable doesn't exist on MySQL, so only set it when talking to TiDB.
+	var version string
+	if err := sqlDB.QueryRow("SELECT VERSION()").Scan(&version); err != nil {
+		_ = sqlDB.Close()
+		return nil, fmt.Errorf("query server version: %w", err)
+	}
+	if strings.Contains(version, "TiDB") {
+		_ = sqlDB.Close()
+		if sqlDB, err = sql.Open("mysql", dsn+"&tidb_skip_isolation_level_check=1"); err != nil {
+			return nil, fmt.Errorf("open migration db: %w", err)
+		}
+	}
 	driver, err := mysql.WithInstance(sqlDB, &mysql.Config{})
 	if err != nil {
 		_ = sqlDB.Close()

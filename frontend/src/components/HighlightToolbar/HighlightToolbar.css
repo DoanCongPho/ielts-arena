@@ -1,0 +1,26 @@
+.reading-highlight-toolbar {
+  position: fixed;
+  z-index: 50;
+  transform: translate(-50%, calc(-100% - 8px));
+  padding: 6px 12px;
+  background: var(--ink-900);
+  color: var(--surface-0);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-modal);
+}
+
+.reading-highlight-toolbar:hover {
+  transform: translate(-50%, calc(-100% - 10px));
+}
+
+.reading-highlight-hint {
+  font-family: var(--font-data);
+  font-size: 11px;
+  color: var(--ink-400);
+  margin: 0 0 10px;
+}

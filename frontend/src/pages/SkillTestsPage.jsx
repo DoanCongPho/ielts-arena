@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { listTests } from '../lib/api';
 import { safeParse } from '../lib/safeParse';
-import { SKILLS, SKILL_CONFIG } from '../lib/skillConfig';
+import { SKILLS, SKILL_CONFIG, seriesLabel } from '../lib/skillConfig';
 import Button from '../components/ui/Button/Button';
 import SkillTag from '../components/ui/SkillTag/SkillTag';
 import Card from '../components/ui/Card/Card';
@@ -54,15 +54,20 @@ export default function SkillTestsPage() {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Prefix match instead of exact match: for Writing, filter keys are the
-  // exact task_type values (task1/task2) and a string always starts with
-  // itself, so this is equivalent for that skill. For Reading/Listening,
-  // filter keys are categories ("passage"/"section"/"test") that should
-  // match any numbered task_type in that category (passage1, passage2, ...)
-  // without needing a separate filter pill per number.
-  const visibleTests = tests.filter(
-    (t) => taskFilter === 'all' || t.task_type.startsWith(taskFilter),
-  );
+  // A filter either carries its own predicate (series filters) or is a
+  // task_type prefix — for Writing the keys are the exact task_type values
+  // (task1/task2), and a string always starts with itself.
+  const activeFilter = config.taskFilters.find((f) => f.key === taskFilter);
+  const visibleTests = tests.filter((t) => {
+    if (!activeFilter || activeFilter.key === 'all') return true;
+    return activeFilter.match ? activeFilter.match(t) : t.task_type.startsWith(activeFilter.key);
+  });
+  const groups = groupBySeries(visibleTests);
+
+  // Inside a book the test number is what tells cards apart ("Test 3").
+  function cardLabel(t) {
+    return t.test_number ? `Test ${t.test_number}` : config.taskTypeLabel(t.task_type);
+  }
 
   return (
     <div className="practice-page">
@@ -113,45 +118,50 @@ export default function SkillTestsPage() {
         <p className="practice-status">Chưa có đề nào cho bộ lọc này.</p>
       )}
 
-      <div className="test-grid">
-        {visibleTests.map((t) => {
-          const content = safeParse(t.content_data);
-          const summary = config.cardSummary(content);
-          return (
-            <Card
-              key={t.id}
-              padding="compact"
-              className="test-card"
-              onClick={() => navigate(config.attemptPath(t.id))}
-            >
-              {t.thumbnail_url && (
-                <div className="test-card-media">
-                  <img className="test-card-thumb" src={t.thumbnail_url} alt="" />
-                  <span className="test-card-xp-chip text-data-sm">+{t.xp_gain} XP</span>
-                  <span className="test-card-section-tag">
-                    <SkillTag skill={skill}>{config.taskTypeLabel(t.task_type)}</SkillTag>
-                  </span>
-                </div>
-              )}
-              <div className="test-card-body">
-                {!t.thumbnail_url && (
-                  <div className="test-card-tags">
-                    <SkillTag skill={skill}>{config.taskTypeLabel(t.task_type)}</SkillTag>
-                    {content?.image_url && (
-                      <span className="test-tag-neutral text-label">Có biểu đồ</span>
+      {groups.map((g) => (
+        <section key={g.key} className="test-group">
+          {g.label && <h2 className="test-group-title text-h3">{g.label}</h2>}
+          <div className="test-grid">
+            {g.tests.map((t) => {
+              const content = safeParse(t.content_data);
+              const summary = config.cardSummary(content);
+              return (
+                <Card
+                  key={t.id}
+                  padding="compact"
+                  className="test-card"
+                  onClick={() => navigate(config.attemptPath(t.id))}
+                >
+                  {t.thumbnail_url && (
+                    <div className="test-card-media">
+                      <img className="test-card-thumb" src={t.thumbnail_url} alt="" />
+                      <span className="test-card-xp-chip text-data-sm">+{t.xp_gain} XP</span>
+                      <span className="test-card-section-tag">
+                        <SkillTag skill={skill}>{cardLabel(t)}</SkillTag>
+                      </span>
+                    </div>
+                  )}
+                  <div className="test-card-body">
+                    {!t.thumbnail_url && (
+                      <div className="test-card-tags">
+                        <SkillTag skill={skill}>{cardLabel(t)}</SkillTag>
+                        {content?.image_url && (
+                          <span className="test-tag-neutral text-label">Có biểu đồ</span>
+                        )}
+                        <span className="test-card-xp-chip text-data-sm">+{t.xp_gain} XP</span>
+                      </div>
                     )}
-                    <span className="test-card-xp-chip text-data-sm">+{t.xp_gain} XP</span>
+                    {summary && <p className="test-card-prompt text-body-sm">{summary}</p>}
+                    {t.thumbnail_url && content?.image_url && (
+                      <p className="test-card-subtitle text-body-sm">• Có biểu đồ</p>
+                    )}
                   </div>
-                )}
-                {summary && <p className="test-card-prompt text-body-sm">{summary}</p>}
-                {t.thumbnail_url && content?.image_url && (
-                  <p className="test-card-subtitle text-body-sm">• Có biểu đồ</p>
-                )}
-              </div>
-            </Card>
-          );
-        })}
-      </div>
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+      ))}
 
       {pagination && (
         <div className="practice-pagination">
@@ -168,4 +178,25 @@ export default function SkillTestsPage() {
       )}
     </div>
   );
+}
+
+// groupBySeries splits tests (already ordered by the API: books first, then
+// the rest) into one group per book, keeping that order. Tests outside any
+// series form a trailing "Khác" group — unlabelled when nothing on the page
+// belongs to a series, so skills without books look as before.
+function groupBySeries(tests) {
+  const groups = [];
+  const byKey = new Map();
+  for (const t of tests) {
+    const key = t.series ? `${t.series}-${t.volume}` : 'other';
+    let g = byKey.get(key);
+    if (!g) {
+      g = { key, label: seriesLabel(t) || 'Khác', tests: [] };
+      byKey.set(key, g);
+      groups.push(g);
+    }
+    g.tests.push(t);
+  }
+  if (groups.length === 1 && groups[0].key === 'other') groups[0].label = null;
+  return groups;
 }

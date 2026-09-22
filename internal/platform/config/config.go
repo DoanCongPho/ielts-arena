@@ -29,9 +29,23 @@ type AppConfig struct {
 	// SPA and this API behind one nginx). Set it only when the browser
 	// loads the frontend from a different origin than this API.
 	AllowedOrigins []string
-	OpenAIAPIKey   string
-	OpenAIModel    string
-	Grading        GradingConfig
+	// Assets, when configured, makes /assets/* redirect to presigned links
+	// into a private bucket instead of serving internal/assets from disk.
+	Assets       AssetsBucketConfig
+	OpenAIAPIKey string
+	OpenAIModel  string
+	Grading      GradingConfig
+}
+
+// AssetsBucketConfig points at a private S3-compatible bucket (Backblaze
+// B2, R2) that mirrors internal/assets: audio/<id>.mp3, diagrams/<id>.jpg.
+// Empty Bucket means serve from disk.
+type AssetsBucketConfig struct {
+	Endpoint        string
+	Region          string
+	Bucket          string
+	AccessKeyID     string
+	SecretAccessKey string
 }
 
 // GradingConfig tunes the background grading worker pool. Workers is also
@@ -48,6 +62,9 @@ type DBConfig struct {
 	User     string
 	Password string
 	Name     string
+	// TLS turns on verified TLS to the server (system CA bundle). Required
+	// by managed MySQL like TiDB Cloud; off for the local compose MySQL.
+	TLS bool
 }
 
 func MustLoad() *Config {
@@ -110,6 +127,20 @@ func loadFromMap(env map[string]string) (*Config, error) {
 			minSecretKeyLen, len(secret))
 	}
 	cfg.App.SecretKey = []byte(secret)
+	cfg.App.Assets = AssetsBucketConfig{
+		Endpoint:        strings.TrimRight(get("S3_ENDPOINT", ""), "/"),
+		Region:          get("S3_REGION", ""),
+		Bucket:          get("S3_BUCKET", ""),
+		AccessKeyID:     get("S3_ACCESS_KEY_ID", ""),
+		SecretAccessKey: get("S3_SECRET_ACCESS_KEY", ""),
+	}
+	if e := cfg.App.Assets.Endpoint; e != "" && !strings.Contains(e, "://") {
+		cfg.App.Assets.Endpoint = "https://" + e
+	}
+	if a := cfg.App.Assets; a.Bucket != "" &&
+		(a.Endpoint == "" || a.Region == "" || a.AccessKeyID == "" || a.SecretAccessKey == "") {
+		return nil, fmt.Errorf("S3_BUCKET is set: S3_ENDPOINT, S3_REGION, S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY are required too")
+	}
 	if raw := get("ALLOWED_ORIGINS", ""); raw != "" {
 		for _, o := range strings.Split(raw, ",") {
 			if o = strings.TrimSpace(o); o != "" {
@@ -147,6 +178,11 @@ func loadFromMap(env map[string]string) (*Config, error) {
 	cfg.DB.User = get("DB_USER", "root")
 	cfg.DB.Password = get("DB_PASSWORD", "")
 	cfg.DB.Name = get("DB_NAME", "ielts_arena")
+	dbTLS, err := getBool("DB_TLS", false)
+	if err != nil {
+		return nil, fmt.Errorf("DB_TLS: %w", err)
+	}
+	cfg.DB.TLS = dbTLS
 
 	return cfg, nil
 }

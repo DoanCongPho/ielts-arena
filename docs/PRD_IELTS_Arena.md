@@ -10,7 +10,7 @@ Product requirements document. Backend: pure Go (no framework), REST API (`net/h
 
 **Problem:** IELTS learners lack (a) fast, specific feedback across all four skills, (b) a steadily refreshed bank of practice tests, (c) motivation to practice consistently.
 
-**Solution:** A web app for IELTS practice covering Reading, Writing, and Listening today, with automated grading, progress tracking, and a gamification layer (levels, XP, unlockable avatar frames) to drive motivation. Speaking, competitive real-time matches, and team modes are planned extensions of the same grading + gamification core.
+**Solution:** A web app for IELTS practice covering Reading, Writing, and Listening today, with automated grading, progress tracking, and a gamification layer (levels, XP) to drive motivation. Speaking, competitive real-time matches, and team modes are planned extensions of the same grading + gamification core.
 
 **Scoping principle:** Every skill is a "skill module" — a `tests.skill` value with its own content shape, grading logic, and attempt UI — plugged into one shared framework for submissions, scoring, XP, and (in the future) competitive play.
 
@@ -23,7 +23,7 @@ Product requirements document. Backend: pure Go (no framework), REST API (`net/h
 - **Reading:** passage-based tests with 14 supported question types, auto-graded (exact-match / accepted-answers / multi-select-set rules), band derived from a raw-score-to-band table.
 - **Listening:** section-based tests sharing the reading question-type engine, plus a shared audio file per test and per-question timestamp hints for review.
 - **Submissions & history:** every attempt is persisted with its graded result; users can list past submissions and revisit a graded submission's score/detail.
-- **Gamification (partial):** lifetime XP and a derived level (1–100, compounding XP curve) awarded once per user per test on first graded attempt; 100 unlockable avatar frames (frame *N* unlocks at level *N*), equippable via profile settings.
+- **Gamification (partial):** lifetime XP and a derived level (1–100, compounding XP curve) awarded once per user per test on first graded attempt.
 - **Admin authoring:** admin-only `POST /api/tests` for creating tests of any skill, with validation (contiguous question ordering, gap/question-count matching, required fields per question type, etc. — see [data_schema.md](data_schema.md)).
 
 ### Not yet built (roadmap)
@@ -67,12 +67,11 @@ Product requirements document. Backend: pure Go (no framework), REST API (`net/h
 - Never leak answer keys before grading (`GET /api/tests*` redacts `answer`/`accepted_answers`; they reappear only in a graded submission's score).
 - Listening additionally carries one shared audio file per test with per-section start/end offsets and per-question timestamp hints (review convenience only, not used in live attempts or grading).
 
-### 4.3 Gamification — level & avatar frames (shipped)
+### 4.3 Gamification — level & XP (shipped)
 
 **Functional requirements:**
 - XP is the lifetime source of truth; level is a denormalized cache recomputed via a compounding curve (each level costs 4% more XP than the last, 1–100).
 - XP is granted exactly once per `(user, test)` pair, on that pair's first graded submission — enforced at the database level via a composite primary key, not an application-level check, so it's race-safe under concurrent duplicate submissions.
-- 100 avatar frames, one per level; frame *N* is unlocked iff the user's level ≥ *N* (fully derived, no separate unlocks table). Users can equip any unlocked frame independent of their current level.
 - Resubmitting an already-attempted test is allowed for practice and still gets graded, just doesn't grant XP again.
 
 **Acceptance criteria:**
@@ -131,7 +130,7 @@ Not scoped in detail until Speaking and Dual Match both exist — listed here on
 
 **Backend (pure Go):**
 - `net/http` + `gorilla/mux` for REST routing (`cmd/api/main.go`).
-- Feature packages: `internal/feature/ielts_test` (tests, submissions, scores, grading, auto-grading), `internal/feature/profile` (level/XP/frame reads — no table of its own, reuses `auth`'s `users` row).
+- Feature packages: `internal/feature/ielts_test` (tests, submissions, scores, grading, auto-grading), `internal/feature/profile` (level/XP reads — no table of its own, reuses `auth`'s `users` row).
 - Platform packages: `internal/platform/auth` (users, JWT), `internal/platform/middleware` (auth/admin/CORS), `internal/platform/llm` (external grading model client), `internal/platform/leveling` (XP↔level curve), `internal/platform/database` (Postgres + migrations).
 - Static file serving for test assets (charts, images) under `/assets/`.
 
@@ -139,7 +138,7 @@ Not scoped in detail until Speaking and Dual Match both exist — listed here on
 
 **Frontend (React, separate app):**
 - Auth pages (login/register), dashboard, per-skill practice/attempt pages (Writing/Reading/Listening), submission history + detail view, admin test-creation page.
-- Profile HUD showing level/XP/equipped avatar frame.
+- Profile HUD showing level/XP.
 
 **Communication:** REST only, today. WebSocket is planned for Dual Match's real-time state and push-graded results.
 
@@ -162,8 +161,7 @@ Not scoped in detail until Speaking and Dual Match both exist — listed here on
 - `GET /api/submissions/{id}/score` — graded result for a submission.
 
 **Profile**
-- `GET /api/profile` — `name`, `level`, `xp`, `current_level_xp`, `xp_to_next_level`, `image_url`, `equipped_frame_level`, `unlocked_max_frame_level`.
-- `PUT /api/profile/frame` — `{ "frame_level": N }`, must satisfy `1 ≤ N ≤ level`.
+- `GET /api/profile` — `name`, `level`, `xp`, `current_level_xp`, `xp_to_next_level`, `image_url`.
 
 **Planned, not yet implemented:** `POST /api/match/queue`, match WebSocket events (`match_found`, `test_assigned`, `timer_tick`, `submit_locked`, `match_result`), rank endpoints.
 
@@ -171,7 +169,7 @@ Not scoped in detail until Speaking and Dual Match both exist — listed here on
 
 See [data_schema.md](data_schema.md) for the full, current ER diagram and field-level detail (generated from migrations `000001`–`000006`). Summary:
 
-- **`users`** — auth fields + `level`, `xp`, `rank_score` (unused so far), `role`, `image_url`, `equipped_frame_level`.
+- **`users`** — auth fields + `level`, `xp`, `rank_score` (unused so far), `role`, `image_url`.
 - **`tests`** — `skill` (`writing | reading | listening | speaking`), `task_type`, polymorphic `content_data` JSON (shape depends on `skill`), `xp_gain`, `is_current`.
 - **`submissions`** — `payload` JSON (shape depends on skill), `status` (`pending | submitted | graded | failed`).
 - **`scores`** — one per submission, `overall_band`, polymorphic `details` JSON (LLM criteria breakdown for Writing/Speaking, correctness breakdown for Reading/Listening).
@@ -184,7 +182,7 @@ See [data_schema.md](data_schema.md) for the full, current ER diagram and field-
 - % of submissions that reach a graded state successfully.
 - Average time from submission to graded result (per skill).
 - Practice attempts per user per week, across all three live skills.
-- Retention / return rate — signal for whether the level/frame system is working.
+- Retention / return rate — signal for whether the level/XP system is working.
 - (Future) completed Dual Match count, once shipped.
 
 ## 10. Risks & open questions

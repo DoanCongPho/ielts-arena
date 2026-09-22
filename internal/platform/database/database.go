@@ -51,8 +51,12 @@ func buildDSN(cfg *config.DBConfig) (string, error) {
 		return "", errors.New("DBConfig.Name is empty")
 	}
 	// %27 = "'", %2B = "+", %3A = ":" → time_zone='+00:00'
-	return fmt.Sprintf(
+	dsn := fmt.Sprintf(
 		"%s:%s@tcp(%s:%d)/%s?parseTime=true&loc=UTC&time_zone=%%27%%2B00%%3A00%%27&charset=utf8mb4",
 		user, cfg.Password, host, cfg.Port, name,
-	), nil
+	)
+	if cfg.TLS {
+		dsn += "&tls=true"
+	}
+	return dsn, nil
 }

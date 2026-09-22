@@ -81,6 +81,13 @@ export function getTest(id) {
   return request(`/api/tests/${id}`);
 }
 
+// getAnswerKey returns a graded test's {questions, transcripts}: answers,
+// explanations and evidence keyed by question_order, plus each listening
+// section's transcript. 403 until the user has a graded attempt at it.
+export function getAnswerKey(testId) {
+  return request(`/api/tests/${testId}/answer-key`);
+}
+
 export function createTest(payload) {
   return request('/api/tests', {
     method: 'POST',
@@ -148,11 +155,4 @@ export function getSubmission(id) {
 
 export function getProfile() {
   return request('/api/profile');
-}
-
-export function setEquippedFrame(frameLevel) {
-  return request('/api/profile/frame', {
-    method: 'PUT',
-    body: JSON.stringify({ frame_level: frameLevel }),
-  });
 }

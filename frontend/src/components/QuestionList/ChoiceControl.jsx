@@ -1,3 +1,4 @@
+import AnswerExplanation from '../AnswerExplanation/AnswerExplanation';
 import { questionNumberLabel, questionSpan } from '../../lib/answerUtils';
 import HighlightableText from '../HighlightableText/HighlightableText';
 
@@ -73,6 +74,7 @@ export default function ChoiceControl({ group, answers, onChange, disabled, resu
                 {result.max_points > 1 && ` (bạn được ${result.points}/${result.max_points} điểm)`}
               </p>
             )}
+            {result && <AnswerExplanation order={order} />}
           </div>
         );
       })}

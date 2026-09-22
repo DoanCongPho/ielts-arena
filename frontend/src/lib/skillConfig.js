@@ -5,6 +5,25 @@ export const SKILLS = [
   { key: 'speaking', label: 'Speaking' },
 ];
 
+const SERIES_NAMES = { cambridge: 'Cambridge' };
+
+// Filters shared by skills whose tests come from books: "Cambridge" keeps
+// tests in a series, "Khác" keeps the rest. A filter with `match` is a
+// predicate on the test; without one, its key is a task_type prefix.
+const SERIES_FILTERS = [
+  { key: 'all', label: 'Tất cả' },
+  { key: 'cambridge', label: 'Cambridge', match: (t) => t.series === 'cambridge' },
+  { key: 'other', label: 'Khác', match: (t) => !t.series },
+];
+
+// seriesLabel names the book a test belongs to ("Cambridge 20"), or null
+// for a test outside any series.
+export function seriesLabel(test) {
+  if (!test.series) return null;
+  const name = SERIES_NAMES[test.series] || test.series;
+  return test.volume ? `${name} ${test.volume}` : name;
+}
+
 export const SKILL_CONFIG = {
   writing: {
     label: 'Writing',
@@ -24,15 +43,7 @@ export const SKILL_CONFIG = {
     enabled: true,
     colorToken: 'reading',
     attemptPath: (id) => `/practice/reading/${id}`,
-    // Category filters, not one pill per numbered edition — "Passage"
-    // matches passage1/passage2/... and "Test" matches test1/test2/...
-    // (prefix match, see SkillTestsPage.jsx), so new editions don't need a
-    // new filter pill added here every time.
-    taskFilters: [
-      { key: 'all', label: 'Tất cả' },
-      { key: 'passage', label: 'Passage' },
-      { key: 'test', label: 'Test' },
-    ],
+    taskFilters: SERIES_FILTERS,
     taskTypeLabel: (taskType) => {
       if (taskType.startsWith('passage')) return taskType.replace('passage', 'Passage ');
       if (taskType.startsWith('test')) return taskType.replace('test', 'Test ');
@@ -54,12 +65,7 @@ export const SKILL_CONFIG = {
     enabled: true,
     colorToken: 'listening',
     attemptPath: (id) => `/practice/listening/${id}`,
-    // Category filters — see the equivalent comment on reading's taskFilters.
-    taskFilters: [
-      { key: 'all', label: 'Tất cả' },
-      { key: 'section', label: 'Section' },
-      { key: 'test', label: 'Test' },
-    ],
+    taskFilters: SERIES_FILTERS,
     taskTypeLabel: (taskType) => {
       if (taskType.startsWith('section')) return taskType.replace('section', 'Section ');
       if (taskType.startsWith('test')) return taskType.replace('test', 'Test ');

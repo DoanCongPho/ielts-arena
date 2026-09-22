@@ -52,6 +52,9 @@ func validateContentData(skill string, raw []byte) error {
 			if err := validateQuestionGroups(p.QuestionGroups, readingQuestionTypes, &orders); err != nil {
 				return err
 			}
+			if err := validateEvidence(p.Paragraphs, p.QuestionGroups, "passage"); err != nil {
+				return err
+			}
 		}
 		if err := validateQuestionOrderContinuity(orders); err != nil {
 			return err
@@ -61,11 +64,15 @@ func validateContentData(skill string, raw []byte) error {
 		if err := json.Unmarshal(raw, &c); err != nil {
 			return fmt.Errorf("invalid content_data for listening: %w", err)
 		}
-		if c.AudioURL == "" {
-			return errors.New("content_data.audio_url is required for listening")
-		}
 		if len(c.Sections) == 0 {
 			return errors.New("content_data.sections is required for listening")
+		}
+		if c.AudioURL == "" {
+			for _, sec := range c.Sections {
+				if sec.AudioURL == "" {
+					return errors.New("content_data.audio_url is required for listening unless every section has its own audio_url")
+				}
+			}
 		}
 		var orders []int
 		for _, sec := range c.Sections {
@@ -73,6 +80,9 @@ func validateContentData(skill string, raw []byte) error {
 				return errors.New("each section needs section_end_time greater than section_start_time")
 			}
 			if err := validateQuestionGroups(sec.QuestionGroups, listeningQuestionTypes, &orders); err != nil {
+				return err
+			}
+			if err := validateEvidence(sec.Transcript, sec.QuestionGroups, "transcript"); err != nil {
 				return err
 			}
 		}
@@ -157,6 +167,40 @@ func validateQuestionGroups(groups []QuestionGroup, allowed map[QuestionType]boo
 		}
 	}
 	return nil
+}
+
+// validateEvidence checks that every evidence entry in groups points at
+// one of paragraphs (a reading passage, or a listening section's
+// transcript — named by `source` in errors) and quotes it verbatim (modulo
+// whitespace and quote style): the check that catches an importer, human
+// or AI, citing text that isn't there.
+func validateEvidence(paragraphs []Paragraph, groups []QuestionGroup, source string) error {
+	for _, g := range groups {
+		for _, q := range g.Questions {
+			for _, e := range q.Evidence {
+				if e.Paragraph < 0 || e.Paragraph >= len(paragraphs) {
+					return fmt.Errorf("question_order %d: evidence paragraph %d is out of range (the %s has %d)", q.QuestionOrder, e.Paragraph, source, len(paragraphs))
+				}
+				quote := normalizeQuote(e.Quote)
+				if quote == "" {
+					return fmt.Errorf("question_order %d: evidence quote is empty", q.QuestionOrder)
+				}
+				if !strings.Contains(normalizeQuote(paragraphs[e.Paragraph].Text), quote) {
+					return fmt.Errorf("question_order %d: evidence quote %q is not in paragraph %d", q.QuestionOrder, e.Quote, e.Paragraph)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+var quoteFolder = strings.NewReplacer("\u2018", "'", "\u2019", "'", "\u201c", `"`, "\u201d", `"`)
+
+// normalizeQuote collapses whitespace and folds typographic quotes, so an
+// evidence quote matches its paragraph however either was typed. The
+// frontend mirrors this when it locates the quote to highlight it.
+func normalizeQuote(s string) string {
+	return strings.Join(strings.Fields(quoteFolder.Replace(s)), " ")
 }
 
 // questionSpan is how many question numbers — and marks — each question in
@@ -584,6 +628,7 @@ func publicContentData(skill string, raw []byte) (json.RawMessage, error) {
 		}
 		for i := range content.Sections {
 			redactQuestionsInPlace(content.Sections[i].QuestionGroups)
+			content.Sections[i].Transcript = nil
 		}
 		return json.Marshal(content)
 	default:
@@ -591,15 +636,16 @@ func publicContentData(skill string, raw []byte) (json.RawMessage, error) {
 	}
 }
 
-// redactQuestionsInPlace blanks Answer and AcceptedAnswers on every question
-// across every group — AcceptedAnswers must be redacted too, since it
-// contains the canonical answer among its accepted variants and leaking it
-// would defeat the point of blanking Answer.
+// redactQuestionsInPlace blanks Answer, AcceptedAnswers, Explanation and
+// Evidence on every question across every group — each of the last three
+// gives the answer away just as surely as Answer itself.
 func redactQuestionsInPlace(groups []QuestionGroup) {
 	for gi := range groups {
 		for qi := range groups[gi].Questions {
 			groups[gi].Questions[qi].Answer = AnswerValue{}
 			groups[gi].Questions[qi].AcceptedAnswers = nil
+			groups[gi].Questions[qi].Explanation = ""
+			groups[gi].Questions[qi].Evidence = nil
 		}
 	}
 }

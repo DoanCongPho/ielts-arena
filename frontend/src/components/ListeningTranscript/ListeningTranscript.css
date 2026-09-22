@@ -1,0 +1,16 @@
+.listening-transcript {
+  margin-top: var(--space-4);
+  border-top: 1px solid var(--hairline-strong);
+  padding-top: var(--space-4);
+}
+
+.listening-transcript-title {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.listening-transcript-text p {
+  margin: 0 0 var(--space-3);
+}

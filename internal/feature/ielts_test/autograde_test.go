@@ -369,6 +369,101 @@ func TestValidateContentData_MultiSelectSpansSelectCount(t *testing.T) {
 	}
 }
 
+// readingWithEvidence is validReadingContent with its first question
+// carrying the given evidence and an explanation.
+func readingWithEvidence(ev ...Evidence) ReadingContent {
+	c := validReadingContent()
+	c.Passages[0].Paragraphs = []Paragraph{{Label: "A", Text: "The cat sat on the mat. It was the caf\u00e9\u2019s cat."}}
+	q := &c.Passages[0].QuestionGroups[0].Questions[0]
+	q.Explanation = "Paragraph A says so."
+	q.Evidence = ev
+	return c
+}
+
+func TestValidateContentData_Evidence(t *testing.T) {
+	cases := []struct {
+		name    string
+		ev      []Evidence
+		wantErr bool
+	}{
+		{"verbatim quote", []Evidence{{Paragraph: 0, Quote: "The cat sat on the mat."}}, false},
+		{"whitespace and quote style differ", []Evidence{{Paragraph: 0, Quote: "the  caf\u00e9's\ncat"}}, false},
+		{"no evidence at all", nil, false},
+		{"paragraph out of range", []Evidence{{Paragraph: 1, Quote: "The cat"}}, true},
+		{"negative paragraph", []Evidence{{Paragraph: -1, Quote: "The cat"}}, true},
+		{"quote not in paragraph", []Evidence{{Paragraph: 0, Quote: "The dog sat"}}, true},
+		{"empty quote", []Evidence{{Paragraph: 0, Quote: "  "}}, true},
+	}
+	for _, c := range cases {
+		err := validateContentData("reading", marshalContent(t, readingWithEvidence(c.ev...)))
+		if (err != nil) != c.wantErr {
+			t.Errorf("%s: err = %v, wantErr %v", c.name, err, c.wantErr)
+		}
+	}
+}
+
+// listeningWithEvidence is a one-section listening test with its own audio
+// and the given transcript, whose only question cites ev.
+func listeningWithEvidence(transcript []Paragraph, ev ...Evidence) ListeningContent {
+	group := sentenceCompletionGroup(1, 1, "cat", []string{"cat"})
+	group.Questions[0].Evidence = ev
+	return ListeningContent{
+		Sections: []ListeningSection{{
+			AudioURL:       "https://example.com/section1.mp3",
+			SectionEndTime: 60,
+			Transcript:     transcript,
+			QuestionGroups: []QuestionGroup{group},
+		}},
+	}
+}
+
+func TestValidateContentData_ListeningEvidenceQuotesTranscript(t *testing.T) {
+	transcript := []Paragraph{{Text: "Good morning."}, {Text: "My cat is called Tom."}}
+	if err := validateContentData("listening", marshalContent(t, listeningWithEvidence(transcript, Evidence{Paragraph: 1, Quote: "My cat"}))); err != nil {
+		t.Errorf("quote from the transcript rejected: %v", err)
+	}
+	if err := validateContentData("listening", marshalContent(t, listeningWithEvidence(transcript, Evidence{Paragraph: 1, Quote: "My dog"}))); err == nil {
+		t.Error("expected a quote that isn't in the transcript to be rejected")
+	}
+	if err := validateContentData("listening", marshalContent(t, listeningWithEvidence(nil, Evidence{Paragraph: 0, Quote: "x"}))); err == nil {
+		t.Error("expected evidence without a transcript to be rejected")
+	}
+}
+
+func TestValidateContentData_ListeningAudio(t *testing.T) {
+	c := listeningWithEvidence(nil)
+	if err := validateContentData("listening", marshalContent(t, c)); err != nil {
+		t.Errorf("per-section audio without a test-wide audio_url rejected: %v", err)
+	}
+	c.Sections = append(c.Sections, ListeningSection{SectionEndTime: 60, QuestionGroups: []QuestionGroup{sentenceCompletionGroup(1, 2, "dog", []string{"dog"})}})
+	if err := validateContentData("listening", marshalContent(t, c)); err == nil {
+		t.Error("expected an error: section 2 has no audio and there's no test-wide audio_url")
+	}
+	c.AudioURL = "https://example.com/full.mp3"
+	if err := validateContentData("listening", marshalContent(t, c)); err != nil {
+		t.Errorf("test-wide audio_url should cover section 2: %v", err)
+	}
+}
+
+func TestPublicContentData_RedactsListeningTranscript(t *testing.T) {
+	raw := marshalContent(t, listeningWithEvidence([]Paragraph{{Text: "My cat is called Tom."}}, Evidence{Paragraph: 0, Quote: "My cat"}))
+	public, err := publicContentData("listening", raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out ListeningContent
+	if err := json.Unmarshal(public, &out); err != nil {
+		t.Fatal(err)
+	}
+	sec := out.Sections[0]
+	if sec.Transcript != nil || sec.QuestionGroups[0].Questions[0].Evidence != nil {
+		t.Errorf("transcript/evidence leaked: %+v", sec)
+	}
+	if sec.AudioURL == "" {
+		t.Error("section audio_url must stay public")
+	}
+}
+
 func TestValidateQuestionOrderContinuity(t *testing.T) {
 	cases := []struct {
 		name    string
@@ -598,7 +693,7 @@ func TestQuestionsFromContent(t *testing.T) {
 }
 
 func TestPublicContentData_RedactsReadingAnswers(t *testing.T) {
-	raw := marshalContent(t, validReadingContent())
+	raw := marshalContent(t, readingWithEvidence(Evidence{Paragraph: 0, Quote: "The cat"}))
 	public, err := publicContentData("reading", raw)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -617,6 +712,9 @@ func TestPublicContentData_RedactsReadingAnswers(t *testing.T) {
 				if q.AcceptedAnswers != nil {
 					t.Errorf("expected accepted_answers to be redacted for question_order %d", q.QuestionOrder)
 				}
+				if q.Explanation != "" || q.Evidence != nil {
+					t.Errorf("expected explanation/evidence to be redacted for question_order %d", q.QuestionOrder)
+				}
 			}
 		}
 	}
@@ -630,5 +728,33 @@ func TestPublicContentData_PassesThroughOtherSkills(t *testing.T) {
 	}
 	if string(public) != string(raw) {
 		t.Errorf("got %s, want passthrough of %s", public, raw)
+	}
+}
+
+func TestPublicContentData_KeepsAllDiagrams(t *testing.T) {
+	c := validReadingContent()
+	c.Passages[0].QuestionGroups = append(c.Passages[0].QuestionGroups, QuestionGroup{
+		GroupOrder:       4,
+		QuestionType:     QTypeDiagramLabelCompletion,
+		Instructions:     "Label the diagrams below.",
+		DiagramImageURL:  "/assets/diagrams/a.avif",
+		DiagramImageURLs: []string{"/assets/diagrams/b.avif"},
+		Questions:        []Question{{QuestionOrder: 5, Answer: rawAnswer("posts"), AcceptedAnswers: []string{"posts"}}},
+	})
+	raw := marshalContent(t, c)
+	if err := validateContentData("reading", raw); err != nil {
+		t.Fatalf("diagram group rejected: %v", err)
+	}
+	public, err := publicContentData("reading", raw)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	var out ReadingContent
+	if err := json.Unmarshal(public, &out); err != nil {
+		t.Fatal(err)
+	}
+	g := out.Passages[0].QuestionGroups[3]
+	if g.DiagramImageURL != "/assets/diagrams/a.avif" || len(g.DiagramImageURLs) != 1 || g.DiagramImageURLs[0] != "/assets/diagrams/b.avif" {
+		t.Errorf("diagrams lost in public content: %q %v", g.DiagramImageURL, g.DiagramImageURLs)
 	}
 }

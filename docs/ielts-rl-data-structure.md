@@ -14,8 +14,14 @@ Test
              ├─ question_order   // số thứ tự GLOBAL xuyên suốt toàn bài test
              ├─ text
              ├─ answer
-             └─ accepted_answers[]?  // các biến thể được chấp nhận
+             ├─ accepted_answers[]?  // các biến thể được chấp nhận
+             ├─ explanation?     // giải thích vì sao đúng (tiếng Việt)
+             └─ evidence[]?      // Reading: {paragraph, quote} — vị trí đáp án trong bài
 ```
+
+**Giải thích & vị trí đáp án** (`explanation`, `evidence`) — bị ẩn khỏi `GET /api/tests` giống `answer`, chỉ trả về qua `GET /api/tests/{id}/answer-key` sau khi user đã có bài được chấm (admin xem được luôn):
+- `explanation`: text thuần, xuống dòng bằng `\n`. Nên theo 3 bước: hiểu câu hỏi → keyword được paraphrase trong bài → đối chiếu kết luận.
+- `evidence[]` (chỉ Reading): `paragraph` là **index 0-based** trong `paragraphs[]` của passage chứa câu hỏi, `quote` là đoạn **trích nguyên văn** từ paragraph đó (khoảng trắng và kiểu dấu nháy `'`/`'` không cần khớp). `POST /api/tests` từ chối quote không có trong paragraph.
 
 **Nguyên tắc bắt buộc:**
 - `question_order` phải liên tục 1→40 (Reading) hoặc 1→40 (Listening) xuyên suốt TOÀN BỘ bài test, không reset theo từng passage/section.
@@ -41,7 +47,7 @@ Test
 | 10 | `summary-completion` | `has_word_bank`, `word_bank[]?`, `summary_text` (chứa `{{gap}}`) | nếu `word_bank` null → input tự do; nếu có → chọn từ box |
 | 11 | `table-completion` | `column_headers[]` (metadata, KHÔNG phải question), `questions[]` = từng hàng | chỉ ô có `{{gap}}` mới là câu hỏi thật |
 | — | `short-answer` | `word_limit` | giống sentence-completion nhưng dạng câu hỏi Wh- |
-| — | `diagram-label-completion` | `diagram_image_url` | answer là từ/cụm từ lấy từ bài đọc |
+| — | `diagram-label-completion` | `diagram_image_url`, `diagram_image_urls[]?` (ảnh thêm khi 1 nhóm có nhiều sơ đồ) | answer là từ/cụm từ lấy từ bài đọc; `text` có thể trống khi số câu đã in trên ảnh |
 | — | `flow-chart-completion` | `flow_structure.steps[]` (chứa `{{gap}}`) | tương tự table nhưng dạng chuỗi bước |
 
 ---

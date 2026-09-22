@@ -24,6 +24,11 @@ services:
     # you want to curl the API directly during development.
     expose:
       - "8080"
+    # Listening recordings (~1.6GB, see scripts/youpass_to_test.py
+    # --audio-dir) are too big to bake into the image, so they're mounted
+    # from the host and served at /assets/audio/ like the other assets.
+    volumes:
+      - ./media/audio:/app/internal/assets/audio:ro
     depends_on:
       mysql:
         condition: service_healthy

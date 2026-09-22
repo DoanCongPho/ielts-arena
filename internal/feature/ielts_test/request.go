@@ -5,7 +5,7 @@ import (
 	"errors"
 )
 
-const defaultPageSize = 10
+const defaultPageSize = 12
 
 type ListTestRequest struct {
 	Page int `json:"page"`
@@ -51,11 +51,30 @@ func (r *SubmitRequest) Validate() error {
 type CreateTestRequest struct {
 	Skill        string          `json:"skill"`
 	TaskType     string          `json:"task_type"`
+	Series       string          `json:"series,omitempty"`
+	Volume       int             `json:"volume,omitempty"`
+	TestNumber   int             `json:"test_number,omitempty"`
 	ContentData  json.RawMessage `json:"content_data"`
 	ThumbnailURL string          `json:"thumbnail_url"`
 	Source       string          `json:"source"`
 	IsCurrent    bool            `json:"is_current"`
 	XPGain       int             `json:"xp_gain"`
+}
+
+// Test is the Test this request creates.
+func (r *CreateTestRequest) Test() Test {
+	return Test{
+		Skill:        r.Skill,
+		TaskType:     r.TaskType,
+		Series:       r.Series,
+		Volume:       r.Volume,
+		TestNumber:   r.TestNumber,
+		ContentData:  r.ContentData,
+		ThumbnailURL: r.ThumbnailURL,
+		Source:       r.Source,
+		IsCurrent:    r.IsCurrent,
+		XPGain:       r.XPGain,
+	}
 }
 
 func (r *CreateTestRequest) Validate() error {
@@ -69,6 +88,9 @@ func (r *CreateTestRequest) Validate() error {
 	}
 	if len(r.ContentData) == 0 {
 		return errors.New("content_data is required")
+	}
+	if r.Series != "" && (r.Volume <= 0 || r.TestNumber <= 0) {
+		return errors.New("a test in a series needs a positive volume and test_number")
 	}
 	if r.XPGain < 0 {
 		return errors.New("xp_gain cannot be negative")

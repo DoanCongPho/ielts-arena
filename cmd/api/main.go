@@ -20,6 +20,7 @@ import (
 	"github/DoanCongPho/game-arena/internal/platform/database"
 	"github/DoanCongPho/game-arena/internal/platform/llm"
 	"github/DoanCongPho/game-arena/internal/platform/middleware"
+	"github/DoanCongPho/game-arena/internal/platform/storage"
 	"github/DoanCongPho/game-arena/migrations"
 
 	"github.com/gorilla/mux"
@@ -32,6 +33,10 @@ func checkhealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	// Needs no config or database, so it runs before either is loaded.
+	if len(os.Args) > 1 && os.Args[1] == "validate-test" {
+		os.Exit(ielts_test.RunValidateCmd(os.Args[2:]))
+	}
 	cfg := config.MustLoad()
 	if len(os.Args) > 1 && os.Args[1] == "migrate" {
 		os.Exit(database.RunMigrateCmd(cfg, migrations.FS, os.Args[2:]))
@@ -51,6 +56,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if len(os.Args) > 1 && os.Args[1] == "import-test" {
+		code := ielts_test.RunImportCmd(plat.DB, os.Args[2:])
+		_ = plat.Close(context.Background())
+		os.Exit(code)
+	}
 	defer func() { _ = plat.Close(context.Background()) }()
 
 	auth.Init(cfg.App.SecretKey)
@@ -60,7 +70,26 @@ func main() {
 	r.HandleFunc("/health", checkhealth)
 
 	// Static assets (e.g. Writing Task 1 chart images) — public, no auth.
-	r.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir("internal/assets"))))
+	// With S3_BUCKET set (production), the files live in a private bucket and
+	// this redirects to a short-lived presigned link, so stored URLs like
+	// /assets/audio/x.mp3 keep working.
+	if a := cfg.App.Assets; a.Bucket != "" {
+		bucket := &storage.Bucket{
+			Endpoint: a.Endpoint, Region: a.Region, Name: a.Bucket,
+			AccessKeyID: a.AccessKeyID, SecretAccessKey: a.SecretAccessKey,
+		}
+		r.PathPrefix("/assets/").Handler(http.StripPrefix("/assets", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			link, err := bucket.PresignGet(req.URL.Path, time.Hour, time.Now())
+			if err != nil {
+				http.Error(w, "asset unavailable", http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Cache-Control", "no-store")
+			http.Redirect(w, req, link, http.StatusFound)
+		})))
+	} else {
+		r.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir("internal/assets"))))
+	}
 
 	// Protected routes
 	api := r.PathPrefix("/api").Subrouter()
@@ -73,7 +102,7 @@ func main() {
 	auth.NewHandler(authSvc).MountRoutes(pubAPI)
 
 	// --progression--
-	// Game progress (xp, level, rank, avatar frames). Shares the users
+	// Game progress (xp, level, rank). Shares the users
 	// table with auth but owns a disjoint set of its columns.
 	progRepo := progression.NewRepository(plat.DB)
 	progSvc := progression.NewService(progRepo)

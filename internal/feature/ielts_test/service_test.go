@@ -620,3 +620,69 @@ func TestService_GetListSubmission_ReturnsOnlyOwnedSubmissionsIncludingPending(t
 		t.Errorf("expected both a graded and a pending submission in the list, sawGraded=%v sawPending=%v", sawGraded, sawPending)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// GetAnswerKey
+// ---------------------------------------------------------------------------
+
+func TestService_GetAnswerKey(t *testing.T) {
+	repo := NewMockTestRepository()
+	svc := newTestService(repo, &fakeGrader{})
+	ctx := context.Background()
+
+	reading, err := repo.CreateTest(ctx, &Test{
+		Skill:       "reading",
+		TaskType:    "test1",
+		ContentData: mustMarshal(t, readingWithEvidence(Evidence{Paragraph: 0, Quote: "The cat"})),
+	})
+	if err != nil {
+		t.Fatalf("seed test: %v", err)
+	}
+
+	if _, err := svc.GetAnswerKey(ctx, 1, false, reading.ID); !errors.Is(err, ErrAnswerKeyLocked) {
+		t.Errorf("before any attempt: err = %v, want ErrAnswerKeyLocked", err)
+	}
+
+	key, err := svc.GetAnswerKey(ctx, 1, true, reading.ID)
+	if err != nil {
+		t.Fatalf("admin: unexpected error: %v", err)
+	}
+	if got := key.Questions["1"]; got.Explanation == "" || len(got.Evidence) != 1 || len(got.AcceptedAnswers) == 0 {
+		t.Errorf("admin: key[1] = %+v, want answer, explanation and evidence", got)
+	}
+
+	submitAndGrade(t, svc, repo, 1, SubmitRequest{TestID: reading.ID, Payload: mustMarshal(t, AnswerPayload{Answers: map[string]json.RawMessage{}})})
+	if _, err := svc.GetAnswerKey(ctx, 1, false, reading.ID); err != nil {
+		t.Errorf("after a graded attempt: unexpected error: %v", err)
+	}
+	if _, err := svc.GetAnswerKey(ctx, 2, false, reading.ID); !errors.Is(err, ErrAnswerKeyLocked) {
+		t.Errorf("another user's attempt must not unlock it: err = %v", err)
+	}
+
+	writing, err := repo.CreateTest(ctx, &Test{Skill: "writing", TaskType: "task2", ContentData: mustMarshal(t, WritingContent{Prompt: "x"})})
+	if err != nil {
+		t.Fatalf("seed writing test: %v", err)
+	}
+	if _, err := svc.GetAnswerKey(ctx, 1, true, writing.ID); !errors.Is(err, ErrNoAnswerKey) {
+		t.Errorf("writing: err = %v, want ErrNoAnswerKey", err)
+	}
+	if _, err := svc.GetAnswerKey(ctx, 1, true, 999); !errors.Is(err, ErrTestNotFound) {
+		t.Errorf("missing test: err = %v, want ErrTestNotFound", err)
+	}
+
+	listening, err := repo.CreateTest(ctx, &Test{
+		Skill:       "listening",
+		TaskType:    "test1",
+		ContentData: mustMarshal(t, listeningWithEvidence([]Paragraph{{Text: "My cat is called Tom."}}, Evidence{Paragraph: 0, Quote: "My cat"})),
+	})
+	if err != nil {
+		t.Fatalf("seed listening test: %v", err)
+	}
+	lk, err := svc.GetAnswerKey(ctx, 1, true, listening.ID)
+	if err != nil {
+		t.Fatalf("listening: unexpected error: %v", err)
+	}
+	if len(lk.Transcripts) != 1 || len(lk.Transcripts[0]) != 1 || len(lk.Questions["1"].Evidence) != 1 {
+		t.Errorf("listening key = %+v, want the section transcript and the cited evidence", lk)
+	}
+}

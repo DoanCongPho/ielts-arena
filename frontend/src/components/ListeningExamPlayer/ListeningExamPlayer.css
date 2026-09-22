@@ -1,0 +1,95 @@
+.exam-player {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.exam-player-intro {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.exam-player-note {
+  flex: 1;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-700);
+}
+
+.exam-player-start {
+  flex-shrink: 0;
+  padding: var(--space-2) var(--space-5);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--listening-600);
+  color: var(--surface-0);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.exam-player-start:hover {
+  background: var(--listening-500);
+}
+
+.exam-player-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.exam-player-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--listening-600);
+  animation: exam-player-pulse 1.4s ease-in-out infinite;
+}
+
+.exam-player-dot-done {
+  background: var(--success-600);
+  animation: none;
+}
+
+@keyframes exam-player-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.exam-player-label {
+  font-weight: 600;
+  color: var(--ink-900);
+}
+
+.exam-player-time {
+  margin-left: auto;
+  color: var(--ink-700);
+}
+
+.exam-player-volume {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.exam-player-volume input {
+  width: 96px;
+  accent-color: var(--listening-600);
+}
+
+.exam-player-progress {
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--hairline);
+  overflow: hidden;
+}
+
+.exam-player-progress > div {
+  height: 100%;
+  background: var(--listening-600);
+  transition: width 0.25s linear;
+}

@@ -151,16 +151,59 @@
 .structured-text {
   font-family: var(--font-ui);
   font-size: 16px;
-  line-height: 2;
 }
 
-.structured-heading {
+/* A notes / form title, centred above the structure as on the paper. */
+.structured-title {
+  margin: 0 0 var(--space-4);
+  text-align: center;
   font-family: var(--font-ui);
-  font-size: 15px;
-  margin-bottom: var(--space-2);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink-900);
 }
 
-.structured-note-list,
+/* Marked structure lines (gapText.parseLine): subheadings, bullets
+   indented by level, plain lines. */
+.structured-lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.9;
+  color: var(--ink-900);
+}
+
+.structured-subheading {
+  margin: var(--space-3) 0 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.structured-subheading:first-child {
+  margin-top: 0;
+}
+
+.structured-bullet {
+  position: relative;
+  padding-left: 22px;
+}
+
+.structured-bullet::before {
+  content: '•';
+  position: absolute;
+  left: 6px;
+}
+
+.structured-bullet-1 {
+  margin-left: 26px;
+}
+
+.structured-bullet-2 {
+  margin-left: 52px;
+}
+
 .structured-flow {
   display: flex;
   flex-direction: column;
@@ -180,9 +223,16 @@
 
 .structured-table th,
 .structured-table td {
-  border: 1px solid var(--hairline);
-  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--hairline-strong);
+  padding: var(--space-3) var(--space-4);
   text-align: left;
+  vertical-align: middle;
+}
+
+.structured-table .structured-lines {
+  gap: var(--space-1);
+  font-size: 15px;
+  line-height: 1.7;
 }
 
 .structured-table th {
@@ -190,10 +240,43 @@
   font-weight: 600;
 }
 
+/* One blank: its question number in a badge, then the answer field. */
+.gap-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 6px;
+  vertical-align: middle;
+}
+
+.gap-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border-radius: var(--radius-full);
+  background: var(--reading-fill);
+  color: var(--reading-600);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.gap-number.gap-correct {
+  background: var(--success-600);
+  color: var(--surface-0);
+}
+
+.gap-number.gap-incorrect {
+  background: var(--error-600);
+  color: var(--surface-0);
+}
+
 .gap-select-wrapper {
   display: inline-block;
   vertical-align: middle;
-  margin: 0 4px;
 }
 
 .gap-input,
@@ -210,8 +293,19 @@
   vertical-align: middle;
 }
 
+/* Free-text blanks are an underline, like the answer line on paper. */
 .gap-input {
-  margin: 0 4px;
+  width: 140px;
+  padding: 2px 4px;
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid var(--ink-400);
+  border-radius: 0;
+}
+
+.gap-input:focus {
+  outline: none;
+  border-bottom-color: var(--listening-600);
 }
 
 .gap-input:disabled,
@@ -220,16 +314,22 @@
   color: var(--ink-700);
 }
 
-.gap-input.gap-correct,
 .dropdown-trigger.gap-select.gap-correct {
   border-color: var(--success-600);
   border-width: 2px;
 }
 
-.gap-input.gap-incorrect,
 .dropdown-trigger.gap-select.gap-incorrect {
   border-color: var(--error-600);
   border-width: 2px;
+}
+
+.gap-input.gap-correct {
+  border-bottom: 2px solid var(--success-600);
+}
+
+.gap-input.gap-incorrect {
+  border-bottom: 2px solid var(--error-600);
 }
 
 /* Matching drag-and-drop (matching-*, map-plan-labelling) — interaction

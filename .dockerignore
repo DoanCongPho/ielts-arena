@@ -19,6 +19,12 @@ obj/
 .vs/
 .DS_Store
 
-# Large design assets consumed only by the frontend build (copied into
-# frontend/public/avatar-frames instead) — irrelevant to the API image.
+# Listening recordings — mounted into the api container at runtime
+# (docker-compose.yml), never copied into the image. internal/assets/audio
+# is where that mount lands; a local copy there would otherwise be baked
+# into the image (~1.8GB).
+media/
+internal/assets/audio/
+
+# Large design assets used only by the frontend — irrelevant to the API image.
 asset/

@@ -1,11 +1,19 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getScore, getTest, submitAnswer, waitForGrading } from '../lib/api';
 import { flattenQuestions } from '../lib/answerUtils';
 import { safeParse } from '../lib/safeParse';
-import { ATTEMPT_SECONDS, useCountdown, useLeaveGuard } from '../lib/useAttemptSession';
+import { LISTENING_CHECK_SECONDS, useCountdown, useLeaveGuard } from '../lib/useAttemptSession';
 import { SKILL_CONFIG } from '../lib/skillConfig';
+import { useEvidenceReview } from '../lib/useEvidenceReview';
+import { useSectionAudio } from '../lib/useSectionAudio';
+import { useTextHighlights } from '../lib/useTextHighlights';
 import QuestionList from '../components/QuestionList/QuestionList';
+import { ReviewContext } from '../components/AnswerExplanation/ReviewContext';
+import ListeningTranscript from '../components/ListeningTranscript/ListeningTranscript';
+import ListeningExamPlayer from '../components/ListeningExamPlayer/ListeningExamPlayer';
+import HighlightToolbar from '../components/HighlightToolbar/HighlightToolbar';
+import { totalSeconds } from '../lib/listeningAudio';
 import AutoGradeResult from '../components/AutoGradeResult/AutoGradeResult';
 import QuestionNavBar from '../components/QuestionNavBar/QuestionNavBar';
 import Button from '../components/ui/Button/Button';
@@ -16,7 +24,6 @@ import './ListeningAttemptPage.css';
 export default function ListeningAttemptPage() {
   const { testId } = useParams();
   const navigate = useNavigate();
-  const audioRef = useRef(null);
 
   const [test, setTest] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -27,6 +34,8 @@ export default function ListeningAttemptPage() {
   const [submitting, setSubmitting] = useState(false);
   const [score, setScore] = useState(null);
   const [gradeFailed, setGradeFailed] = useState(false);
+  // The recording and the clock start together, on "Bắt đầu nghe".
+  const [started, setStarted] = useState(false);
 
   // Set after clicking a QuestionNavBar pill for a question in a different
   // section — the target element doesn't exist until the section switch
@@ -40,9 +49,17 @@ export default function ListeningAttemptPage() {
       .finally(() => setLoading(false));
   }, [testId]);
 
+  const content = safeParse(test?.content_data);
+  const sections = content?.sections || [];
+
   const inProgress = !!test && !score && !gradeFailed;
-  const remaining = useCountdown(ATTEMPT_SECONDS, inProgress, handleTimeUp);
+  const remaining = useCountdown(totalSeconds(content) + LISTENING_CHECK_SECONDS, inProgress && started, handleTimeUp);
   const confirmLeave = useLeaveGuard(inProgress);
+  const audio = useSectionAudio(content, activeIndex);
+  const review = useEvidenceReview(testId, !!score, sections, setActiveIndex);
+  // Highlight question text, instructions and (in review) the transcript,
+  // per section — as on the reading page.
+  const highlight = useTextHighlights(activeIndex);
 
   useEffect(() => {
     if (pendingScrollOrder == null) return;
@@ -57,14 +74,24 @@ export default function ListeningAttemptPage() {
     setAnswers((prev) => ({ ...prev, [questionOrder]: value }));
   }
 
-  // All sections share ONE audio file; switching the active section tab
-  // seeks the shared player to that section's start time instead of
-  // swapping the <audio> src.
+  // While the attempt is on, the recording plays straight through on its
+  // own (ListeningExamPlayer) and switching section only changes what's on
+  // screen. In review, it also seeks the review player to startTime within
+  // that section's recording (useSectionAudio).
   function handleSelectSection(i, startTime) {
+    if (!inProgress) audio.seek(i, startTime);
     setActiveIndex(i);
-    if (audioRef.current) {
-      audioRef.current.currentTime = startTime ?? 0;
-    }
+  }
+
+  // Review: replay from where question `order` is answered.
+  function handleListen(order) {
+    const i = sections.findIndex((s) =>
+      (s.question_groups || []).some((g) => g.questions.some((q) => q.question_order === order)),
+    );
+    if (i === -1) return;
+    const question = allQuestions.find((q) => q.question_order === order);
+    handleSelectSection(i, question?.timestamp_hint ?? sections[i]?.section_start_time);
+    audio.play();
   }
 
   function handleJumpToQuestion(order) {
@@ -105,8 +132,6 @@ export default function ListeningAttemptPage() {
   if (loading) return <div className="attempt-page"><p className="practice-status">Đang tải đề...</p></div>;
   if (error && !test) return <div className="attempt-page"><p className="practice-status practice-error">{error}</p></div>;
 
-  const content = safeParse(test?.content_data);
-  const sections = content?.sections || [];
   const activeSection = sections[activeIndex];
   const activeGroups = activeSection?.question_groups || [];
   const allQuestions = sections.flatMap((s) => flattenQuestions(s.question_groups));
@@ -121,7 +146,10 @@ export default function ListeningAttemptPage() {
         <span className={`attempt-timer ${inProgress && remaining <= 5 * 60 ? 'attempt-timer-low' : ''}`}>{formatTime(remaining)}</span>
       </header>
 
-      <div className="attempt-body">
+      {/* Taking the test: one full-width question column (tables and notes
+          need the room), with the player docked at the bottom. Review:
+          two columns, player + transcript beside the marked answers. */}
+      <div className={`attempt-body ${inProgress ? 'listening-exam-layout' : ''}`} {...highlight.areaProps}>
         <div className="attempt-prompt-panel">
           <h2>Listening — {SKILL_CONFIG.listening.taskTypeLabel(test.task_type)}</h2>
           {sections.length > 1 && (
@@ -138,9 +166,22 @@ export default function ListeningAttemptPage() {
               ))}
             </nav>
           )}
-          <div className="attempt-audio-panel">
-            <audio ref={audioRef} className="attempt-audio-player" controls src={content?.audio_url} />
-          </div>
+          {inProgress ? (
+            <p className="reading-highlight-hint listening-exam-hint">Bôi đen câu hỏi để tô đậm — bấm vào phần đã tô để bỏ.</p>
+          ) : (
+            <>
+              <div className="attempt-audio-panel">
+                <audio className="attempt-audio-player" controls {...audio.audioProps} />
+              </div>
+              <ListeningTranscript
+                section={activeIndex}
+                paragraphs={review.transcriptFor(activeIndex)}
+                evidenceFor={review.evidenceFor}
+                ranges={highlight.ranges}
+                onRemoveRange={highlight.remove}
+              />
+            </>
+          )}
         </div>
 
         <div className="attempt-answer-panel">
@@ -155,14 +196,20 @@ export default function ListeningAttemptPage() {
           )}
 
           {!gradeFailed && (
-            <QuestionList
-              groups={activeGroups}
-              answers={answers}
-              onChange={score ? undefined : handleAnswerChange}
-              disabled={submitting || !!score}
-              results={scoreResults}
-              skill="listening"
-            />
+            <ReviewContext.Provider
+              value={{ answerKey: review.answerKey, onLocate: review.locate, onListen: score ? handleListen : null, locateLabel: 'Xem trong transcript' }}
+            >
+              <QuestionList
+                groups={activeGroups}
+                answers={answers}
+                onChange={score ? undefined : handleAnswerChange}
+                disabled={submitting || !!score}
+                results={scoreResults}
+                highlights={highlight.ranges}
+                onHighlightRemove={highlight.remove}
+                skill="listening"
+              />
+            </ReviewContext.Provider>
           )}
 
           {error && <p className="practice-status practice-error">{error}</p>}
@@ -176,14 +223,24 @@ export default function ListeningAttemptPage() {
         </div>
       </div>
 
-      {!gradeFailed && (
-        <QuestionNavBar
-          questions={allQuestions}
-          answers={answers}
-          results={scoreResults}
-          onJump={handleJumpToQuestion}
-        />
-      )}
+      <div className="listening-dock">
+        {/* Mounted for the whole attempt so playback never restarts. */}
+        {inProgress && (
+          <div className="listening-dock-player">
+            <ListeningExamPlayer content={content} started={started} onStart={() => setStarted(true)} />
+          </div>
+        )}
+        {!gradeFailed && (
+          <QuestionNavBar
+            questions={allQuestions}
+            answers={answers}
+            results={scoreResults}
+            onJump={handleJumpToQuestion}
+          />
+        )}
+      </div>
+
+      <HighlightToolbar selection={highlight.selection} onApply={highlight.apply} toolbarRef={highlight.toolbarRef} />
     </div>
   );
 }

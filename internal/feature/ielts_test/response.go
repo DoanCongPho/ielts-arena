@@ -18,6 +18,9 @@ type TestResponse struct {
 	ID           uint64          `json:"id"`
 	Skill        string          `json:"skill"`
 	TaskType     string          `json:"task_type"`
+	Series       string          `json:"series,omitempty"`
+	Volume       int             `json:"volume,omitempty"`
+	TestNumber   int             `json:"test_number,omitempty"`
 	ContentData  json.RawMessage `json:"content_data"`
 	ThumbnailURL string          `json:"thumbnail_url,omitempty"`
 	XPGain       int             `json:"xp_gain"`
@@ -31,6 +34,9 @@ func newTestResponse(t *Test, content json.RawMessage) TestResponse {
 		ID:           t.ID,
 		Skill:        t.Skill,
 		TaskType:     t.TaskType,
+		Series:       t.Series,
+		Volume:       t.Volume,
+		TestNumber:   t.TestNumber,
 		ContentData:  content,
 		ThumbnailURL: t.ThumbnailURL,
 		XPGain:       t.XPGain,

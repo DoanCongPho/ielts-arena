@@ -84,7 +84,7 @@ jobs:
       - name: Roll every migration back
         # Proves the .down.sql files are real, not placeholders — the only
         # thing standing between you and a bad deploy you cannot undo.
-        run: go run ./cmd/api migrate down 7
+        run: go run ./cmd/api migrate down 9
 
       - name: Re-apply from scratch
         run: go run ./cmd/api migrate up

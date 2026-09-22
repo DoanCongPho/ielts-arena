@@ -1,1 +1,8 @@
 .env
+.env.*
+!.env.example
+# Imported test content (Cambridge / YouPass) is copyrighted — keep it local.
+tests_bank/
+internal/assets/diagrams/
+media/
+internal/assets/audio/

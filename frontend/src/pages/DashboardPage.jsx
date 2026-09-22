@@ -24,8 +24,8 @@ export default function DashboardPage() {
     <div className="dashboard-page">
       <div className="dashboard-column">
         <span className="dashboard-tag text-label">IELTS Arena</span>
-        <h1 className="text-h1">Dashboard</h1>
-        <p className="dashboard-subtitle text-body-sm">Welcome back. Ready to practice?</p>
+        <h1 className="text-display-sm">Dashboard</h1>
+        <p className="dashboard-subtitle text-body">Welcome back. Ready to practice?</p>
 
         <nav className="dashboard-nav-list">
           {SKILL_NAV.map(({ skill, title, subtitle, path }) => (
@@ -34,14 +34,14 @@ export default function DashboardPage() {
               as="button"
               type="button"
               interactive
-              padding="compact"
+              padding="default"
               className="dashboard-nav-item"
               onClick={() => navigate(path)}
             >
-              <IconChip icon={skill} />
+              <IconChip icon={skill} size={52} />
               <span className="dashboard-nav-text">
-                <span className="dashboard-nav-title text-h3">{title}</span>
-                <span className="dashboard-nav-subtitle text-body-sm">{subtitle}</span>
+                <span className="dashboard-nav-title text-h2">{title}</span>
+                <span className="dashboard-nav-subtitle text-body">{subtitle}</span>
               </span>
             </Card>
           ))}
@@ -50,14 +50,14 @@ export default function DashboardPage() {
             as="button"
             type="button"
             interactive
-            padding="compact"
+            padding="default"
             className="dashboard-nav-item"
             onClick={() => navigate('/submissions')}
           >
-            <IconChip icon="history" />
+            <IconChip icon="history" size={52} />
             <span className="dashboard-nav-text">
-              <span className="dashboard-nav-title text-h3">Bài đã làm</span>
-              <span className="dashboard-nav-subtitle text-body-sm">Xem lại lịch sử luyện tập</span>
+              <span className="dashboard-nav-title text-h2">Bài đã làm</span>
+              <span className="dashboard-nav-subtitle text-body">Xem lại lịch sử luyện tập</span>
             </span>
           </Card>
 
@@ -66,14 +66,14 @@ export default function DashboardPage() {
               as="button"
               type="button"
               interactive
-              padding="compact"
+              padding="default"
               className="dashboard-nav-item"
               onClick={() => navigate('/tests/create')}
             >
-              <IconChip icon="add" />
+              <IconChip icon="add" size={52} />
               <span className="dashboard-nav-text">
-                <span className="dashboard-nav-title text-h3">Tạo đề thi</span>
-                <span className="dashboard-nav-subtitle text-body-sm">Dành cho quản trị viên</span>
+                <span className="dashboard-nav-title text-h2">Tạo đề thi</span>
+                <span className="dashboard-nav-subtitle text-body">Dành cho quản trị viên</span>
               </span>
             </Card>
           )}
@@ -82,13 +82,13 @@ export default function DashboardPage() {
             as="button"
             type="button"
             interactive
-            padding="compact"
+            padding="default"
             className="dashboard-nav-item"
             onClick={handleLogout}
           >
-            <IconChip icon="logout" />
+            <IconChip icon="logout" size={52} />
             <span className="dashboard-nav-text">
-              <span className="dashboard-nav-title text-h3">Logout</span>
+              <span className="dashboard-nav-title text-h2">Logout</span>
             </span>
           </Card>
         </nav>

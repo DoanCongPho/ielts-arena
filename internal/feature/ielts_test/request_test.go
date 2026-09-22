@@ -12,8 +12,8 @@ func TestListTestRequest_Offset(t *testing.T) {
 	}{
 		{0, 0},
 		{1, 0},
-		{2, 10},
-		{5, 40},
+		{2, 12},
+		{5, 48},
 	}
 	for _, tc := range cases {
 		r := ListTestRequest{Page: tc.page}
@@ -33,7 +33,7 @@ func TestListSubmissionRequest_Offset(t *testing.T) {
 	}{
 		{0, 0},
 		{1, 0},
-		{3, 20},
+		{3, 24},
 	}
 	for _, tc := range cases {
 		r := ListSubmissionRequest{Page: tc.page}
@@ -95,6 +95,21 @@ func TestCreateTestRequest_Validate(t *testing.T) {
 			name:    "content_data fails skill-specific validation",
 			req:     CreateTestRequest{Skill: "reading", TaskType: "task1", ContentData: json.RawMessage(`{}`)},
 			wantErr: true,
+		},
+		{
+			name:    "series without volume",
+			req:     CreateTestRequest{Skill: "writing", TaskType: "test1", Series: "cambridge", TestNumber: 1, ContentData: validWriting},
+			wantErr: true,
+		},
+		{
+			name:    "series without test_number",
+			req:     CreateTestRequest{Skill: "writing", TaskType: "test1", Series: "cambridge", Volume: 20, ContentData: validWriting},
+			wantErr: true,
+		},
+		{
+			name:    "valid in a series",
+			req:     CreateTestRequest{Skill: "writing", TaskType: "test1", Series: "cambridge", Volume: 20, TestNumber: 1, ContentData: validWriting},
+			wantErr: false,
 		},
 		{
 			name:    "valid",

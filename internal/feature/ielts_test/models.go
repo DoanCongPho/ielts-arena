@@ -19,9 +19,14 @@ const (
 )
 
 type Test struct {
-	ID           uint64
-	Skill        string
-	TaskType     string
+	ID       uint64
+	Skill    string
+	TaskType string
+	// Series/Volume/TestNumber place a test in a book ("cambridge", 20, 1 =
+	// Cambridge 20 Test 1). Series is "" for tests outside any series.
+	Series       string
+	Volume       int
+	TestNumber   int
 	ContentData  []byte
 	ThumbnailURL string
 	Source       string
@@ -101,15 +106,25 @@ type ReadingPassage struct {
 }
 
 type ListeningContent struct {
-	AudioURL string             `json:"audio_url"`
+	// AudioURL is one recording of the whole test, each section a time
+	// range in it. It may be empty when every section has its own AudioURL.
+	AudioURL string             `json:"audio_url,omitempty"`
 	Sections []ListeningSection `json:"sections"`
 }
 
 type ListeningSection struct {
-	Title            string          `json:"title,omitempty"`
-	SectionStartTime float64         `json:"section_start_time"`
-	SectionEndTime   float64         `json:"section_end_time"`
-	QuestionGroups   []QuestionGroup `json:"question_groups"`
+	Title string `json:"title,omitempty"`
+	// AudioURL, when set, is this section's own recording: its start/end
+	// times and its questions' timestamp_hints are then seconds into this
+	// file instead of into ListeningContent.AudioURL.
+	AudioURL         string  `json:"audio_url,omitempty"`
+	SectionStartTime float64 `json:"section_start_time"`
+	SectionEndTime   float64 `json:"section_end_time"`
+	// Transcript is what's said in the section — the text a listening
+	// question's Evidence quotes. It gives the answers away, so it's
+	// stripped from public content and served with the answer key.
+	Transcript     []Paragraph     `json:"transcript,omitempty"`
+	QuestionGroups []QuestionGroup `json:"question_groups"`
 }
 
 type Paragraph struct {
@@ -134,8 +149,11 @@ type QuestionGroup struct {
 	FlowStructure   *FlowStructure  `json:"flow_structure,omitempty"`    // flow-chart-completion
 	FormStructure   *FormStructure  `json:"form_structure,omitempty"`    // form-completion
 	DiagramImageURL string          `json:"diagram_image_url,omitempty"` // diagram-label-completion
-	MapImageURL     string          `json:"map_image_url,omitempty"`     // map-plan-labelling (required)
-	LocationKey     []Option        `json:"location_key,omitempty"`      // map-plan-labelling
+	// DiagramImageURLs are further diagrams, after DiagramImageURL, when one
+	// group labels several (Cambridge 16 Test 4, Questions 1-6).
+	DiagramImageURLs []string `json:"diagram_image_urls,omitempty"`
+	MapImageURL      string   `json:"map_image_url,omitempty"` // map-plan-labelling (required)
+	LocationKey      []Option `json:"location_key,omitempty"`  // map-plan-labelling
 }
 
 type Question struct {
@@ -151,6 +169,39 @@ type Question struct {
 	// Options are per-question multiple-choice/matching-sentence-endings
 	// options, used when the group doesn't provide SharedOptions instead.
 	Options []Option `json:"options,omitempty"`
+	// Explanation (why the answer is right) and Evidence (where the passage,
+	// or a listening section's transcript, says so) give the answer away, so
+	// like Answer they're stripped from public content and only served by
+	// the answer key after grading.
+	Explanation string     `json:"explanation,omitempty"`
+	Evidence    []Evidence `json:"evidence,omitempty"`
+}
+
+// Evidence points at where a question's answer is found: Paragraph indexes
+// the passage's Paragraphs (reading) or the section's Transcript
+// (listening) and Quote is a verbatim excerpt of it, which the review
+// highlights. A quote rather than character offsets, so it survives
+// whitespace changes and is easy to author by hand or by an AI importer.
+type Evidence struct {
+	Paragraph int    `json:"paragraph"`
+	Quote     string `json:"quote"`
+}
+
+// AnswerKey is what GET /tests/{id}/answer-key serves once unlocked.
+type AnswerKey struct {
+	// Questions is keyed by question_order, like score results.
+	Questions map[string]AnswerKeyEntry `json:"questions"`
+	// Transcripts holds each listening section's transcript, by section
+	// index — the text that section's Evidence points into.
+	Transcripts [][]Paragraph `json:"transcripts,omitempty"`
+}
+
+// AnswerKeyEntry is one question's answer and explanation.
+type AnswerKeyEntry struct {
+	Answer          AnswerValue `json:"answer"`
+	AcceptedAnswers []string    `json:"accepted_answers,omitempty"`
+	Explanation     string      `json:"explanation,omitempty"`
+	Evidence        []Evidence  `json:"evidence,omitempty"`
 }
 
 type Option struct {
@@ -299,14 +350,19 @@ var fillBlankQuestionTypes = map[QuestionType]bool{
 
 // TableStructure backs table-completion groups (Reading and Listening
 // share this shape). A cell containing the literal string "{{gap}}" is a
-// blank — the i-th gap found in row-major order maps to Questions[i].
+// blank — the i-th gap found in row-major order maps to Questions[i]. A
+// cell may hold several "\n"-separated lines, with the same markup as
+// NoteStructure items (e.g. a bulleted list).
 type TableStructure struct {
 	Columns []string   `json:"columns"`
 	Rows    [][]string `json:"rows"`
 }
 
-// NoteStructure backs note-completion groups (listening). Each item may
-// contain "{{gap}}"; gaps map to Questions in array order.
+// NoteStructure backs note-completion groups. Each item is one line and
+// may contain "{{gap}}"; gaps map to Questions in array order. Lines carry
+// light markup the frontend renders: "## text" is a subheading, "- text" a
+// bullet, one level deeper per leading tab ("\t- text"); anything else is
+// a plain line. FormStructure fields use the same markup.
 type NoteStructure struct {
 	Title string   `json:"title,omitempty"`
 	Items []string `json:"items"`

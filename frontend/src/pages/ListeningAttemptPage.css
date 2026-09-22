@@ -8,3 +8,50 @@
 .attempt-audio-player {
   width: 100%;
 }
+
+/* Taking the test: questions get the full width, and the part tabs share
+   one compact row with the title. */
+.listening-exam-layout {
+  grid-template-columns: 1fr;
+}
+
+.listening-exam-layout .attempt-prompt-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-5);
+  padding: var(--space-3) var(--space-5);
+}
+
+.listening-exam-layout .attempt-prompt-panel h2 {
+  margin: 0;
+}
+
+.listening-exam-layout .attempt-multi-tabs {
+  flex: 1;
+  margin: 0;
+}
+
+.listening-exam-hint {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+/* The player and question strip stay at the bottom of the viewport while
+   the questions scroll. */
+.listening-dock {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  margin-top: var(--space-3);
+  padding-bottom: var(--space-2);
+  background: var(--paper-200);
+}
+
+.listening-dock-player {
+  padding: var(--space-2) var(--space-4);
+  background: var(--surface-0);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+}

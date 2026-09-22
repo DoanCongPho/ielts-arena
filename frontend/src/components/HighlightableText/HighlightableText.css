@@ -1,0 +1,26 @@
+/* User highlights (yellow) and, in a graded review, the passage or
+   transcript text the answer key cites (evidence). */
+.reading-highlight-mark {
+  background: var(--highlighter-yellow);
+  color: inherit;
+  padding: 0 1px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+/* Passage text the answer key cites, shown after "Xem vị trí trong bài".
+   Its own layer: a user highlight on top keeps its yellow fill. */
+.reading-evidence-mark {
+  background: var(--reading-fill);
+  color: inherit;
+  border-bottom: 2px solid var(--reading-600);
+  scroll-margin: var(--space-7);
+}
+
+.reading-highlight-mark.reading-evidence-mark {
+  background: var(--highlighter-yellow);
+}
+
+.reading-highlight-mark:hover {
+  outline: 1px dashed var(--gold-600);
+}

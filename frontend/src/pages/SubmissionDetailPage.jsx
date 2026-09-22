@@ -1,12 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { getScore, getSubmission, getTest } from '../lib/api';
 import { flattenQuestions } from '../lib/answerUtils';
+import { useEvidenceReview } from '../lib/useEvidenceReview';
+import { useSectionAudio } from '../lib/useSectionAudio';
 import { safeParse } from '../lib/safeParse';
 import { SKILL_CONFIG } from '../lib/skillConfig';
 import ScoreResult from '../components/ScoreResult/ScoreResult';
 import QuestionList from '../components/QuestionList/QuestionList';
+import { ReviewContext } from '../components/AnswerExplanation/ReviewContext';
+import HighlightableText from '../components/HighlightableText/HighlightableText';
+import ListeningTranscript from '../components/ListeningTranscript/ListeningTranscript';
 import AutoGradeResult from '../components/AutoGradeResult/AutoGradeResult';
 import QuestionNavBar from '../components/QuestionNavBar/QuestionNavBar';
 import Button from '../components/ui/Button/Button';
@@ -114,8 +119,8 @@ export default function SubmissionDetailPage() {
 // every unit vertically, so reviewing a 3-passage test works the same way
 // as taking it: switch tabs, don't scroll through everything at once.
 function MultiUnitReview({ skill, test, content, payload, score, notGradedMessage }) {
-  const audioRef = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const audio = useSectionAudio(content, activeIndex);
 
   // Set after clicking a QuestionNavBar pill for a question in a different
   // passage/section — the target element doesn't exist until the tab
@@ -130,6 +135,7 @@ function MultiUnitReview({ skill, test, content, payload, score, notGradedMessag
   const allQuestions = units.flatMap((u) => flattenQuestions(u.question_groups));
   const config = SKILL_CONFIG[skill];
   const isReading = skill === 'reading';
+  const review = useEvidenceReview(test.id, !!score, units, setActiveIndex);
 
   useEffect(() => {
     if (pendingScrollOrder == null) return;
@@ -140,26 +146,33 @@ function MultiUnitReview({ skill, test, content, payload, score, notGradedMessag
     }
   }, [pendingScrollOrder, activeIndex]);
 
-  function handleSelectUnit(i) {
+  // For listening, startTime is where to seek within the unit's recording.
+  function handleSelectUnit(i, startTime) {
+    if (skill === 'listening') audio.seek(i, startTime ?? units[i]?.section_start_time);
     setActiveIndex(i);
-    if (skill === 'listening' && audioRef.current) {
-      audioRef.current.currentTime = units[i]?.section_start_time ?? 0;
-    }
+  }
+
+  function unitOf(order) {
+    return units.findIndex((u) =>
+      (u.question_groups || []).some((g) => g.questions.some((q) => q.question_order === order)),
+    );
   }
 
   function handleJumpToQuestion(order) {
-    const targetIndex = units.findIndex((u) =>
-      (u.question_groups || []).some((g) => g.questions.some((q) => q.question_order === order)),
-    );
+    const targetIndex = unitOf(order);
     if (targetIndex === -1) return;
-    handleSelectUnit(targetIndex);
-    if (skill === 'listening' && audioRef.current) {
-      const question = allQuestions.find((q) => q.question_order === order);
-      if (question?.timestamp_hint != null) {
-        audioRef.current.currentTime = question.timestamp_hint;
-      }
-    }
+    const question = allQuestions.find((q) => q.question_order === order);
+    handleSelectUnit(targetIndex, question?.timestamp_hint);
     setPendingScrollOrder(order);
+  }
+
+  // Listening: replay from where question `order` is answered.
+  function handleListen(order) {
+    const i = unitOf(order);
+    if (i === -1) return;
+    const question = allQuestions.find((q) => q.question_order === order);
+    handleSelectUnit(i, question?.timestamp_hint);
+    audio.play();
   }
 
   return (
@@ -191,32 +204,42 @@ function MultiUnitReview({ skill, test, content, payload, score, notGradedMessag
             <div className="attempt-passage-text">
               {activeUnit?.title && <h3 className="reading-passage-title">{activeUnit.title}</h3>}
               {(activeUnit?.paragraphs || []).map((p, pi) => (
-                <p key={pi}>
+                <p key={`${activeIndex}-${pi}`} id={`passage-${activeIndex}-p-${pi}`}>
                   {p.label && <strong>{p.label}. </strong>}
-                  {p.text}
+                  <HighlightableText id={`p-${pi}`} text={p.text} evidence={review.evidenceFor(activeIndex, pi)} />
                 </p>
               ))}
             </div>
           ) : (
             <>
               <div className="attempt-audio-panel">
-                <audio ref={audioRef} className="attempt-audio-player" controls src={content?.audio_url} />
+                <audio className="attempt-audio-player" controls {...audio.audioProps} />
               </div>
               <p className="practice-status">
                 Đoạn ghi âm: {formatSeconds(activeUnit?.section_start_time)} – {formatSeconds(activeUnit?.section_end_time)}
               </p>
+              <ListeningTranscript section={activeIndex} paragraphs={review.transcriptFor(activeIndex)} evidenceFor={review.evidenceFor} />
             </>
           )}
         </div>
 
         <div className={`attempt-answer-panel ${isReading ? 'reading-scroll-panel' : ''}`}>
-          <QuestionList
-            groups={activeGroups}
-            answers={payload?.answers}
-            results={scoreResults}
-            disabled
-            skill={skill}
-          />
+          <ReviewContext.Provider
+            value={{
+              answerKey: review.answerKey,
+              onLocate: review.locate,
+              onListen: isReading ? null : handleListen,
+              locateLabel: isReading ? null : 'Xem trong transcript',
+            }}
+          >
+            <QuestionList
+              groups={activeGroups}
+              answers={payload?.answers}
+              results={scoreResults}
+              disabled
+              skill={skill}
+            />
+          </ReviewContext.Provider>
         </div>
       </div>
 

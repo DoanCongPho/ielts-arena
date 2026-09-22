@@ -218,3 +218,22 @@ func (r *MockTestRepository) GetScoreBySubmissionID(ctx context.Context, submiss
 
 // Compile-time guarantee that the mock stays in step with Repository.
 var _ Repository = (*MockTestRepository)(nil)
+
+func (r *MockTestRepository) HasGradedSubmission(ctx context.Context, userID, testID uint64) (bool, error) {
+	for _, s := range r.submissions {
+		if s.UserID == userID && s.TestID == testID && s.Status == StatusGraded {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (r *MockTestRepository) ReplaceTest(ctx context.Context, t *Test) error {
+	existing, ok := r.tests[int(t.ID)]
+	if !ok {
+		return ErrTestNotFound
+	}
+	t.CreatedAt = existing.CreatedAt
+	r.tests[int(t.ID)] = t
+	return nil
+}
