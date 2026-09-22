@@ -1,11 +1,19 @@
 #!/usr/bin/env python3
-"""Convert a YouPass reading quiz export into a POST /api/tests request body.
+"""Convert a YouPass reading or listening quiz export into a POST /api/tests
+request body.
 
 The input is the raw JSON the YouPass quiz API returns ({code, message,
-data: {parts: [...]}}), fetched with the passage text included — i.e. each
-part's `vocabs` tree must be populated. The output matches the reading
-content_data shape in internal/feature/ielts_test/models.go and is meant to
-pass validateContentData (autograde.go) as-is.
+data: {parts: [...]}}), fetched with ?included_vocabs=true — each part's
+`vocabs` tree holds the reading passage, or the listening section's
+transcript. The output matches the content_data shapes in
+internal/feature/ielts_test/models.go and is meant to pass
+validateContentData (autograde.go) as-is. The skill comes from the quiz
+title ("Orange 10 Listening - Test 1").
+
+Listening: each part becomes a section with its own recording
+(https://cms.youpass.vn/assets/<part.file_id>) — YouPass has no
+whole-test file — timed from 0; question listen_from (seconds into the
+whole test) becomes a timestamp_hint within the section's file.
 
 YouPass shape, as far as this script relies on it:
 
@@ -30,7 +38,7 @@ YouPass shape, as far as this script relies on it:
 
 Stdlib only. Usage:
 
-    python3 scripts/youpass_reading_to_test.py IN.json [-o OUT.json]
+    python3 scripts/youpass_to_test.py IN.json [-o OUT.json]
         [--task-type test1] [--xp-gain 50] [--source youpass]
         [--thumbnail-url URL] [--not-current]
         [--series cambridge --volume 20 --test-number 1 | --no-series]
@@ -70,10 +78,18 @@ TYPE_MAP = {
     "MATCHING_FEATURES": "matching-features",
     "MATCHING_ENDINGS": "matching-sentence-endings",
     "SUMMARY_COMPLETION": "summary-completion",
+    "MATCHING": "matching",
     "SENTENCE_COMPLETION": "sentence-completion",
     "SHORT_ANSWER": "short-answer",
     "MAP_DIAGRAM_LABEL": "diagram-label-completion",
 }
+
+# Where a YouPass type means something else in a listening test.
+LISTENING_TYPE_MAP = {
+    "MAP_DIAGRAM_LABEL": "map-plan-labelling",  # letters A-I on a map/plan
+}
+
+YOUPASS_ASSETS = "https://cms.youpass.vn/assets/"
 
 _NUMBER_WORDS = {"ONE": 1, "TWO": 2, "THREE": 3, "FOUR": 4}
 
@@ -180,7 +196,7 @@ def html_text(src):
 _LABEL_RE = re.compile(r"^([A-Z])\.\s+")
 
 
-def convert_paragraphs(part):
+def convert_paragraphs(part, labels=True):
     """Builds paragraphs from the part's `vocabs` tree: one paragraph per
     non-empty level-1 block, sentences joined with a space. Empty padding
     blocks and a block repeating the passage title are dropped; standfirst
@@ -204,7 +220,7 @@ def convert_paragraphs(part):
     # sentence that happens to start with "I. " isn't mistaken for one.
     labelled = [(i, m.group(1)) for i, b in enumerate(blocks) if (m := _LABEL_RE.match(b))]
     letters = [l for _, l in labelled]
-    use_labels = len(letters) >= 2 and letters == [chr(ord("A") + k) for k in range(len(letters))]
+    use_labels = labels and len(letters) >= 2 and letters == [chr(ord("A") + k) for k in range(len(letters))]
 
     paragraphs = []
     block_map = {}
@@ -279,11 +295,14 @@ def convert_evidence(q, paragraphs, block_map):
     return evidence
 
 
-def attach_explanations(passage, sets, block_map):
+def attach_explanations(unit, sets, paragraphs, block_map, audio_offset=None, duration=None):
     """Adds explanation / evidence from the raw YouPass questions to the
-    converted ones, matched by question_order."""
+    converted ones of a passage or section, matched by question_order;
+    `paragraphs` is the passage text, or the section transcript. For a
+    listening section (audio_offset set), listen_from — seconds into the
+    whole test — becomes a timestamp_hint within the section's recording."""
     raw_by_order = {q["order"]: q for s in sets for q in s["questions"]}
-    for group in passage["question_groups"]:
+    for group in unit["question_groups"]:
         for q in group["questions"]:
             raw = raw_by_order.get(q["question_order"])
             if not raw:
@@ -291,9 +310,12 @@ def attach_explanations(passage, sets, block_map):
             explanation = convert_explanation(raw.get("explain"))
             if explanation:
                 q["explanation"] = explanation
-            evidence = convert_evidence(raw, passage["paragraphs"], block_map)
+            evidence = convert_evidence(raw, paragraphs, block_map)
             if evidence:
                 q["evidence"] = evidence
+            heard = raw.get("listen_from")
+            if audio_offset is not None and heard is not None and 0 <= heard - audio_offset <= duration:
+                q["timestamp_hint"] = heard - audio_offset
 
 
 # ---------------------------------------------------------------------------
@@ -301,7 +323,7 @@ def attach_explanations(passage, sets, block_map):
 # ---------------------------------------------------------------------------
 
 
-def group_type(qset):
+def group_type(qset, skill):
     kinds = {q.get("question_type") for q in qset["questions"]}
     if len(kinds) != 1:
         raise ConvertError(f"set {qset.get('title')!r} mixes question types {sorted(kinds)}")
@@ -310,9 +332,9 @@ def group_type(qset):
         raise ConvertError(
             f"set {qset.get('title')!r}: unsupported YouPass question_type {kind!r} — add it to TYPE_MAP"
         )
-    qtype = TYPE_MAP[kind]
+    qtype = (LISTENING_TYPE_MAP if skill == "listening" else {}).get(kind) or TYPE_MAP[kind]
     if qtype == "summary-completion":
-        qtype = fill_group_type(qset)
+        qtype = fill_group_type(qset) if skill == "reading" else listening_fill_type(qset)
     return qtype
 
 
@@ -327,6 +349,42 @@ def fill_group_type(qset):
     if "complete the summary" in instructions:
         return "summary-completion"
     return "note-completion" if "<li" in (qset.get("content") or "") else "summary-completion"
+
+
+def listening_fill_type(qset):
+    """Listening gap-fills all come as SUMMARY_COMPLETION. A real table (a
+    row with 2+ cells) is table completion — Cambridge also lays notes and
+    forms out in one-column tables; otherwise the instructions name it,
+    and notes are the default ("Complete the notes below" is by far the
+    most common, and some sets have no "Complete the ..." line at all)."""
+    if max((len(table_row_cells(r)) for r in table_rows(qset.get("content"))), default=0) >= 2:
+        return "table-completion"
+    instructions = html_text(qset.get("description")).lower()
+    if "flow" in instructions:
+        return "flow-chart-completion"
+    if "complete the form" in instructions:
+        return "form-completion"
+    if "complete the sentences" in instructions:
+        return "sentence-completion"
+    return "note-completion"
+
+
+def table_rows(src):
+    return re.findall(r"<tr\b.*?</tr>", src or "", flags=re.S | re.I)
+
+
+def table_row_cells(row):
+    return [html_text(c) for c in re.findall(r"<t[dh]\b[^>]*>(.*?)</t[dh]>", row, flags=re.S | re.I)]
+
+
+def convert_table(src):
+    """A table's rows as cell texts ({{gap}} kept). The first row becomes
+    the column headers unless it has a gap itself."""
+    rows = [table_row_cells(r) for r in table_rows(src)]
+    rows = [r for r in rows if any(r)]
+    if rows and GAP not in "".join(rows[0]):
+        return {"columns": rows[0], "rows": rows[1:]}
+    return {"columns": [""] * max((len(r) for r in rows), default=1), "rows": rows}
 
 
 def options(raw):
@@ -391,14 +449,21 @@ def check_gaps(qset, qtype, text_parts, questions):
         raise ConvertError(f"set {qset.get('title')!r} ({qtype}): {n} gaps but {len(questions)} questions")
 
 
-def convert_group(qset, order):
-    qtype = group_type(qset)
+def convert_group(qset, order, skill="reading"):
+    qtype = group_type(qset, skill)
     qs = sorted(qset["questions"], key=lambda q: q["order"])
     group = {
         "group_order": order,
         "question_type": qtype,
         "instructions": html_text(qset.get("description")),
     }
+
+    if not group["instructions"] and qtype == "multiple-choice":
+        # YouPass leaves a few of these blank; Cambridge's wording follows
+        # from the option letters.
+        ids = [o["option"] for o in (qs[0].get("options") or [])]
+        if len(ids) >= 2:
+            group["instructions"] = f"Choose the correct letter, {', '.join(ids[:-1])} or {ids[-1]}."
 
     if qtype in ("true-false-not-given", "yes-no-not-given"):
         group["questions"] = [
@@ -436,7 +501,7 @@ def convert_group(qset, order):
             for q, a in zip(qs, answers)
         ]
 
-    elif qtype in ("matching-headings", "matching-information", "matching-features", "matching-sentence-endings"):
+    elif qtype in ("matching-headings", "matching-information", "matching-features", "matching-sentence-endings", "matching"):
         shared = options(qset.get("options"))
         if qtype == "matching-information":
             # YouPass lists bare letters ("A"); spell them out for the dropdown.
@@ -449,6 +514,39 @@ def convert_group(qset, order):
         group["questions"] = [
             {"question_order": q["order"], "text": clean(html_text(q.get("text"))), "answer": key_answer(q)} for q in qs
         ]
+
+    elif qtype == "map-plan-labelling":
+        # The map is an <img> in the instructions (or the set's image) and
+        # the options are its letters; each question names a place.
+        desc = qset.get("description") or ""
+        srcs = [html.unescape(s) for s in re.findall(r'<img[^>]*\ssrc="([^"]+)"', desc)]
+        if not srcs and qset.get("image"):
+            srcs = [YOUPASS_ASSETS + qset["image"]]
+        if not srcs:
+            raise ConvertError(f"set {qset.get('title')!r}: map labelling without a map image")
+        group["map_image_url"] = localize_image(srcs[0])
+        group["location_key"] = options(qset.get("options"))
+        group["questions"] = [
+            {"question_order": q["order"], "text": clean(html_text(q.get("text"))), "answer": key_answer(q)} for q in qs
+        ]
+
+    elif qtype == "table-completion":
+        table = convert_table(qset.get("content"))
+        check_gaps(qset, qtype, [c for r in table["rows"] for c in r], qs)
+        group["table_structure"] = table
+        group["questions"] = [{"question_order": q["order"], **fill_answers(q)} for q in qs]
+
+    elif qtype in ("form-completion", "flow-chart-completion"):
+        items = [text for _, text in html_blocks(qset.get("content"))]
+        title = ""
+        if qtype == "form-completion" and items and GAP not in items[0]:
+            title = items.pop(0)
+        check_gaps(qset, qtype, items, qs)
+        if qtype == "form-completion":
+            group["form_structure"] = {"title": title, "fields": items}
+        else:
+            group["flow_structure"] = {"steps": items}
+        group["questions"] = [{"question_order": q["order"], **fill_answers(q)} for q in qs]
 
     elif qtype == "note-completion":
         blocks = html_blocks(qset.get("content"))
@@ -531,24 +629,26 @@ def convert_group(qset, order):
 
 def convert(raw, task_type, xp_gain, source, thumbnail_url, is_current, series=None):
     data = raw.get("data", raw)
+    skill = "listening" if "listening" in (data.get("title") or "").lower() else "reading"
     parts = sorted(data.get("parts") or [], key=lambda p: (p.get("passage") or 0, p.get("sort") or 0))
     if not parts:
         raise ConvertError("no parts found")
 
-    passages = []
-    for part in parts:
+    units = []
+    for n, part in enumerate(parts, 1):
         sets = sorted(part.get("question_sets") or [], key=lambda s: s.get("sort") or 0)
-        paragraphs, block_map = convert_paragraphs(part)
-        passage = {
-            "title": clean(part.get("title")),
-            "paragraphs": paragraphs,
-            "question_groups": [convert_group(s, i + 1) for i, s in enumerate(sets)],
-        }
-        attach_explanations(passage, sets, block_map)
-        passages.append(passage)
+        groups = [convert_group(s, i + 1, skill) for i, s in enumerate(sets)]
+        if skill == "reading":
+            paragraphs, block_map = convert_paragraphs(part)
+            unit = {"title": clean(part.get("title")), "paragraphs": paragraphs, "question_groups": groups}
+            attach_explanations(unit, sets, paragraphs, block_map)
+        else:
+            unit, transcript, block_map = convert_section(part, n, groups)
+            attach_explanations(unit, sets, transcript, block_map, part["listen_from"], unit["section_end_time"])
+        units.append(unit)
 
     body = {
-        "skill": "reading",
+        "skill": skill,
         "task_type": task_type,
     }
     if series:
@@ -560,8 +660,28 @@ def convert(raw, task_type, xp_gain, source, thumbnail_url, is_current, series=N
     }
     if thumbnail_url:
         body["thumbnail_url"] = thumbnail_url
-    body["content_data"] = {"passages": passages}
+    body["content_data"] = {"passages": units} if skill == "reading" else {"sections": units}
     return body
+
+
+def convert_section(part, n, groups):
+    """A listening part as a section with its own recording, timed from 0
+    to the part's length, and its transcript (the part's vocabs)."""
+    if not part.get("file_id"):
+        raise ConvertError(f"part {n} has no audio file")
+    start, end = part.get("listen_from"), part.get("listen_to")
+    if start is None or end is None or end <= start:
+        raise ConvertError(f"part {n} has no usable listen_from/listen_to ({start}, {end})")
+    transcript, block_map = convert_paragraphs(part, labels=False)
+    section = {
+        "title": f"Part {n}",
+        "audio_url": YOUPASS_ASSETS + part["file_id"],
+        "section_start_time": 0,
+        "section_end_time": end - start,
+        "transcript": transcript,
+        "question_groups": groups,
+    }
+    return section, transcript, block_map
 
 
 def guess_series(data):
@@ -621,8 +741,9 @@ def main():
     out = json.dumps(body, ensure_ascii=False, indent=2) + "\n"
     if args.output:
         args.output.write_text(out, encoding="utf-8")
-        n_q = sum(len(g["questions"]) for p in body["content_data"]["passages"] for g in p["question_groups"])
-        print(f"wrote {args.output} ({len(body['content_data']['passages'])} passages, {n_q} questions)", file=sys.stderr)
+        kind, units = next(iter(body["content_data"].items()))
+        n_q = sum(len(g["questions"]) for u in units for g in u["question_groups"])
+        print(f"wrote {args.output} ({len(units)} {kind}, {n_q} questions)", file=sys.stderr)
     else:
         sys.stdout.write(out)
 
