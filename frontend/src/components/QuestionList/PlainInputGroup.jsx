@@ -4,11 +4,14 @@ import HighlightableText from '../HighlightableText/HighlightableText';
 // PlainInputGroup covers question_types where each question has its own
 // text prompt and a single free-text answer: sentence-completion,
 // short-answer, and diagram-label-completion (which additionally shows the
-// group's diagram image above the question list).
+// group's diagram images above the question list).
 export default function PlainInputGroup({ group, answers, onChange, disabled, results, highlights, onHighlightRemove }) {
+  const diagrams = [group.diagram_image_url, ...(group.diagram_image_urls || [])].filter(Boolean);
   return (
     <div className="plain-input-group">
-      {group.diagram_image_url && <img className="plain-input-diagram" src={group.diagram_image_url} alt="Sơ đồ" />}
+      {diagrams.map((src, i) => (
+        <img key={src} className="plain-input-diagram" src={src} alt={`Sơ đồ ${i + 1}`} />
+      ))}
 
       {group.questions.map((q) => {
         const order = q.question_order;

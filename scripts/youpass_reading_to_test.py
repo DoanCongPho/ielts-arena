@@ -40,6 +40,7 @@ The book (series / volume / test_number) is read from the quiz title
 """
 
 import argparse
+import html
 import json
 import re
 import sys
@@ -64,6 +65,8 @@ TYPE_MAP = {
     "MATCHING_ENDINGS": "matching-sentence-endings",
     "SUMMARY_COMPLETION": "summary-completion",
     "SENTENCE_COMPLETION": "sentence-completion",
+    "SHORT_ANSWER": "short-answer",
+    "MAP_DIAGRAM_LABEL": "diagram-label-completion",
 }
 
 _NUMBER_WORDS = {"ONE": 1, "TWO": 2, "THREE": 3, "FOUR": 4}
@@ -437,6 +440,36 @@ def convert_group(qset, order):
             {"question_order": q["order"], "text": s.replace(GAP, "__"), **fill_answers(q)}
             for q, s in zip(qs, sentences)
         ]
+
+    elif qtype == "short-answer":
+        # One Wh- question per block, its answer box a trailing gap.
+        prompts = [text for _, text in html_blocks(qset.get("content")) if GAP in text]
+        check_gaps(qset, qtype, prompts, qs)
+        if len(prompts) != len(qs):
+            raise ConvertError(f"set {qset.get('title')!r}: expected one gap per question")
+        limit = word_limit(group["instructions"])
+        if limit:
+            group["word_limit"] = limit
+        group["questions"] = [
+            {"question_order": q["order"], "text": clean(p.replace(GAP, "")), **fill_answers(q)}
+            for q, p in zip(qs, prompts)
+        ]
+
+    elif qtype == "diagram-label-completion":
+        # The label numbers are printed on the diagram itself, so questions
+        # carry no text; the images stay on YouPass's public CMS.
+        content = qset.get("content") or ""
+        images = [html.unescape(src) for src in re.findall(r'<img[^>]*\ssrc="([^"]+)"', content)]
+        if not images:
+            raise ConvertError(f"set {qset.get('title')!r}: diagram labelling without an image")
+        check_gaps(qset, qtype, [html_text(content)], qs)
+        group["diagram_image_url"] = images[0]
+        if len(images) > 1:
+            group["diagram_image_urls"] = images[1:]
+        limit = word_limit(group["instructions"])
+        if limit:
+            group["word_limit"] = limit
+        group["questions"] = [{"question_order": q["order"], **fill_answers(q)} for q in qs]
 
     elif qtype == "summary-completion":
         summary = "\n".join(text for _, text in html_blocks(qset.get("content")))

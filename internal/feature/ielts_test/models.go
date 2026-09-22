@@ -139,6 +139,9 @@ type QuestionGroup struct {
 	FlowStructure   *FlowStructure  `json:"flow_structure,omitempty"`    // flow-chart-completion
 	FormStructure   *FormStructure  `json:"form_structure,omitempty"`    // form-completion
 	DiagramImageURL string          `json:"diagram_image_url,omitempty"` // diagram-label-completion
+	// DiagramImageURLs are further diagrams, after DiagramImageURL, when one
+	// group labels several (Cambridge 16 Test 4, Questions 1-6).
+	DiagramImageURLs []string `json:"diagram_image_urls,omitempty"`
 	MapImageURL     string          `json:"map_image_url,omitempty"`     // map-plan-labelling (required)
 	LocationKey     []Option        `json:"location_key,omitempty"`      // map-plan-labelling
 }

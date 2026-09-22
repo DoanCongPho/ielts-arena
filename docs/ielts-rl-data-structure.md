@@ -47,7 +47,7 @@ Test
 | 10 | `summary-completion` | `has_word_bank`, `word_bank[]?`, `summary_text` (chứa `{{gap}}`) | nếu `word_bank` null → input tự do; nếu có → chọn từ box |
 | 11 | `table-completion` | `column_headers[]` (metadata, KHÔNG phải question), `questions[]` = từng hàng | chỉ ô có `{{gap}}` mới là câu hỏi thật |
 | — | `short-answer` | `word_limit` | giống sentence-completion nhưng dạng câu hỏi Wh- |
-| — | `diagram-label-completion` | `diagram_image_url` | answer là từ/cụm từ lấy từ bài đọc |
+| — | `diagram-label-completion` | `diagram_image_url`, `diagram_image_urls[]?` (ảnh thêm khi 1 nhóm có nhiều sơ đồ) | answer là từ/cụm từ lấy từ bài đọc; `text` có thể trống khi số câu đã in trên ảnh |
 | — | `flow-chart-completion` | `flow_structure.steps[]` (chứa `{{gap}}`) | tương tự table nhưng dạng chuỗi bước |
 
 ---
