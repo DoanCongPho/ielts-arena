@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { getScore, getTest, submitAnswer, waitForGrading } from '../lib/api';
 import { flattenQuestions } from '../lib/answerUtils';
 import { safeParse } from '../lib/safeParse';
+import { ATTEMPT_SECONDS, useCountdown, useLeaveGuard } from '../lib/useAttemptSession';
 import { mergeRanges, textOffset } from '../lib/highlightText';
 import { SKILL_CONFIG } from '../lib/skillConfig';
 import QuestionList from '../components/QuestionList/QuestionList';
@@ -26,7 +27,6 @@ export default function ReadingAttemptPage() {
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [answers, setAnswers] = useState({});
-  const [seconds, setSeconds] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [score, setScore] = useState(null);
   const [gradeFailed, setGradeFailed] = useState(false);
@@ -53,11 +53,9 @@ export default function ReadingAttemptPage() {
       .finally(() => setLoading(false));
   }, [testId]);
 
-  useEffect(() => {
-    if (score || gradeFailed) return;
-    const id = setInterval(() => setSeconds((s) => s + 1), 1000);
-    return () => clearInterval(id);
-  }, [score, gradeFailed]);
+  const inProgress = !!test && !score && !gradeFailed;
+  const remaining = useCountdown(ATTEMPT_SECONDS, inProgress, handleTimeUp);
+  const confirmLeave = useLeaveGuard(inProgress);
 
   useEffect(() => {
     setSelectionInfo(null);
@@ -151,6 +149,11 @@ export default function ReadingAttemptPage() {
     });
   }
 
+  // Time's up: hand in the answers as they stand, like a real paper.
+  function handleTimeUp() {
+    if (!submitting) handleSubmit();
+  }
+
   async function handleSubmit() {
     setSubmitting(true);
     setError('');
@@ -182,12 +185,12 @@ export default function ReadingAttemptPage() {
   const scoreResults = score ? safeParse(score.details)?.results : undefined;
 
   return (
-    <div className="attempt-page reading-attempt-page">
+    <div className="attempt-page reading-attempt-page attempt-page-focus">
       <header className="attempt-header">
-        <Button variant="secondary" onClick={() => navigate('/practice/reading')}>
-          ← Danh sách đề
-        </Button>
-        <span className="attempt-timer">{formatTime(seconds)}</span>
+        <button type="button" className="attempt-back" onClick={() => confirmLeave() && navigate('/practice/reading')} aria-label="Về danh sách đề" title="Về danh sách đề">
+          ←
+        </button>
+        <span className={`attempt-timer ${inProgress && remaining <= 5 * 60 ? 'attempt-timer-low' : ''}`}>{formatTime(remaining)}</span>
       </header>
 
       <div className="attempt-body reading-attempt-body" ref={highlightAreaRef} onMouseUp={handleHighlightAreaMouseUp}>
@@ -248,7 +251,8 @@ export default function ReadingAttemptPage() {
 
           {error && <p className="practice-status practice-error">{error}</p>}
 
-          {!score && !gradeFailed && (
+          {/* Submit only from the last passage, like the end of a real paper. */}
+          {!score && !gradeFailed && activeIndex === passages.length - 1 && (
             <Button variant="primary" className="attempt-submit-btn" onClick={handleSubmit} disabled={submitting}>
               {submitting ? 'Đang chấm điểm...' : 'Nộp bài'}
             </Button>

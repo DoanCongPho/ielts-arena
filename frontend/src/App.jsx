@@ -12,12 +12,14 @@ import SubmissionDetailPage from './pages/SubmissionDetailPage';
 import CreateTestPage from './pages/CreateTestPage';
 import { isAdmin } from './lib/auth';
 
-function PrivateRoute({ children }) {
+// `focus` hides the ProfileHud — used on attempt pages, where the test
+// takes the whole screen and the candidate navigates away on their own.
+function PrivateRoute({ children, focus = false }) {
   const token = localStorage.getItem('access_token');
   if (!token) return <Navigate to="/login" replace />;
   return (
     <>
-      <ProfileHud />
+      {!focus && <ProfileHud />}
       {children}
     </>
   );
@@ -56,17 +58,17 @@ export default function App() {
           </PrivateRoute>
         } />
         <Route path="/practice/writing/:testId" element={
-          <PrivateRoute>
+          <PrivateRoute focus>
             <WritingAttemptPage />
           </PrivateRoute>
         } />
         <Route path="/practice/reading/:testId" element={
-          <PrivateRoute>
+          <PrivateRoute focus>
             <ReadingAttemptPage />
           </PrivateRoute>
         } />
         <Route path="/practice/listening/:testId" element={
-          <PrivateRoute>
+          <PrivateRoute focus>
             <ListeningAttemptPage />
           </PrivateRoute>
         } />
