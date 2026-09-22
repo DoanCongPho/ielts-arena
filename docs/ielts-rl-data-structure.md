@@ -32,7 +32,7 @@ Test
 | 1 | `true-false-not-given` | — | answer ∈ {TRUE, FALSE, NOT GIVEN}, so sánh không phân biệt hoa/thường |
 | 2 | `yes-no-not-given` | — | answer ∈ {YES, NO, NOT GIVEN} |
 | 3 | `multiple-choice` | `questions[].options[]` ({id, text}) | 1 đáp án đúng |
-| 4 | `multiple-choice-multi` | `select_count`, `options[]` | answer là **mảng 2+ key**, so khớp không phân biệt thứ tự |
+| 4 | `multiple-choice-multi` | `select_count`, `options[]` | answer là **mảng 2+ key**, không phân biệt thứ tự. 1 câu **chiếm `select_count` số thứ tự** (`question_order: 23` + `select_count: 2` = câu 23-24, câu kế tiếp là 25) và chấm **1 điểm / key đúng** |
 | 5 | `matching-headings` | `shared_options[]` (danh sách heading), mỗi câu = 1 đoạn văn | answer là key trỏ vào `shared_options` |
 | 6 | `matching-information` | `shared_options[]` (các đoạn A-F, load 1 lần) | 1 đoạn có thể là đáp án cho >1 câu (`allow_reuse: true`) |
 | 7 | `matching-features` | `shared_options[]` (tên người/địa điểm) | mỗi lựa chọn thường chỉ dùng 1 lần (`allow_reuse: false`) |

@@ -349,6 +349,26 @@ func TestValidateGroupShape(t *testing.T) {
 // validateQuestionOrderContinuity / containsFold / countGaps / requireGapCount
 // ---------------------------------------------------------------------------
 
+func TestValidateContentData_MultiSelectSpansSelectCount(t *testing.T) {
+	// validReadingContent ends with a select_count-2 multiple-choice-multi
+	// question at order 3, which therefore covers 3 and 4.
+	withNext := func(order int) ReadingContent {
+		c := validReadingContent()
+		groups := &c.Passages[0].QuestionGroups
+		*groups = append(*groups, sentenceCompletionGroup(4, order, "x", []string{"x"}))
+		return c
+	}
+	if err := validateContentData("reading", marshalContent(t, withNext(5))); err != nil {
+		t.Errorf("next question at 5 should follow a 3-4 multi-select: %v", err)
+	}
+	if err := validateContentData("reading", marshalContent(t, withNext(4))); err == nil {
+		t.Error("expected duplicate error: 4 is already covered by the multi-select at 3")
+	}
+	if err := validateContentData("reading", marshalContent(t, withNext(6))); err == nil {
+		t.Error("expected gap error: nothing covers 5")
+	}
+}
+
 func TestValidateQuestionOrderContinuity(t *testing.T) {
 	cases := []struct {
 		name    string
@@ -413,6 +433,40 @@ func TestAnswersMatch_MultipleChoiceMulti(t *testing.T) {
 	}
 	if answersMatch(q, []string{"A"}) {
 		t.Error("expected partial answer to fail")
+	}
+}
+
+func TestAnswerPoints_MultipleChoiceMulti(t *testing.T) {
+	q := gradableQuestion{
+		Question:  Question{Answer: rawAnswerArray([]string{"B", "C"})},
+		GroupType: QTypeMultipleChoiceMulti,
+		Span:      2,
+	}
+	cases := []struct {
+		name      string
+		submitted []string
+		want      int
+	}{
+		{"both keys, any order/case", []string{"c", "B"}, 2},
+		{"one right one wrong", []string{"B", "E"}, 1},
+		{"only one ticked", []string{"C"}, 1},
+		{"duplicate key counts once", []string{"B", "B"}, 1},
+		{"blank", nil, 0},
+	}
+	for _, c := range cases {
+		if got := answerPoints(q, c.submitted); got != c.want {
+			t.Errorf("%s: answerPoints(%v) = %d, want %d", c.name, c.submitted, got, c.want)
+		}
+	}
+}
+
+func TestAnswerPoints_SingleMark(t *testing.T) {
+	q := gradableQuestion{Question: Question{Answer: rawAnswer("A")}, GroupType: QTypeMultipleChoice, Span: 1}
+	if got := answerPoints(q, []string{"a"}); got != 1 {
+		t.Errorf("correct answer: got %d, want 1", got)
+	}
+	if got := answerPoints(q, []string{"B"}); got != 0 {
+		t.Errorf("wrong answer: got %d, want 0", got)
 	}
 }
 

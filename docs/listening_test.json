@@ -148,9 +148,9 @@
               { "id": "D", "text": "It was broadly successful" }
             ],
             "questions": [
-              { "question_order": 16, "text": "Tutor", "answer": "C", "timestamp_hint": 680 },
-              { "question_order": 17, "text": "Male student", "answer": "A", "timestamp_hint": 705 },
-              { "question_order": 18, "text": "Female student", "answer": "D", "timestamp_hint": 730 }
+              { "question_order": 17, "text": "Tutor", "answer": "C", "timestamp_hint": 680 },
+              { "question_order": 18, "text": "Male student", "answer": "A", "timestamp_hint": 705 },
+              { "question_order": 19, "text": "Female student", "answer": "D", "timestamp_hint": 730 }
             ]
           },
           {
@@ -159,8 +159,8 @@
             "instructions": "Complete the sentences below. Write NO MORE THAN TWO WORDS for each answer.",
             "word_limit": 2,
             "questions": [
-              { "question_order": 19, "text": "The students will increase the sample size by contacting the __ department.", "answer": "marketing", "accepted_answers": ["marketing", "marketing department"], "timestamp_hint": 800 },
-              { "question_order": 20, "text": "The revised deadline for the survey is the end of __.", "answer": "November", "accepted_answers": ["November"], "timestamp_hint": 830 }
+              { "question_order": 20, "text": "The students will increase the sample size by contacting the __ department.", "answer": "marketing", "accepted_answers": ["marketing", "marketing department"], "timestamp_hint": 800 },
+              { "question_order": 21, "text": "The revised deadline for the survey is the end of __.", "answer": "November", "accepted_answers": ["November"], "timestamp_hint": 830 }
             ]
           }
         ]
@@ -177,9 +177,9 @@
             "has_word_bank": false,
             "summary_text": "Wind turbines convert {{gap}} energy into electricity, while solar panels use {{gap}} cells. Both technologies face the shared challenge of {{gap}}.",
             "questions": [
-              { "question_order": 21, "answer": "kinetic", "accepted_answers": ["kinetic", "kinetic energy"], "timestamp_hint": 920 },
-              { "question_order": 22, "answer": "photovoltaic", "accepted_answers": ["photovoltaic", "photovoltaic cells", "solar cells"], "timestamp_hint": 945 },
-              { "question_order": 23, "answer": "intermittency", "accepted_answers": ["intermittency"], "timestamp_hint": 970 }
+              { "question_order": 22, "answer": "kinetic", "accepted_answers": ["kinetic", "kinetic energy"], "timestamp_hint": 920 },
+              { "question_order": 23, "answer": "photovoltaic", "accepted_answers": ["photovoltaic", "photovoltaic cells", "solar cells"], "timestamp_hint": 945 },
+              { "question_order": 24, "answer": "intermittency", "accepted_answers": ["intermittency"], "timestamp_hint": 970 }
             ]
           },
           {
@@ -195,9 +195,9 @@
               ]
             },
             "questions": [
-              { "question_order": 24, "answer": "higher", "accepted_answers": ["higher", "high"], "timestamp_hint": 1000 },
-              { "question_order": 25, "answer": "lower", "accepted_answers": ["lower", "low"], "timestamp_hint": 1020 },
-              { "question_order": 26, "answer": "80 percent", "accepted_answers": ["80 percent", "80%"], "timestamp_hint": 1040 }
+              { "question_order": 25, "answer": "higher", "accepted_answers": ["higher", "high"], "timestamp_hint": 1000 },
+              { "question_order": 26, "answer": "lower", "accepted_answers": ["lower", "low"], "timestamp_hint": 1020 },
+              { "question_order": 27, "answer": "80 percent", "accepted_answers": ["80 percent", "80%"], "timestamp_hint": 1040 }
             ]
           },
           {
@@ -213,10 +213,10 @@
               ]
             },
             "questions": [
-              { "question_order": 27, "answer": "blades", "accepted_answers": ["blades"], "timestamp_hint": 1070 },
-              { "question_order": 28, "answer": "shaft", "accepted_answers": ["shaft"], "timestamp_hint": 1090 },
-              { "question_order": 29, "answer": "electricity", "accepted_answers": ["electricity"], "timestamp_hint": 1110 },
-              { "question_order": 30, "answer": "batteries", "accepted_answers": ["batteries", "battery"], "timestamp_hint": 1130 }
+              { "question_order": 28, "answer": "blades", "accepted_answers": ["blades"], "timestamp_hint": 1070 },
+              { "question_order": 29, "answer": "shaft", "accepted_answers": ["shaft"], "timestamp_hint": 1090 },
+              { "question_order": 30, "answer": "electricity", "accepted_answers": ["electricity"], "timestamp_hint": 1110 },
+              { "question_order": 31, "answer": "batteries", "accepted_answers": ["batteries", "battery"], "timestamp_hint": 1130 }
             ]
           },
           {
@@ -225,7 +225,7 @@
             "instructions": "Choose the correct letter, A, B or C.",
             "questions": [
               {
-                "question_order": 31,
+                "question_order": 32,
                 "text": "According to the lecturer, the main advantage of solar panels over wind turbines is:",
                 "options": [
                   { "id": "A", "text": "Higher energy output" },
@@ -236,7 +236,7 @@
                 "timestamp_hint": 1150
               },
               {
-                "question_order": 32,
+                "question_order": 33,
                 "text": "Battery storage costs have fallen over the past decade by approximately:",
                 "options": [
                   { "id": "A", "text": "20 percent" },

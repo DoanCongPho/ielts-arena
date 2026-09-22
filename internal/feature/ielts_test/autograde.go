@@ -138,8 +138,11 @@ func validateQuestionGroups(groups []QuestionGroup, allowed map[QuestionType]boo
 		if err := validateGroupShape(g); err != nil {
 			return err
 		}
+		span := questionSpan(g)
 		for _, q := range g.Questions {
-			*orders = append(*orders, q.QuestionOrder)
+			for i := range span {
+				*orders = append(*orders, q.QuestionOrder+i)
+			}
 			if fillBlankQuestionTypes[g.QuestionType] && !(g.QuestionType == QTypeSummaryCompletion && g.HasWordBank) {
 				if len(q.AcceptedAnswers) == 0 {
 					return fmt.Errorf("question_order %d needs accepted_answers", q.QuestionOrder)
@@ -153,6 +156,18 @@ func validateQuestionGroups(groups []QuestionGroup, allowed map[QuestionType]boo
 		}
 	}
 	return nil
+}
+
+// questionSpan is how many question numbers — and marks — each question in
+// g occupies. A multiple-choice-multi question covers select_count
+// consecutive numbers ("Questions 23-24: choose TWO" is one question worth
+// two marks, as in the real test), with question_order as the first of
+// them. Every other question covers exactly one.
+func questionSpan(g QuestionGroup) int {
+	if g.QuestionType == QTypeMultipleChoiceMulti && g.SelectCount > 1 {
+		return g.SelectCount
+	}
+	return 1
 }
 
 // containsFold reports whether accepted contains (case-insensitively) at
@@ -311,6 +326,7 @@ type gradableQuestion struct {
 	Question
 	GroupType   QuestionType
 	HasWordBank bool
+	Span        int // see questionSpan
 }
 
 // autoGradeSubmission scores a reading/listening submission against the
@@ -328,20 +344,21 @@ func (s *service) autoGradeSubmission(ctx context.Context, test *Test, sub *Subm
 	}
 
 	results := make(map[string]QuestionResult, len(questions))
-	correct := 0
+	correct, total := 0, 0
 	for _, q := range questions {
 		key := strconv.Itoa(q.QuestionOrder)
 		submitted := decodeAnswerStrings(payload.Answers[key])
-		isCorrect := answersMatch(q, submitted)
-		if isCorrect {
-			correct++
-		}
+		points := answerPoints(q, submitted)
+		correct += points
+		total += q.Span
 		correctAnswer := q.AcceptedAnswers
 		if len(correctAnswer) == 0 {
 			correctAnswer = q.Answer.Strings()
 		}
 		results[key] = QuestionResult{
-			Correct:         isCorrect,
+			Correct:         points == q.Span,
+			Points:          points,
+			MaxPoints:       q.Span,
 			SubmittedAnswer: submitted,
 			CorrectAnswer:   correctAnswer,
 		}
@@ -349,14 +366,14 @@ func (s *service) autoGradeSubmission(ctx context.Context, test *Test, sub *Subm
 
 	details, err := json.Marshal(AutoGradeDetails{
 		CorrectCount: correct,
-		TotalCount:   len(questions),
+		TotalCount:   total,
 		Results:      results,
 	})
 	if err != nil {
 		return fmt.Errorf("marshal score details: %w", err)
 	}
 
-	overallBand := bandFromRawScore(correct, len(questions))
+	overallBand := bandFromRawScore(correct, total)
 	if _, err := s.repo.CreateScore(ctx, &Score{
 		SubmissionID: sub.ID,
 		OverallBand:  &overallBand,
@@ -380,7 +397,7 @@ func questionsFromContent(skill string, raw []byte) ([]gradableQuestion, error) 
 		for _, p := range content.Passages {
 			for _, g := range p.QuestionGroups {
 				for _, q := range g.Questions {
-					all = append(all, gradableQuestion{Question: q, GroupType: g.QuestionType, HasWordBank: g.HasWordBank})
+					all = append(all, gradableQuestion{Question: q, GroupType: g.QuestionType, HasWordBank: g.HasWordBank, Span: questionSpan(g)})
 				}
 			}
 		}
@@ -394,7 +411,7 @@ func questionsFromContent(skill string, raw []byte) ([]gradableQuestion, error) 
 		for _, sec := range content.Sections {
 			for _, g := range sec.QuestionGroups {
 				for _, q := range g.Questions {
-					all = append(all, gradableQuestion{Question: q, GroupType: g.QuestionType, HasWordBank: g.HasWordBank})
+					all = append(all, gradableQuestion{Question: q, GroupType: g.QuestionType, HasWordBank: g.HasWordBank, Span: questionSpan(g)})
 				}
 			}
 		}
@@ -433,6 +450,35 @@ func answersMatch(q gradableQuestion, submitted []string) bool {
 		}
 		return normalizeAnswer(submitted[0]) == normalizeAnswer(key[0])
 	}
+}
+
+// answerPoints is the marks a submission earns for q, out of q.Span. A
+// multiple-choice-multi question scores one mark per correct key, in any
+// order. Everything else is all-or-nothing via answersMatch.
+func answerPoints(q gradableQuestion, submitted []string) int {
+	if q.GroupType != QTypeMultipleChoiceMulti {
+		if answersMatch(q, submitted) {
+			return 1
+		}
+		return 0
+	}
+	key := make(map[string]bool)
+	for _, k := range q.Answer.Strings() {
+		key[normalizeAnswer(k)] = true
+	}
+	picked := make(map[string]bool)
+	for _, s := range submitted {
+		if n := normalizeAnswer(s); n != "" {
+			picked[n] = true
+		}
+	}
+	points := 0
+	for k := range picked {
+		if key[k] {
+			points++
+		}
+	}
+	return points
 }
 
 func sameSetNormalized(a, b []string) bool {

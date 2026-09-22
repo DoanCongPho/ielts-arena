@@ -464,8 +464,9 @@ func TestService_SubmitAnswer_ReadingAutoGradesAllCorrect(t *testing.T) {
 	if err := json.Unmarshal(score.Details, &details); err != nil {
 		t.Fatalf("unmarshal score details: %v", err)
 	}
-	if details.CorrectCount != 3 || details.TotalCount != 3 {
-		t.Errorf("CorrectCount/TotalCount = %d/%d, want 3/3", details.CorrectCount, details.TotalCount)
+	// The multiple-choice-multi question (select_count 2) is worth two marks.
+	if details.CorrectCount != 4 || details.TotalCount != 4 {
+		t.Errorf("CorrectCount/TotalCount = %d/%d, want 4/4", details.CorrectCount, details.TotalCount)
 	}
 }
 
@@ -486,7 +487,7 @@ func TestService_SubmitAnswer_ReadingAutoGradesPartialCredit(t *testing.T) {
 	payload := AnswerPayload{Answers: map[string]json.RawMessage{
 		"1": json.RawMessage(`"dog"`),     // wrong
 		"2": json.RawMessage(`"A"`),       // correct
-		"3": json.RawMessage(`["A","B"]`), // correct
+		"3": json.RawMessage(`["A","C"]`), // one of two keys right
 	}}
 
 	sub := submitAndGrade(t, svc, repo, 1, SubmitRequest{TestID: test.ID, Payload: mustMarshal(t, payload)})
@@ -499,11 +500,14 @@ func TestService_SubmitAnswer_ReadingAutoGradesPartialCredit(t *testing.T) {
 	if err := json.Unmarshal(score.Details, &details); err != nil {
 		t.Fatalf("unmarshal score details: %v", err)
 	}
-	if details.CorrectCount != 2 {
-		t.Errorf("CorrectCount = %d, want 2", details.CorrectCount)
+	if details.CorrectCount != 2 || details.TotalCount != 4 {
+		t.Errorf("CorrectCount/TotalCount = %d/%d, want 2/4", details.CorrectCount, details.TotalCount)
 	}
 	if details.Results["1"].Correct {
 		t.Error("expected question_order 1 to be marked incorrect")
+	}
+	if r := details.Results["3"]; r.Correct || r.Points != 1 || r.MaxPoints != 2 {
+		t.Errorf("Results[3] = %+v, want 1/2 points and not fully correct", r)
 	}
 }
 
