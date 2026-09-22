@@ -1,4 +1,5 @@
 import { splitHighlightSegments, splitLayeredSegments } from '../../lib/highlightText';
+import './HighlightableText.css';
 
 // HighlightableText renders `text` split into plain/highlighted segments
 // per `ranges` (character offsets — see lib/highlightText). It carries a
