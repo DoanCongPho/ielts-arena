@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 )
@@ -529,48 +530,32 @@ func decodeAnswerStrings(raw json.RawMessage) []string {
 	return nil
 }
 
-// bandFromRawScore approximates the published IELTS Listening / Academic
-// Reading raw-to-band conversion table, scaled by percentage so it still
-// applies to tests that don't have exactly 40 questions. It's an
-// approximation for practice purposes, not the official scoring table.
+// academicBandTable is the IELTS Listening / Academic Reading raw-score
+// conversion (the two share one table): the minimum correct answers out of
+// 40 for each band, highest first.
+var academicBandTable = []struct {
+	minCorrect int
+	band       float64
+}{
+	{39, 9}, {37, 8.5}, {35, 8}, {33, 7.5}, {30, 7}, {27, 6.5}, {23, 6},
+	{20, 5.5}, {16, 5}, {13, 4.5}, {10, 4}, {7, 3.5}, {5, 3}, {3, 2.5},
+}
+
+// bandFromRawScore maps a raw score to a band with academicBandTable. Tests
+// that don't have exactly 40 marks (single-passage practice) are scaled to
+// 40 first, rounding to the nearest mark. Below the table's last row (fewer
+// than 3/40) it returns 2.
 func bandFromRawScore(correct, total int) float64 {
 	if total == 0 {
 		return 0
 	}
-	pct := float64(correct) / float64(total) * 100
-
-	switch {
-	case pct >= 97.5:
-		return 9
-	case pct >= 92.5:
-		return 8.5
-	case pct >= 87.5:
-		return 8
-	case pct >= 82.5:
-		return 7.5
-	case pct >= 75:
-		return 7
-	case pct >= 67.5:
-		return 6.5
-	case pct >= 57.5:
-		return 6
-	case pct >= 47.5:
-		return 5.5
-	case pct >= 37.5:
-		return 5
-	case pct >= 32.5:
-		return 4.5
-	case pct >= 25:
-		return 4
-	case pct >= 20:
-		return 3.5
-	case pct >= 15:
-		return 3
-	case pct >= 10:
-		return 2.5
-	default:
-		return 2
+	outOf40 := int(math.Round(float64(correct) * 40 / float64(total)))
+	for _, row := range academicBandTable {
+		if outOf40 >= row.minCorrect {
+			return row.band
+		}
 	}
+	return 2
 }
 
 // ---------------------------------------------------------------------------
