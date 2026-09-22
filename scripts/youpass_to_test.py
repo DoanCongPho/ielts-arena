@@ -42,7 +42,7 @@ Stdlib only. Usage:
         [--task-type test1] [--xp-gain 50] [--source youpass]
         [--thumbnail-url URL] [--not-current]
         [--series cambridge --volume 20 --test-number 1 | --no-series]
-        [--image-dir internal/assets/diagrams]
+        [--image-dir internal/assets/diagrams] [--audio-dir media/audio]
 
 The book (series / volume / test_number) is read from the quiz title
 ("Orange 20 Reading - Test 1" -> cambridge 20, test 1) unless given.
@@ -50,6 +50,9 @@ The book (series / volume / test_number) is read from the quiz title
 Diagram images point at YouPass's CMS unless --image-dir is given: then
 they're downloaded there and referenced as /assets/<dir name>/<file>, which
 the API serves out of internal/assets (rebuild the api image after).
+Likewise --audio-dir for listening recordings, referenced as
+/assets/<dir name>/<file_id>.mp3; docker-compose.yml mounts media/audio at
+/assets/audio/.
 """
 
 import argparse
@@ -409,8 +412,10 @@ def fill_answers(q):
     return {"answer": accepted[0], "accepted_answers": accepted}
 
 
-# Set by --image-dir: where diagram images are saved instead of hotlinked.
+# Set by --image-dir / --audio-dir: where diagram images and listening
+# recordings are saved instead of hotlinked.
 IMAGE_DIR = None
+AUDIO_DIR = None
 
 _IMAGE_EXT = {"image/avif": ".avif", "image/webp": ".webp", "image/png": ".png", "image/jpeg": ".jpg", "image/gif": ".gif"}
 
@@ -435,6 +440,25 @@ def localize_image(src):
             IMAGE_DIR.mkdir(parents=True, exist_ok=True)
             (IMAGE_DIR / name).write_bytes(resp.read())
     return f"/assets/{IMAGE_DIR.name}/{name}"
+
+
+def localize_audio(file_id):
+    """A listening part's recording: its YouPass URL, or with AUDIO_DIR the
+    local copy (downloaded unless already there) as an /assets/ URL."""
+    src = YOUPASS_ASSETS + file_id
+    if AUDIO_DIR is None:
+        return src
+    name = re.sub(r"[^A-Za-z0-9-]", "", file_id) + ".mp3"
+    path = AUDIO_DIR / name
+    if not path.exists() or path.stat().st_size == 0:
+        req = urllib.request.Request(src, headers={"User-Agent": "ielts-arena-import"})
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            ctype = resp.headers.get_content_type()
+            if not ctype.startswith("audio/"):
+                raise ConvertError(f"recording {src} is {ctype}, not audio")
+            AUDIO_DIR.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(resp.read())
+    return f"/assets/{AUDIO_DIR.name}/{name}"
 
 
 def word_limit(instructions):
@@ -675,7 +699,7 @@ def convert_section(part, n, groups):
     transcript, block_map = convert_paragraphs(part, labels=False)
     section = {
         "title": f"Part {n}",
-        "audio_url": YOUPASS_ASSETS + part["file_id"],
+        "audio_url": localize_audio(part["file_id"]),
         "section_start_time": 0,
         "section_end_time": end - start,
         "transcript": transcript,
@@ -712,9 +736,11 @@ def main():
     ap.add_argument("--test-number", type=int, help="test number within the book")
     ap.add_argument("--no-series", action="store_true", help="don't place the test in a book")
     ap.add_argument("--image-dir", type=Path, help="download diagram images here (e.g. internal/assets/diagrams) instead of hotlinking")
+    ap.add_argument("--audio-dir", type=Path, help="download listening recordings here (e.g. media/audio) instead of hotlinking")
     args = ap.parse_args()
-    global IMAGE_DIR
+    global IMAGE_DIR, AUDIO_DIR
     IMAGE_DIR = args.image_dir
+    AUDIO_DIR = args.audio_dir
 
     raw = json.loads(args.input.read_text(encoding="utf-8"))
     data = raw.get("data", raw)
