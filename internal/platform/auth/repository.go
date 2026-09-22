@@ -34,7 +34,7 @@ func NewUserRepository(db *sql.DB) Repository {
 	return &userRepository{db: db}
 }
 
-// Identity columns only. xp, level, rank_score and equipped_frame_level
+// Identity columns only. xp, level and rank_score
 // are the progression feature's to read and write.
 const userColumns = `id, name, email, password_hash, image_url, role, created_at, updated_at`
 

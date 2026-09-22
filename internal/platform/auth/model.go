@@ -8,7 +8,7 @@ const (
 )
 
 // User is identity only: who someone is and what they may do. Their game
-// progress — XP, level, rank, avatar frames — lives in
+// progress — XP, level, rank — lives in
 // internal/feature/progression, which owns those columns of the same row.
 //
 // Splitting them is what lets this package stop importing the levelling

@@ -14,7 +14,7 @@ import (
 // writes only the game-progress columns of the users row. Identity
 // columns (name, email, password_hash, role) belong to platform/auth and
 // are never touched here.
-const progressionColumns = `xp, level, rank_score, equipped_frame_level`
+const progressionColumns = `xp, level, rank_score`
 
 type Repository interface {
 	Get(ctx context.Context, userID uint64) (*Progression, error)
@@ -24,7 +24,6 @@ type Repository interface {
 	// submission_xp_grants table's primary key, not by a check-then-write
 	// race. Safe to call once per graded submission.
 	GrantIfFirstAttempt(ctx context.Context, userID, testID, submissionID uint64, amount int) (granted bool, level int, xp int, err error)
-	SetEquippedFrame(ctx context.Context, userID uint64, frameLevel int) error
 }
 
 type repository struct {
@@ -37,18 +36,13 @@ func NewRepository(db *sql.DB) Repository {
 
 func scanProgression(userID uint64, row interface{ Scan(dest ...any) error }) (*Progression, error) {
 	var p Progression
-	var equippedFrameLevel sql.NullInt64
 	var cachedLevel int
 
-	if err := row.Scan(&p.XP, &cachedLevel, &p.RankScore, &equippedFrameLevel); err != nil {
+	if err := row.Scan(&p.XP, &cachedLevel, &p.RankScore); err != nil {
 		return nil, err
 	}
 
 	p.UserID = userID
-	if equippedFrameLevel.Valid {
-		v := int(equippedFrameLevel.Int64)
-		p.EquippedFrameLevel = &v
-	}
 	// cachedLevel is intentionally discarded: the level is derived from
 	// lifetime XP so the denormalised column can never be the source of
 	// truth for a rule or for what the user sees.
@@ -120,24 +114,6 @@ func (r *repository) GrantIfFirstAttempt(ctx context.Context, userID, testID, su
 		return false, 0, 0, fmt.Errorf("commit xp grant: %w", err)
 	}
 	return true, newLevel, newXP, nil
-}
-
-func (r *repository) SetEquippedFrame(ctx context.Context, userID uint64, frameLevel int) error {
-	res, err := r.db.ExecContext(ctx,
-		"UPDATE users SET equipped_frame_level = ?, updated_at = ? WHERE id = ?",
-		frameLevel, time.Now(), userID,
-	)
-	if err != nil {
-		return fmt.Errorf("update equipped frame: %w", err)
-	}
-	n, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("update equipped frame rows affected: %w", err)
-	}
-	if n == 0 {
-		return ErrNotFound
-	}
-	return nil
 }
 
 func isDuplicateKeyErr(err error) bool {

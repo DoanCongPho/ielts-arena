@@ -50,13 +50,4 @@ func (m *MockRepository) GrantIfFirstAttempt(ctx context.Context, userID, testID
 	return true, p.Level, p.XP, nil
 }
 
-func (m *MockRepository) SetEquippedFrame(ctx context.Context, userID uint64, frameLevel int) error {
-	p, ok := m.Progressions[userID]
-	if !ok {
-		return ErrNotFound
-	}
-	p.EquippedFrameLevel = &frameLevel
-	return nil
-}
-
 var _ Repository = (*MockRepository)(nil)

@@ -102,7 +102,7 @@ func main() {
 	auth.NewHandler(authSvc).MountRoutes(pubAPI)
 
 	// --progression--
-	// Game progress (xp, level, rank, avatar frames). Shares the users
+	// Game progress (xp, level, rank). Shares the users
 	// table with auth but owns a disjoint set of its columns.
 	progRepo := progression.NewRepository(plat.DB)
 	progSvc := progression.NewService(progRepo)

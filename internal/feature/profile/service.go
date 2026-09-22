@@ -35,17 +35,3 @@ func (s *service) GetProfile(ctx context.Context, userID uint64) (*ProfileRespon
 	}
 	return newProfileResponse(user, prog), nil
 }
-
-func (s *service) SetEquippedFrame(ctx context.Context, userID uint64, frameLevel int) (*ProfileResponse, error) {
-	// The unlock rule belongs to progression, not here — this package
-	// only decides how to present the result.
-	prog, err := s.progression.SetEquippedFrame(ctx, userID, frameLevel)
-	if err != nil {
-		return nil, err
-	}
-	user, err := s.users.FindByID(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-	return newProfileResponse(user, prog), nil
-}

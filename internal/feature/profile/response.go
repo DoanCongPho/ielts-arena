@@ -20,14 +20,12 @@ type ProfileResponse struct {
 // lifetime XP rather than read from the denormalised users.level column.
 func newProfileResponse(u *auth.User, p *progression.Progression) *ProfileResponse {
 	return &ProfileResponse{
-		ID:                    u.ID,
-		Name:                  u.Name,
-		ImageURL:              u.ImageURL,
-		Level:                 p.Level,
-		XP:                    p.XP,
-		CurrentLevelXP:        p.CurrentLevelXP(),
-		XPToNextLevel:         p.XPToNextLevel(),
-		EquippedFrameLevel:    p.EquippedOrDefaultFrame(),
-		UnlockedMaxFrameLevel: p.UnlockedMaxFrameLevel(),
+		ID:             u.ID,
+		Name:           u.Name,
+		ImageURL:       u.ImageURL,
+		Level:          p.Level,
+		XP:             p.XP,
+		CurrentLevelXP: p.CurrentLevelXP(),
+		XPToNextLevel:  p.XPToNextLevel(),
 	}
 }

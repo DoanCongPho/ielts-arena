@@ -25,84 +25,6 @@ func TestProgressionDerivesLevelFromXP(t *testing.T) {
 	if p.XPToNextLevel() != wantNext {
 		t.Errorf("XPToNextLevel() = %d, want %d", p.XPToNextLevel(), wantNext)
 	}
-	if p.UnlockedMaxFrameLevel() != wantLevel {
-		t.Errorf("UnlockedMaxFrameLevel() = %d, want %d", p.UnlockedMaxFrameLevel(), wantLevel)
-	}
-}
-
-func TestEquippedOrDefaultFrame(t *testing.T) {
-	p := &Progression{Level: 7}
-	if got := p.EquippedOrDefaultFrame(); got != 7 {
-		t.Errorf("with nothing equipped, got frame %d, want the highest unlocked (7)", got)
-	}
-
-	chosen := 3
-	p.EquippedFrameLevel = &chosen
-	if got := p.EquippedOrDefaultFrame(); got != 3 {
-		t.Errorf("with frame 3 equipped, got %d, want 3", got)
-	}
-}
-
-func TestCanEquip(t *testing.T) {
-	p := &Progression{Level: 5}
-	tests := []struct {
-		frame int
-		want  bool
-	}{
-		{1, true}, {3, true}, {5, true},
-		{6, false}, {100, false}, {0, false}, {-1, false},
-	}
-	for _, tc := range tests {
-		if got := p.CanEquip(tc.frame); got != tc.want {
-			t.Errorf("CanEquip(%d) = %v, want %v (user is level %d)", tc.frame, got, tc.want, p.Level)
-		}
-	}
-}
-
-func TestServiceSetEquippedFrame(t *testing.T) {
-	tests := []struct {
-		name    string
-		frame   int
-		wantErr error
-	}{
-		{"below current level", 3, nil},
-		{"exactly current level", 5, nil},
-		{"one above current level", 6, ErrFrameLocked},
-		{"far above current level", 100, ErrFrameLocked},
-		{"zero", 0, ErrFrameLocked},
-		{"negative", -1, ErrFrameLocked},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			repo := NewMockRepository()
-			p := repo.Seed(1, 0)
-			p.Level = 5 // pretend this user has earned level 5
-			svc := NewService(repo)
-
-			got, err := svc.SetEquippedFrame(context.Background(), 1, tc.frame)
-
-			if tc.wantErr != nil {
-				if !errors.Is(err, tc.wantErr) {
-					t.Fatalf("err = %v, want %v", err, tc.wantErr)
-				}
-				if p.EquippedFrameLevel != nil {
-					t.Errorf("a locked frame must not be persisted, but %d was written", *p.EquippedFrameLevel)
-				}
-				return
-			}
-
-			if err != nil {
-				t.Fatalf("SetEquippedFrame: %v", err)
-			}
-			if got.EquippedFrameLevel == nil || *got.EquippedFrameLevel != tc.frame {
-				t.Errorf("returned frame = %v, want %d", got.EquippedFrameLevel, tc.frame)
-			}
-			if p.EquippedFrameLevel == nil || *p.EquippedFrameLevel != tc.frame {
-				t.Errorf("persisted frame = %v, want %d", p.EquippedFrameLevel, tc.frame)
-			}
-		})
-	}
 }
 
 func TestServiceNotFound(t *testing.T) {
@@ -111,9 +33,6 @@ func TestServiceNotFound(t *testing.T) {
 
 	if _, err := svc.Get(ctx, 99); !errors.Is(err, ErrNotFound) {
 		t.Errorf("Get: expected ErrNotFound, got %v", err)
-	}
-	if _, err := svc.SetEquippedFrame(ctx, 99, 1); !errors.Is(err, ErrNotFound) {
-		t.Errorf("SetEquippedFrame: expected ErrNotFound, got %v", err)
 	}
 }
 
