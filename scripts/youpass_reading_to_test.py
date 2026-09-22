@@ -34,9 +34,14 @@ Stdlib only. Usage:
         [--task-type test1] [--xp-gain 50] [--source youpass]
         [--thumbnail-url URL] [--not-current]
         [--series cambridge --volume 20 --test-number 1 | --no-series]
+        [--image-dir internal/assets/diagrams]
 
 The book (series / volume / test_number) is read from the quiz title
 ("Orange 20 Reading - Test 1" -> cambridge 20, test 1) unless given.
+
+Diagram images point at YouPass's CMS unless --image-dir is given: then
+they're downloaded there and referenced as /assets/<dir name>/<file>, which
+the API serves out of internal/assets (rebuild the api image after).
 """
 
 import argparse
@@ -44,6 +49,7 @@ import html
 import json
 import re
 import sys
+import urllib.request
 from html.parser import HTMLParser
 from pathlib import Path
 
@@ -345,6 +351,34 @@ def fill_answers(q):
     return {"answer": accepted[0], "accepted_answers": accepted}
 
 
+# Set by --image-dir: where diagram images are saved instead of hotlinked.
+IMAGE_DIR = None
+
+_IMAGE_EXT = {"image/avif": ".avif", "image/webp": ".webp", "image/png": ".png", "image/jpeg": ".jpg", "image/gif": ".gif"}
+
+
+def localize_image(src):
+    """Downloads a diagram into IMAGE_DIR (named after the CMS asset id)
+    and returns its /assets/ URL; returns src untouched without IMAGE_DIR.
+    An image already downloaded isn't fetched again."""
+    if IMAGE_DIR is None:
+        return src
+    asset_id = re.sub(r"[^A-Za-z0-9-]", "", src.split("?")[0].rstrip("/").rsplit("/", 1)[-1]) or "diagram"
+    existing = sorted(IMAGE_DIR.glob(asset_id + ".*"))
+    if existing:
+        name = existing[0].name
+    else:
+        req = urllib.request.Request(src, headers={"User-Agent": "ielts-arena-import"})
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            ctype = resp.headers.get_content_type()
+            if not ctype.startswith("image/"):
+                raise ConvertError(f"diagram {src} is {ctype}, not an image")
+            name = asset_id + _IMAGE_EXT.get(ctype, ".img")
+            IMAGE_DIR.mkdir(parents=True, exist_ok=True)
+            (IMAGE_DIR / name).write_bytes(resp.read())
+    return f"/assets/{IMAGE_DIR.name}/{name}"
+
+
 def word_limit(instructions):
     """"NO MORE THAN TWO WORDS" / "ONE WORD ONLY" -> 2 / 1; 0 if not stated."""
     m = re.search(r"\b(ONE|TWO|THREE|FOUR)\s+WORDS?\b", instructions)
@@ -463,6 +497,7 @@ def convert_group(qset, order):
         if not images:
             raise ConvertError(f"set {qset.get('title')!r}: diagram labelling without an image")
         check_gaps(qset, qtype, [html_text(content)], qs)
+        images = [localize_image(src) for src in images]
         group["diagram_image_url"] = images[0]
         if len(images) > 1:
             group["diagram_image_urls"] = images[1:]
@@ -556,7 +591,10 @@ def main():
     ap.add_argument("--volume", type=int, help="book volume, e.g. 20")
     ap.add_argument("--test-number", type=int, help="test number within the book")
     ap.add_argument("--no-series", action="store_true", help="don't place the test in a book")
+    ap.add_argument("--image-dir", type=Path, help="download diagram images here (e.g. internal/assets/diagrams) instead of hotlinking")
     args = ap.parse_args()
+    global IMAGE_DIR
+    IMAGE_DIR = args.image_dir
 
     raw = json.loads(args.input.read_text(encoding="utf-8"))
     data = raw.get("data", raw)

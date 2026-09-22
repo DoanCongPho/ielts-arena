@@ -1,3 +1,4 @@
 .env
 # Imported test content (Cambridge / YouPass) is copyrighted — keep it local.
 tests_bank/
+internal/assets/diagrams/
