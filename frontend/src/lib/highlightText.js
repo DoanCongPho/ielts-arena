@@ -15,6 +15,33 @@ export function splitHighlightSegments(text, ranges) {
   return segments;
 }
 
+// splitLayeredSegments is splitHighlightSegments with a second, read-only
+// layer: `evidence` ranges (passage text the answer key cites). Segments
+// break wherever either layer starts or ends. A segment inside a user
+// highlight carries the start/end of that whole highlight, so
+// click-to-remove still matches the stored range when evidence splits it.
+export function splitLayeredSegments(text, ranges, evidence) {
+  const cuts = new Set([0, text.length]);
+  for (const r of [...ranges, ...evidence]) {
+    cuts.add(r.start);
+    cuts.add(r.end);
+  }
+  const points = [...cuts].filter((p) => p >= 0 && p <= text.length).sort((a, b) => a - b);
+  const segments = [];
+  for (let i = 0; i < points.length - 1; i++) {
+    const [a, b] = [points[i], points[i + 1]];
+    const owner = ranges.find((r) => r.start <= a && b <= r.end);
+    segments.push({
+      text: text.slice(a, b),
+      highlighted: !!owner,
+      evidence: evidence.some((r) => r.start <= a && b <= r.end),
+      start: owner?.start,
+      end: owner?.end,
+    });
+  }
+  return segments;
+}
+
 // mergeRanges collapses overlapping/adjacent ranges so re-highlighting over
 // an existing highlight (or two highlights that end up touching) doesn't
 // produce nested/duplicate <mark> segments.

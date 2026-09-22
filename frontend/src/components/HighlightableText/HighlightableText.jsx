@@ -1,4 +1,4 @@
-import { splitHighlightSegments } from '../../lib/highlightText';
+import { splitHighlightSegments, splitLayeredSegments } from '../../lib/highlightText';
 
 // HighlightableText renders `text` split into plain/highlighted segments
 // per `ranges` (character offsets — see lib/highlightText). It carries a
@@ -7,24 +7,36 @@ import { splitHighlightSegments } from '../../lib/highlightText';
 // and compute offsets against, and click-to-remove on already-highlighted
 // spans. Used for the reading passage paragraphs as well as question
 // instructions/text, so keywords can be marked anywhere on the page.
-export default function HighlightableText({ id, text, ranges, onRemoveRange, as: Tag = 'span', className }) {
-  const segments = splitHighlightSegments(text, ranges || []);
+// `evidence`, in a graded review, marks the passage text the answer key
+// cites as a separate, non-removable layer.
+export default function HighlightableText({ id, text, ranges, evidence, onRemoveRange, as: Tag = 'span', className }) {
+  const segments = evidence?.length
+    ? splitLayeredSegments(text, ranges || [], evidence)
+    : splitHighlightSegments(text, ranges || []);
   return (
     <Tag data-highlight-key={id} className={className}>
-      {segments.map((seg, i) =>
-        seg.highlighted ? (
-          <mark
-            key={i}
-            className="reading-highlight-mark"
-            title="Bấm để bỏ tô đậm"
-            onClick={() => onRemoveRange?.(id, seg.start, seg.end)}
-          >
-            {seg.text}
-          </mark>
-        ) : (
-          <span key={i}>{seg.text}</span>
-        ),
-      )}
+      {segments.map((seg, i) => {
+        if (seg.highlighted) {
+          return (
+            <mark
+              key={i}
+              className={`reading-highlight-mark ${seg.evidence ? 'reading-evidence-mark' : ''}`}
+              title="Bấm để bỏ tô đậm"
+              onClick={() => onRemoveRange?.(id, seg.start, seg.end)}
+            >
+              {seg.text}
+            </mark>
+          );
+        }
+        if (seg.evidence) {
+          return (
+            <mark key={i} className="reading-evidence-mark">
+              {seg.text}
+            </mark>
+          );
+        }
+        return <span key={i}>{seg.text}</span>;
+      })}
     </Tag>
   );
 }

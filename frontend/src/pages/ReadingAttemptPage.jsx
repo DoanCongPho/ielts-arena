@@ -5,8 +5,10 @@ import { flattenQuestions } from '../lib/answerUtils';
 import { safeParse } from '../lib/safeParse';
 import { ATTEMPT_SECONDS, useCountdown, useLeaveGuard } from '../lib/useAttemptSession';
 import { mergeRanges, textOffset } from '../lib/highlightText';
+import { useEvidenceReview } from '../lib/useEvidenceReview';
 import { SKILL_CONFIG } from '../lib/skillConfig';
 import QuestionList from '../components/QuestionList/QuestionList';
+import { ReviewContext } from '../components/AnswerExplanation/ReviewContext';
 import AutoGradeResult from '../components/AutoGradeResult/AutoGradeResult';
 import QuestionNavBar from '../components/QuestionNavBar/QuestionNavBar';
 import HighlightableText from '../components/HighlightableText/HighlightableText';
@@ -53,9 +55,13 @@ export default function ReadingAttemptPage() {
       .finally(() => setLoading(false));
   }, [testId]);
 
+  const content = safeParse(test?.content_data);
+  const passages = content?.passages || [];
+
   const inProgress = !!test && !score && !gradeFailed;
   const remaining = useCountdown(ATTEMPT_SECONDS, inProgress, handleTimeUp);
   const confirmLeave = useLeaveGuard(inProgress);
+  const review = useEvidenceReview(testId, !!score, passages, setActiveIndex);
 
   useEffect(() => {
     setSelectionInfo(null);
@@ -177,8 +183,6 @@ export default function ReadingAttemptPage() {
   if (loading) return <div className="attempt-page"><p className="practice-status">Đang tải đề...</p></div>;
   if (error && !test) return <div className="attempt-page"><p className="practice-status practice-error">{error}</p></div>;
 
-  const content = safeParse(test?.content_data);
-  const passages = content?.passages || [];
   const activePassage = passages[activeIndex];
   const activeGroups = activePassage?.question_groups || [];
   const allQuestions = passages.flatMap((p) => flattenQuestions(p.question_groups));
@@ -216,9 +220,15 @@ export default function ReadingAttemptPage() {
             {(activePassage?.paragraphs || []).map((p, pi) => {
               const key = `p-${pi}`;
               return (
-                <p key={`${activeIndex}-${pi}`}>
+                <p key={`${activeIndex}-${pi}`} id={`passage-${activeIndex}-p-${pi}`}>
                   {p.label && <strong>{p.label}. </strong>}
-                  <HighlightableText id={key} text={p.text} ranges={highlights[activeIndex]?.[key]} onRemoveRange={removeHighlight} />
+                  <HighlightableText
+                    id={key}
+                    text={p.text}
+                    ranges={highlights[activeIndex]?.[key]}
+                    evidence={review.evidenceFor(activeIndex, pi)}
+                    onRemoveRange={removeHighlight}
+                  />
                 </p>
               );
             })}
@@ -237,16 +247,18 @@ export default function ReadingAttemptPage() {
           )}
 
           {!gradeFailed && (
-            <QuestionList
-              groups={activeGroups}
-              answers={answers}
-              onChange={score ? undefined : handleAnswerChange}
-              disabled={submitting || !!score}
-              results={scoreResults}
-              highlights={highlights[activeIndex]}
-              onHighlightRemove={removeHighlight}
-              skill="reading"
-            />
+            <ReviewContext.Provider value={{ answerKey: review.answerKey, onLocate: review.locate }}>
+              <QuestionList
+                groups={activeGroups}
+                answers={answers}
+                onChange={score ? undefined : handleAnswerChange}
+                disabled={submitting || !!score}
+                results={scoreResults}
+                highlights={highlights[activeIndex]}
+                onHighlightRemove={removeHighlight}
+                skill="reading"
+              />
+            </ReviewContext.Provider>
           )}
 
           {error && <p className="practice-status practice-error">{error}</p>}

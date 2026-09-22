@@ -1,3 +1,4 @@
+import AnswerExplanation from '../AnswerExplanation/AnswerExplanation';
 import Dropdown from './Dropdown';
 import { resolveGapLines, resolveGapRows } from './gapText';
 
@@ -108,6 +109,16 @@ export default function StructuredBlankGroup({ group, answers, onChange, disable
             ))}
           </tbody>
         </table>
+      )}
+
+      {/* Gaps sit inline in the structure, so their explanations are
+          listed underneath it instead. */}
+      {results && (
+        <div className="structured-explanations">
+          {group.questions.map((q) => (
+            <AnswerExplanation key={q.question_order} order={q.question_order} label={`Câu ${q.question_order}`} />
+          ))}
+        </div>
       )}
     </div>
   );

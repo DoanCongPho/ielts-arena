@@ -1,3 +1,4 @@
+import AnswerExplanation from '../AnswerExplanation/AnswerExplanation';
 import { useState } from 'react';
 import HighlightableText from '../HighlightableText/HighlightableText';
 
@@ -137,6 +138,7 @@ export default function MatchingDragDrop({ group, answers, onChange, disabled, r
               {result && !result.correct && (
                 <p className="question-item-correct-answer">Đáp án đúng: {(result.correct_answer || []).join(', ')}</p>
               )}
+              {result && <AnswerExplanation order={order} />}
             </div>
           );
         })}

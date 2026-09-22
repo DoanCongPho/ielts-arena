@@ -3,10 +3,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { getScore, getSubmission, getTest } from '../lib/api';
 import { flattenQuestions } from '../lib/answerUtils';
+import { useEvidenceReview } from '../lib/useEvidenceReview';
 import { safeParse } from '../lib/safeParse';
 import { SKILL_CONFIG } from '../lib/skillConfig';
 import ScoreResult from '../components/ScoreResult/ScoreResult';
 import QuestionList from '../components/QuestionList/QuestionList';
+import { ReviewContext } from '../components/AnswerExplanation/ReviewContext';
+import HighlightableText from '../components/HighlightableText/HighlightableText';
 import AutoGradeResult from '../components/AutoGradeResult/AutoGradeResult';
 import QuestionNavBar from '../components/QuestionNavBar/QuestionNavBar';
 import Button from '../components/ui/Button/Button';
@@ -130,6 +133,7 @@ function MultiUnitReview({ skill, test, content, payload, score, notGradedMessag
   const allQuestions = units.flatMap((u) => flattenQuestions(u.question_groups));
   const config = SKILL_CONFIG[skill];
   const isReading = skill === 'reading';
+  const review = useEvidenceReview(test.id, isReading && !!score, isReading ? units : [], handleSelectUnit);
 
   useEffect(() => {
     if (pendingScrollOrder == null) return;
@@ -191,9 +195,9 @@ function MultiUnitReview({ skill, test, content, payload, score, notGradedMessag
             <div className="attempt-passage-text">
               {activeUnit?.title && <h3 className="reading-passage-title">{activeUnit.title}</h3>}
               {(activeUnit?.paragraphs || []).map((p, pi) => (
-                <p key={pi}>
+                <p key={`${activeIndex}-${pi}`} id={`passage-${activeIndex}-p-${pi}`}>
                   {p.label && <strong>{p.label}. </strong>}
-                  {p.text}
+                  <HighlightableText id={`p-${pi}`} text={p.text} evidence={review.evidenceFor(activeIndex, pi)} />
                 </p>
               ))}
             </div>
@@ -210,13 +214,15 @@ function MultiUnitReview({ skill, test, content, payload, score, notGradedMessag
         </div>
 
         <div className={`attempt-answer-panel ${isReading ? 'reading-scroll-panel' : ''}`}>
-          <QuestionList
-            groups={activeGroups}
-            answers={payload?.answers}
-            results={scoreResults}
-            disabled
-            skill={skill}
-          />
+          <ReviewContext.Provider value={{ answerKey: review.answerKey, onLocate: review.locate }}>
+            <QuestionList
+              groups={activeGroups}
+              answers={payload?.answers}
+              results={scoreResults}
+              disabled
+              skill={skill}
+            />
+          </ReviewContext.Provider>
         </div>
       </div>
 

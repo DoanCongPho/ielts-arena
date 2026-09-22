@@ -1,3 +1,4 @@
+import AnswerExplanation from '../AnswerExplanation/AnswerExplanation';
 import HighlightableText from '../HighlightableText/HighlightableText';
 
 // PlainInputGroup covers question_types where each question has its own
@@ -36,6 +37,7 @@ export default function PlainInputGroup({ group, answers, onChange, disabled, re
             {result && !result.correct && (
               <p className="question-item-correct-answer">Đáp án đúng: {(result.correct_answer || []).join(', ')}</p>
             )}
+            {result && <AnswerExplanation order={order} />}
           </div>
         );
       })}

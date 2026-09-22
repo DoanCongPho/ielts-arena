@@ -81,6 +81,12 @@ export function getTest(id) {
   return request(`/api/tests/${id}`);
 }
 
+// getAnswerKey returns a graded test's answers, explanations and evidence,
+// keyed by question_order. 403 until the user has a graded attempt at it.
+export function getAnswerKey(testId) {
+  return request(`/api/tests/${testId}/answer-key`);
+}
+
 export function createTest(payload) {
   return request('/api/tests', {
     method: 'POST',
