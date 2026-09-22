@@ -156,6 +156,30 @@ type Question struct {
 	// Options are per-question multiple-choice/matching-sentence-endings
 	// options, used when the group doesn't provide SharedOptions instead.
 	Options []Option `json:"options,omitempty"`
+	// Explanation (why the answer is right) and Evidence (where the passage
+	// says so) give the answer away, so like Answer they're stripped from
+	// public content and only served by the answer key after grading.
+	// Evidence is reading-only.
+	Explanation string     `json:"explanation,omitempty"`
+	Evidence    []Evidence `json:"evidence,omitempty"`
+}
+
+// Evidence points at where a question's answer is found: Paragraph indexes
+// the passage's Paragraphs and Quote is a verbatim excerpt of it, which the
+// review highlights. A quote rather than character offsets, so it survives
+// whitespace changes and is easy to author by hand or by an AI importer.
+type Evidence struct {
+	Paragraph int    `json:"paragraph"`
+	Quote     string `json:"quote"`
+}
+
+// AnswerKeyEntry is one question's answer and explanation, as served by
+// GET /tests/{id}/answer-key.
+type AnswerKeyEntry struct {
+	Answer          AnswerValue `json:"answer"`
+	AcceptedAnswers []string    `json:"accepted_answers,omitempty"`
+	Explanation     string      `json:"explanation,omitempty"`
+	Evidence        []Evidence  `json:"evidence,omitempty"`
 }
 
 type Option struct {

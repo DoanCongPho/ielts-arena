@@ -22,6 +22,9 @@ type Repository interface {
 	GetSubmissionByID(ctx context.Context, id uint64) (*Submission, error)
 	GetListSubmission(ctx context.Context, userID uint64, limit, offset int) ([]SubmissionSummary, int, error)
 	UpdateSubmissionStatus(ctx context.Context, id uint64, status string) error
+	// HasGradedSubmission reports whether userID has a graded submission
+	// for testID — what unlocks that test's answer key for them.
+	HasGradedSubmission(ctx context.Context, userID, testID uint64) (bool, error)
 	// --- grading queue ---
 	// ClaimNextForGrading atomically hands one submission to the caller and
 	// marks it "grading". It returns (nil, nil) when the queue is empty.
@@ -359,6 +362,18 @@ func (r *repository) UpdateSubmissionStatus(ctx context.Context, id uint64, stat
 		return ErrSubmissionNotFound
 	}
 	return nil
+}
+
+func (r *repository) HasGradedSubmission(ctx context.Context, userID, testID uint64) (bool, error) {
+	var ok bool
+	err := r.db.QueryRowContext(ctx,
+		"SELECT EXISTS(SELECT 1 FROM submissions WHERE user_id = ? AND test_id = ? AND status = ?)",
+		userID, testID, StatusGraded,
+	).Scan(&ok)
+	if err != nil {
+		return false, fmt.Errorf("check graded submission: %w", err)
+	}
+	return ok, nil
 }
 
 func (r *repository) CreateScore(ctx context.Context, sc *Score) (*Score, error) {

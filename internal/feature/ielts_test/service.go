@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github/DoanCongPho/game-arena/internal/platform/httpx"
@@ -20,6 +21,10 @@ type Service interface {
 	GetTest(ctx context.Context, id uint64) (*TestResponse, error)
 	GetListTest(ctx context.Context, skill string, req ListTestRequest) (*ListTestResponse, error)
 	PostTest(ctx context.Context, test Test) (*Test, error)
+	// GetAnswerKey returns a reading/listening test's answers, explanations
+	// and evidence keyed by question_order — to admins, or to a user who
+	// has a graded attempt at it (ErrAnswerKeyLocked otherwise).
+	GetAnswerKey(ctx context.Context, userID uint64, isAdmin bool, testID uint64) (map[string]AnswerKeyEntry, error)
 	//submit
 	SubmitAnswer(ctx context.Context, userID uint64, req SubmitRequest) (*Submission, error)
 	GetSubmissionByID(ctx context.Context, userID uint64, submissionID uint64) (*Submission, error)
@@ -108,6 +113,39 @@ func (s *service) PostTest(ctx context.Context, test Test) (*Test, error) {
 		return nil, err
 	}
 	return s.repo.CreateTest(ctx, &test)
+}
+
+func (s *service) GetAnswerKey(ctx context.Context, userID uint64, isAdmin bool, testID uint64) (map[string]AnswerKeyEntry, error) {
+	t, err := s.repo.GetTestByID(ctx, testID)
+	if err != nil {
+		return nil, err
+	}
+	if t.Skill != "reading" && t.Skill != "listening" {
+		return nil, ErrNoAnswerKey
+	}
+	if !isAdmin {
+		graded, err := s.repo.HasGradedSubmission(ctx, userID, testID)
+		if err != nil {
+			return nil, err
+		}
+		if !graded {
+			return nil, ErrAnswerKeyLocked
+		}
+	}
+	questions, err := questionsFromContent(t.Skill, t.ContentData)
+	if err != nil {
+		return nil, fmt.Errorf("read test content: %w", err)
+	}
+	key := make(map[string]AnswerKeyEntry, len(questions))
+	for _, q := range questions {
+		key[strconv.Itoa(q.QuestionOrder)] = AnswerKeyEntry{
+			Answer:          q.Answer,
+			AcceptedAnswers: q.AcceptedAnswers,
+			Explanation:     q.Explanation,
+			Evidence:        q.Evidence,
+		}
+	}
+	return key, nil
 }
 
 // SubmitAnswer persists an answer and queues it for grading. It does not

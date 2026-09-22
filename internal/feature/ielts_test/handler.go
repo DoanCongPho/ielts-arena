@@ -34,6 +34,7 @@ func (h *Handler) MountRoutes(r *mux.Router) {
 	// context, not re-verify the token.
 	r.Handle("/tests", middleware.RequireAdmin(http.HandlerFunc(h.createTestHandler))).Methods(http.MethodPost)
 	r.HandleFunc("/tests/{id}", h.getTestHandler).Methods(http.MethodGet)
+	r.HandleFunc("/tests/{id}/answer-key", h.getAnswerKeyHandler).Methods(http.MethodGet)
 	r.HandleFunc("/submissions", h.submitAnswerHandler).Methods(http.MethodPost)
 	r.HandleFunc("/submissions", h.listSubmissionsHandler).Methods(http.MethodGet)
 	r.HandleFunc("/submissions/{id}", h.getSubmissionHandler).Methods(http.MethodGet)
@@ -109,6 +110,33 @@ func (h *Handler) createTestHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.WriteSuccess(w, newTestResponse(created, content))
+}
+
+func (h *Handler) getAnswerKeyHandler(w http.ResponseWriter, r *http.Request) {
+	user, ok := auth.CurrentUser(r.Context())
+	if !ok {
+		httpx.WriteError(w, http.StatusUnauthorized, "auth.invalid_credentials", "missing authenticated user")
+		return
+	}
+	id, err := httpx.IDFromPath(r)
+	if err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "ielts_test.invalid_input", "invalid test id")
+		return
+	}
+
+	key, err := h.svc.GetAnswerKey(r.Context(), user.ID, user.IsAdmin(), id)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrTestNotFound), errors.Is(err, ErrNoAnswerKey):
+			httpx.WriteError(w, http.StatusNotFound, "ielts_test.answer_key_not_found", err.Error())
+		case errors.Is(err, ErrAnswerKeyLocked):
+			httpx.WriteError(w, http.StatusForbidden, "ielts_test.answer_key_locked", err.Error())
+		default:
+			httpx.WriteInternalError(w, "ielts_test.get_answer_key", err)
+		}
+		return
+	}
+	httpx.WriteSuccess(w, key)
 }
 
 func (h *Handler) submitAnswerHandler(w http.ResponseWriter, r *http.Request) {

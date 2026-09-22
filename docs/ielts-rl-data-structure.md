@@ -14,8 +14,14 @@ Test
              ├─ question_order   // số thứ tự GLOBAL xuyên suốt toàn bài test
              ├─ text
              ├─ answer
-             └─ accepted_answers[]?  // các biến thể được chấp nhận
+             ├─ accepted_answers[]?  // các biến thể được chấp nhận
+             ├─ explanation?     // giải thích vì sao đúng (tiếng Việt)
+             └─ evidence[]?      // Reading: {paragraph, quote} — vị trí đáp án trong bài
 ```
+
+**Giải thích & vị trí đáp án** (`explanation`, `evidence`) — bị ẩn khỏi `GET /api/tests` giống `answer`, chỉ trả về qua `GET /api/tests/{id}/answer-key` sau khi user đã có bài được chấm (admin xem được luôn):
+- `explanation`: text thuần, xuống dòng bằng `\n`. Nên theo 3 bước: hiểu câu hỏi → keyword được paraphrase trong bài → đối chiếu kết luận.
+- `evidence[]` (chỉ Reading): `paragraph` là **index 0-based** trong `paragraphs[]` của passage chứa câu hỏi, `quote` là đoạn **trích nguyên văn** từ paragraph đó (khoảng trắng và kiểu dấu nháy `'`/`'` không cần khớp). `POST /api/tests` từ chối quote không có trong paragraph.
 
 **Nguyên tắc bắt buộc:**
 - `question_order` phải liên tục 1→40 (Reading) hoặc 1→40 (Listening) xuyên suốt TOÀN BỘ bài test, không reset theo từng passage/section.

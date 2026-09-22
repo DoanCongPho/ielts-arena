@@ -52,6 +52,9 @@ func validateContentData(skill string, raw []byte) error {
 			if err := validateQuestionGroups(p.QuestionGroups, readingQuestionTypes, &orders); err != nil {
 				return err
 			}
+			if err := validateEvidence(p); err != nil {
+				return err
+			}
 		}
 		if err := validateQuestionOrderContinuity(orders); err != nil {
 			return err
@@ -74,6 +77,13 @@ func validateContentData(skill string, raw []byte) error {
 			}
 			if err := validateQuestionGroups(sec.QuestionGroups, listeningQuestionTypes, &orders); err != nil {
 				return err
+			}
+			for _, g := range sec.QuestionGroups {
+				for _, q := range g.Questions {
+					if len(q.Evidence) > 0 {
+						return fmt.Errorf("question_order %d: evidence is only supported for reading", q.QuestionOrder)
+					}
+				}
 			}
 		}
 		if err := validateQuestionOrderContinuity(orders); err != nil {
@@ -157,6 +167,39 @@ func validateQuestionGroups(groups []QuestionGroup, allowed map[QuestionType]boo
 		}
 	}
 	return nil
+}
+
+// validateEvidence checks that every evidence entry in p points at one of
+// its paragraphs and quotes it verbatim (modulo whitespace and quote
+// style) — the check that catches an importer, human or AI, citing text
+// that isn't in the passage.
+func validateEvidence(p ReadingPassage) error {
+	for _, g := range p.QuestionGroups {
+		for _, q := range g.Questions {
+			for _, e := range q.Evidence {
+				if e.Paragraph < 0 || e.Paragraph >= len(p.Paragraphs) {
+					return fmt.Errorf("question_order %d: evidence paragraph %d is out of range (the passage has %d)", q.QuestionOrder, e.Paragraph, len(p.Paragraphs))
+				}
+				quote := normalizeQuote(e.Quote)
+				if quote == "" {
+					return fmt.Errorf("question_order %d: evidence quote is empty", q.QuestionOrder)
+				}
+				if !strings.Contains(normalizeQuote(p.Paragraphs[e.Paragraph].Text), quote) {
+					return fmt.Errorf("question_order %d: evidence quote %q is not in paragraph %d", q.QuestionOrder, e.Quote, e.Paragraph)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+var quoteFolder = strings.NewReplacer("\u2018", "'", "\u2019", "'", "\u201c", `"`, "\u201d", `"`)
+
+// normalizeQuote collapses whitespace and folds typographic quotes, so an
+// evidence quote matches its paragraph however either was typed. The
+// frontend mirrors this when it locates the quote to highlight it.
+func normalizeQuote(s string) string {
+	return strings.Join(strings.Fields(quoteFolder.Replace(s)), " ")
 }
 
 // questionSpan is how many question numbers — and marks — each question in
@@ -591,15 +634,16 @@ func publicContentData(skill string, raw []byte) (json.RawMessage, error) {
 	}
 }
 
-// redactQuestionsInPlace blanks Answer and AcceptedAnswers on every question
-// across every group — AcceptedAnswers must be redacted too, since it
-// contains the canonical answer among its accepted variants and leaking it
-// would defeat the point of blanking Answer.
+// redactQuestionsInPlace blanks Answer, AcceptedAnswers, Explanation and
+// Evidence on every question across every group — each of the last three
+// gives the answer away just as surely as Answer itself.
 func redactQuestionsInPlace(groups []QuestionGroup) {
 	for gi := range groups {
 		for qi := range groups[gi].Questions {
 			groups[gi].Questions[qi].Answer = AnswerValue{}
 			groups[gi].Questions[qi].AcceptedAnswers = nil
+			groups[gi].Questions[qi].Explanation = ""
+			groups[gi].Questions[qi].Evidence = nil
 		}
 	}
 }

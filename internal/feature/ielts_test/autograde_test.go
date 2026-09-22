@@ -369,6 +369,51 @@ func TestValidateContentData_MultiSelectSpansSelectCount(t *testing.T) {
 	}
 }
 
+// readingWithEvidence is validReadingContent with its first question
+// carrying the given evidence and an explanation.
+func readingWithEvidence(ev ...Evidence) ReadingContent {
+	c := validReadingContent()
+	c.Passages[0].Paragraphs = []Paragraph{{Label: "A", Text: "The cat sat on the mat. It was the caf\u00e9\u2019s cat."}}
+	q := &c.Passages[0].QuestionGroups[0].Questions[0]
+	q.Explanation = "Paragraph A says so."
+	q.Evidence = ev
+	return c
+}
+
+func TestValidateContentData_Evidence(t *testing.T) {
+	cases := []struct {
+		name    string
+		ev      []Evidence
+		wantErr bool
+	}{
+		{"verbatim quote", []Evidence{{Paragraph: 0, Quote: "The cat sat on the mat."}}, false},
+		{"whitespace and quote style differ", []Evidence{{Paragraph: 0, Quote: "the  caf\u00e9's\ncat"}}, false},
+		{"no evidence at all", nil, false},
+		{"paragraph out of range", []Evidence{{Paragraph: 1, Quote: "The cat"}}, true},
+		{"negative paragraph", []Evidence{{Paragraph: -1, Quote: "The cat"}}, true},
+		{"quote not in paragraph", []Evidence{{Paragraph: 0, Quote: "The dog sat"}}, true},
+		{"empty quote", []Evidence{{Paragraph: 0, Quote: "  "}}, true},
+	}
+	for _, c := range cases {
+		err := validateContentData("reading", marshalContent(t, readingWithEvidence(c.ev...)))
+		if (err != nil) != c.wantErr {
+			t.Errorf("%s: err = %v, wantErr %v", c.name, err, c.wantErr)
+		}
+	}
+}
+
+func TestValidateContentData_ListeningRejectsEvidence(t *testing.T) {
+	group := sentenceCompletionGroup(1, 1, "cat", []string{"cat"})
+	group.Questions[0].Evidence = []Evidence{{Paragraph: 0, Quote: "x"}}
+	c := ListeningContent{
+		AudioURL: "https://example.com/audio.mp3",
+		Sections: []ListeningSection{{SectionEndTime: 60, QuestionGroups: []QuestionGroup{group}}},
+	}
+	if err := validateContentData("listening", marshalContent(t, c)); err == nil {
+		t.Error("expected evidence on a listening question to be rejected")
+	}
+}
+
 func TestValidateQuestionOrderContinuity(t *testing.T) {
 	cases := []struct {
 		name    string
@@ -598,7 +643,7 @@ func TestQuestionsFromContent(t *testing.T) {
 }
 
 func TestPublicContentData_RedactsReadingAnswers(t *testing.T) {
-	raw := marshalContent(t, validReadingContent())
+	raw := marshalContent(t, readingWithEvidence(Evidence{Paragraph: 0, Quote: "The cat"}))
 	public, err := publicContentData("reading", raw)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -616,6 +661,9 @@ func TestPublicContentData_RedactsReadingAnswers(t *testing.T) {
 				}
 				if q.AcceptedAnswers != nil {
 					t.Errorf("expected accepted_answers to be redacted for question_order %d", q.QuestionOrder)
+				}
+				if q.Explanation != "" || q.Evidence != nil {
+					t.Errorf("expected explanation/evidence to be redacted for question_order %d", q.QuestionOrder)
 				}
 			}
 		}
