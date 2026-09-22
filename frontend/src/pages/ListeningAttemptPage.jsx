@@ -1,11 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getScore, getTest, submitAnswer, waitForGrading } from '../lib/api';
 import { flattenQuestions } from '../lib/answerUtils';
 import { safeParse } from '../lib/safeParse';
 import { ATTEMPT_SECONDS, useCountdown, useLeaveGuard } from '../lib/useAttemptSession';
 import { SKILL_CONFIG } from '../lib/skillConfig';
+import { useEvidenceReview } from '../lib/useEvidenceReview';
+import { useSectionAudio } from '../lib/useSectionAudio';
 import QuestionList from '../components/QuestionList/QuestionList';
+import { ReviewContext } from '../components/AnswerExplanation/ReviewContext';
+import ListeningTranscript from '../components/ListeningTranscript/ListeningTranscript';
 import AutoGradeResult from '../components/AutoGradeResult/AutoGradeResult';
 import QuestionNavBar from '../components/QuestionNavBar/QuestionNavBar';
 import Button from '../components/ui/Button/Button';
@@ -16,7 +20,6 @@ import './ListeningAttemptPage.css';
 export default function ListeningAttemptPage() {
   const { testId } = useParams();
   const navigate = useNavigate();
-  const audioRef = useRef(null);
 
   const [test, setTest] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -40,9 +43,14 @@ export default function ListeningAttemptPage() {
       .finally(() => setLoading(false));
   }, [testId]);
 
+  const content = safeParse(test?.content_data);
+  const sections = content?.sections || [];
+
   const inProgress = !!test && !score && !gradeFailed;
   const remaining = useCountdown(ATTEMPT_SECONDS, inProgress, handleTimeUp);
   const confirmLeave = useLeaveGuard(inProgress);
+  const audio = useSectionAudio(content, activeIndex);
+  const review = useEvidenceReview(testId, !!score, sections, setActiveIndex);
 
   useEffect(() => {
     if (pendingScrollOrder == null) return;
@@ -57,14 +65,22 @@ export default function ListeningAttemptPage() {
     setAnswers((prev) => ({ ...prev, [questionOrder]: value }));
   }
 
-  // All sections share ONE audio file; switching the active section tab
-  // seeks the shared player to that section's start time instead of
-  // swapping the <audio> src.
+  // Switching section seeks the player to startTime within that section's
+  // recording — the shared file, or the section's own (useSectionAudio).
   function handleSelectSection(i, startTime) {
+    audio.seek(i, startTime);
     setActiveIndex(i);
-    if (audioRef.current) {
-      audioRef.current.currentTime = startTime ?? 0;
-    }
+  }
+
+  // Review: replay from where question `order` is answered.
+  function handleListen(order) {
+    const i = sections.findIndex((s) =>
+      (s.question_groups || []).some((g) => g.questions.some((q) => q.question_order === order)),
+    );
+    if (i === -1) return;
+    const question = allQuestions.find((q) => q.question_order === order);
+    handleSelectSection(i, question?.timestamp_hint ?? sections[i]?.section_start_time);
+    audio.play();
   }
 
   function handleJumpToQuestion(order) {
@@ -105,8 +121,6 @@ export default function ListeningAttemptPage() {
   if (loading) return <div className="attempt-page"><p className="practice-status">Đang tải đề...</p></div>;
   if (error && !test) return <div className="attempt-page"><p className="practice-status practice-error">{error}</p></div>;
 
-  const content = safeParse(test?.content_data);
-  const sections = content?.sections || [];
   const activeSection = sections[activeIndex];
   const activeGroups = activeSection?.question_groups || [];
   const allQuestions = sections.flatMap((s) => flattenQuestions(s.question_groups));
@@ -139,8 +153,9 @@ export default function ListeningAttemptPage() {
             </nav>
           )}
           <div className="attempt-audio-panel">
-            <audio ref={audioRef} className="attempt-audio-player" controls src={content?.audio_url} />
+            <audio className="attempt-audio-player" controls {...audio.audioProps} />
           </div>
+          <ListeningTranscript section={activeIndex} paragraphs={review.transcriptFor(activeIndex)} evidenceFor={review.evidenceFor} />
         </div>
 
         <div className="attempt-answer-panel">
@@ -155,14 +170,18 @@ export default function ListeningAttemptPage() {
           )}
 
           {!gradeFailed && (
-            <QuestionList
-              groups={activeGroups}
-              answers={answers}
-              onChange={score ? undefined : handleAnswerChange}
-              disabled={submitting || !!score}
-              results={scoreResults}
-              skill="listening"
-            />
+            <ReviewContext.Provider
+              value={{ answerKey: review.answerKey, onLocate: review.locate, onListen: score ? handleListen : null, locateLabel: 'Xem trong transcript' }}
+            >
+              <QuestionList
+                groups={activeGroups}
+                answers={answers}
+                onChange={score ? undefined : handleAnswerChange}
+                disabled={submitting || !!score}
+                results={scoreResults}
+                skill="listening"
+              />
+            </ReviewContext.Provider>
           )}
 
           {error && <p className="practice-status practice-error">{error}</p>}
