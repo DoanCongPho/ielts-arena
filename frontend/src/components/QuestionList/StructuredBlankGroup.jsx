@@ -1,41 +1,44 @@
 import AnswerExplanation from '../AnswerExplanation/AnswerExplanation';
 import HighlightableText from '../HighlightableText/HighlightableText';
 import Dropdown from './Dropdown';
-import { resolveGapLines, resolveGapRows } from './gapText';
+import { resolveGapCells, resolveGapLines, resolveMarkedLines } from './gapText';
 
-// GapControl renders one blank: a Dropdown populated from the group's word
-// bank when summary-completion has one, otherwise a free-text <input>.
+// GapControl renders one blank as its question number in a badge followed
+// by the answer field: a Dropdown populated from the group's word bank
+// when summary-completion has one, otherwise a free-text <input> drawn as
+// an underline, like the paper test.
 function GapControl({ question, answers, onChange, disabled, results, hasWordBank, wordBank }) {
   const order = question.question_order;
   const result = results?.[order];
   const value = result ? result.submitted_answer?.[0] ?? '' : answers?.[order] ?? '';
   const stateClass = result ? (result.correct ? 'gap-correct' : 'gap-incorrect') : '';
 
-  if (hasWordBank) {
-    return (
-      <Dropdown
-        id={`question-${order}`}
-        wrapperClassName="gap-select-wrapper"
-        triggerClassName={`gap-select ${stateClass}`}
-        value={value}
-        disabled={disabled}
-        options={wordBank || []}
-        placeholder={`(${order})`}
-        onChange={(v) => onChange?.(order, v)}
-      />
-    );
-  }
-
   return (
-    <input
-      id={`question-${order}`}
-      type="text"
-      className={`gap-input ${stateClass}`}
-      value={value}
-      disabled={disabled}
-      onChange={(e) => onChange?.(order, e.target.value)}
-      placeholder={`(${order})`}
-    />
+    <span className="gap-field">
+      <span className={`gap-number ${stateClass}`}>{order}</span>
+      {hasWordBank ? (
+        <Dropdown
+          id={`question-${order}`}
+          wrapperClassName="gap-select-wrapper"
+          triggerClassName={`gap-select ${stateClass}`}
+          value={value}
+          disabled={disabled}
+          options={wordBank || []}
+          placeholder="Chọn"
+          onChange={(v) => onChange?.(order, v)}
+        />
+      ) : (
+        <input
+          id={`question-${order}`}
+          type="text"
+          className={`gap-input ${stateClass}`}
+          value={value}
+          disabled={disabled}
+          aria-label={`Câu ${order}`}
+          onChange={(e) => onChange?.(order, e.target.value)}
+        />
+      )}
+    </span>
   );
 }
 
@@ -48,6 +51,31 @@ function renderSegments(segments, sharedProps, keyPrefix) {
     const id = `${keyPrefix}-${i}`;
     return <HighlightableText key={i} id={id} text={seg.value} ranges={highlights?.[id]} onRemoveRange={onHighlightRemove} />;
   });
+}
+
+// MarkedLines renders resolved structure lines (resolveMarkedLines):
+// subheadings, bullets indented by level, and plain lines.
+function MarkedLines({ lines, shared, keyPrefix }) {
+  return (
+    <div className="structured-lines">
+      {lines.map((line, i) => {
+        const content = renderSegments(line.segments, shared, `${keyPrefix}-${i}`);
+        if (line.kind === 'heading') {
+          return (
+            <h5 key={i} className="structured-subheading">
+              {content}
+            </h5>
+          );
+        }
+        const bullet = line.kind === 'bullet' ? ` structured-bullet structured-bullet-${Math.min(line.level, 2)}` : '';
+        return (
+          <div key={i} className={`structured-line${bullet}`}>
+            {content}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 // StructuredBlankGroup covers question_types answered by filling blanks
@@ -76,17 +104,15 @@ export default function StructuredBlankGroup({ group, answers, onChange, disable
   return (
     <div className="structured-blank-group">
       {group.question_type === 'summary-completion' && (
-        <p className="structured-text">{renderSegments(resolveGapLines([group.summary_text], group.questions)[0], shared, key('summary'))}</p>
+        <div className="structured-text">
+          <MarkedLines lines={resolveMarkedLines(String(group.summary_text ?? '').split('\n'), group.questions)} shared={shared} keyPrefix={key('summary')} />
+        </div>
       )}
 
       {group.question_type === 'note-completion' && group.note_structure && (
         <div className="structured-note">
-          {group.note_structure.title && <h4 className="structured-heading">{plainText(group.note_structure.title, key('title'))}</h4>}
-          <ul className="structured-note-list">
-            {resolveGapLines(group.note_structure.items, group.questions).map((segments, i) => (
-              <li key={i}>{renderSegments(segments, shared, key('note', i))}</li>
-            ))}
-          </ul>
+          {group.note_structure.title && <h4 className="structured-title">{plainText(group.note_structure.title, key('title'))}</h4>}
+          <MarkedLines lines={resolveMarkedLines(group.note_structure.items, group.questions)} shared={shared} keyPrefix={key('note')} />
         </div>
       )}
 
@@ -100,12 +126,8 @@ export default function StructuredBlankGroup({ group, answers, onChange, disable
 
       {group.question_type === 'form-completion' && group.form_structure && (
         <div className="structured-form">
-          {group.form_structure.title && <h4 className="structured-heading">{plainText(group.form_structure.title, key('title'))}</h4>}
-          <ul className="structured-note-list">
-            {resolveGapLines(group.form_structure.fields, group.questions).map((segments, i) => (
-              <li key={i}>{renderSegments(segments, shared, key('form', i))}</li>
-            ))}
-          </ul>
+          {group.form_structure.title && <h4 className="structured-title">{plainText(group.form_structure.title, key('title'))}</h4>}
+          <MarkedLines lines={resolveMarkedLines(group.form_structure.fields, group.questions)} shared={shared} keyPrefix={key('form')} />
         </div>
       )}
 
@@ -119,10 +141,12 @@ export default function StructuredBlankGroup({ group, answers, onChange, disable
             </tr>
           </thead>
           <tbody>
-            {resolveGapRows(group.table_structure.rows, group.questions).map((row, ri) => (
+            {resolveGapCells(group.table_structure.rows, group.questions).map((row, ri) => (
               <tr key={ri}>
-                {row.map((segments, ci) => (
-                  <td key={ci}>{renderSegments(segments, shared, key('cell', ri, ci))}</td>
+                {row.map((lines, ci) => (
+                  <td key={ci}>
+                    <MarkedLines lines={lines} shared={shared} keyPrefix={key('cell', ri, ci)} />
+                  </td>
                 ))}
               </tr>
             ))}

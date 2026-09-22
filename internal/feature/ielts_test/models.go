@@ -350,14 +350,19 @@ var fillBlankQuestionTypes = map[QuestionType]bool{
 
 // TableStructure backs table-completion groups (Reading and Listening
 // share this shape). A cell containing the literal string "{{gap}}" is a
-// blank — the i-th gap found in row-major order maps to Questions[i].
+// blank — the i-th gap found in row-major order maps to Questions[i]. A
+// cell may hold several "\n"-separated lines, with the same markup as
+// NoteStructure items (e.g. a bulleted list).
 type TableStructure struct {
 	Columns []string   `json:"columns"`
 	Rows    [][]string `json:"rows"`
 }
 
-// NoteStructure backs note-completion groups (listening). Each item may
-// contain "{{gap}}"; gaps map to Questions in array order.
+// NoteStructure backs note-completion groups. Each item is one line and
+// may contain "{{gap}}"; gaps map to Questions in array order. Lines carry
+// light markup the frontend renders: "## text" is a subheading, "- text" a
+// bullet, one level deeper per leading tab ("\t- text"); anything else is
+// a plain line. FormStructure fields use the same markup.
 type NoteStructure struct {
 	Title string   `json:"title,omitempty"`
 	Items []string `json:"items"`

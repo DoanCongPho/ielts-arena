@@ -125,19 +125,23 @@ class _BlockParser(HTMLParser):
         self.stack = []  # [tag, text_parts]
         self.loose = []  # text outside any block element
         self.blocks = []
+        self.depths = []  # per block: how many list items deep it sits
 
-    def _flush(self, parts, tag):
+    def _flush(self, parts, tag, depth=0):
         text = clean("".join(parts))
         parts.clear()
         if text:
             # <li><div>x</div></li>: the div owns the text, but it's still a
             # list item.
-            in_li = tag == "li" or any(t == "li" for t, _ in self.stack)
-            self.blocks.append(("li" if in_li else tag, text))
+            self.blocks.append(("li" if depth else tag, text))
+            self.depths.append(depth)
+
+    def _li_depth(self):
+        return sum(1 for t, _ in self.stack if t == "li")
 
     def _flush_current(self):
         if self.stack:
-            self._flush(self.stack[-1][1], self.stack[-1][0])
+            self._flush(self.stack[-1][1], self.stack[-1][0], self._li_depth())
         else:
             self._flush(self.loose, "text")
 
@@ -162,7 +166,7 @@ class _BlockParser(HTMLParser):
         # Tolerate sloppy nesting: close up to the matching tag.
         while self.stack:
             t, parts = self.stack.pop()
-            self._flush(parts, t)
+            self._flush(parts, t, self._li_depth() + (t == "li"))
             if t == tag:
                 break
 
@@ -176,16 +180,48 @@ class _BlockParser(HTMLParser):
         super().close()
         while self.stack:
             t, parts = self.stack.pop()
-            self._flush(parts, t)
+            self._flush(parts, t, self._li_depth() + (t == "li"))
         self._flush(self.loose, "text")
 
 
-def html_blocks(src, br_breaks=False):
+def _parse(src, br_breaks=False):
     src = re.sub(r'<span[^>]*class="gap-placeholder"[^>]*>.*?</span>', GAP, src or "", flags=re.S)
     p = _BlockParser(br_breaks)
     p.feed(src)
     p.close()
-    return p.blocks
+    return p
+
+
+def html_blocks(src, br_breaks=False):
+    return _parse(src, br_breaks).blocks
+
+
+def html_outline(src):
+    """(tag, text, list depth) per block — html_blocks plus how deep in
+    nested lists each block sits (0 outside any list)."""
+    p = _parse(src)
+    return [(tag, text, depth) for (tag, text), depth in zip(p.blocks, p.depths)]
+
+
+def marked_lines(outline):
+    """Structure lines with the light markup the frontend renders (see
+    NoteStructure in models.go): list items become "- text", one leading
+    tab per extra nesting level; h4-h6 become "## text" subheadings; the
+    rest stay plain."""
+    lines = []
+    for tag, text, depth in outline:
+        if depth:
+            lines.append("\t" * (depth - 1) + "- " + text)
+        elif tag in ("h4", "h5", "h6"):
+            lines.append("## " + text)
+        else:
+            lines.append(text)
+    return lines
+
+
+def unmarked(line):
+    """A marked line's text without its markup."""
+    return re.sub(r"^(\t*- |## )", "", line)
 
 
 def html_text(src):
@@ -377,7 +413,10 @@ def table_rows(src):
 
 
 def table_row_cells(row):
-    return [html_text(c) for c in re.findall(r"<t[dh]\b[^>]*>(.*?)</t[dh]>", row, flags=re.S | re.I)]
+    """A row's cells, each as marked lines joined by "\\n" — a cell can
+    hold a bulleted list."""
+    cells = re.findall(r"<t[dh]\b[^>]*>(.*?)</t[dh]>", row, flags=re.S | re.I)
+    return ["\n".join(marked_lines(html_outline(c))) for c in cells]
 
 
 def convert_table(src):
@@ -386,7 +425,8 @@ def convert_table(src):
     rows = [table_row_cells(r) for r in table_rows(src)]
     rows = [r for r in rows if any(r)]
     if rows and GAP not in "".join(rows[0]):
-        return {"columns": rows[0], "rows": rows[1:]}
+        columns = [" ".join(unmarked(l) for l in c.split("\n")) for c in rows[0]]
+        return {"columns": columns, "rows": rows[1:]}
     return {"columns": [""] * max((len(r) for r in rows), default=1), "rows": rows}
 
 
@@ -561,10 +601,11 @@ def convert_group(qset, order, skill="reading"):
         group["questions"] = [{"question_order": q["order"], **fill_answers(q)} for q in qs]
 
     elif qtype in ("form-completion", "flow-chart-completion"):
-        items = [text for _, text in html_blocks(qset.get("content"))]
+        outline = html_outline(qset.get("content"))
+        items = marked_lines(outline) if qtype == "form-completion" else [text for _, text, _ in outline]
         title = ""
         if qtype == "form-completion" and items and GAP not in items[0]:
-            title = items.pop(0)
+            title = unmarked(items.pop(0))
         check_gaps(qset, qtype, items, qs)
         if qtype == "form-completion":
             group["form_structure"] = {"title": title, "fields": items}
@@ -573,11 +614,11 @@ def convert_group(qset, order, skill="reading"):
         group["questions"] = [{"question_order": q["order"], **fill_answers(q)} for q in qs]
 
     elif qtype == "note-completion":
-        blocks = html_blocks(qset.get("content"))
+        outline = html_outline(qset.get("content"))
         title = ""
-        if blocks and blocks[0][0] in ("h1", "h2", "h3") and GAP not in blocks[0][1]:
-            title = blocks.pop(0)[1]
-        items = [text for _, text in blocks]
+        if outline and outline[0][0] in ("h1", "h2", "h3") and GAP not in outline[0][1]:
+            title = outline.pop(0)[1]
+        items = marked_lines(outline)
         check_gaps(qset, qtype, items, qs)
         group["note_structure"] = {"title": title, "items": items}
         group["questions"] = [{"question_order": q["order"], **fill_answers(q)} for q in qs]

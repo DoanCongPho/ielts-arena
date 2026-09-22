@@ -30,20 +30,40 @@ export function resolveGapLines(lines, questions) {
   });
 }
 
-// resolveGapRows is resolveGapLines' 2D counterpart for table_structure.rows
-// — gaps are numbered row-major (left-to-right, top-to-bottom) across the
-// whole table.
-export function resolveGapRows(rows, questions) {
-  let cursor = 0;
-  return rows.map((row) =>
-    row.map((cell) => {
-      const segments = splitGapSegments(cell);
-      return segments.map((seg) => {
-        if (seg.type !== 'gap') return seg;
-        const question = questions[cursor];
-        cursor += 1;
-        return { ...seg, question };
-      });
-    }),
+// parseLine reads the light markup an importer may put on a structure
+// line (see NoteStructure in internal/feature/ielts_test/models.go):
+// "## text" is a subheading, "- text" a bullet, one level deeper per
+// leading tab ("\t- text"); anything else is a plain line.
+export function parseLine(raw) {
+  const s = String(raw ?? '');
+  const bullet = s.match(/^(\t*)- ([\s\S]*)$/);
+  if (bullet) return { kind: 'bullet', level: bullet[1].length, text: bullet[2] };
+  if (s.startsWith('## ')) return { kind: 'heading', level: 0, text: s.slice(3) };
+  return { kind: 'text', level: 0, text: s };
+}
+
+// resolveMarkedLines parses each line's markup, then numbers its gaps in
+// order (as resolveGapLines): [{kind, level, segments}] per line.
+export function resolveMarkedLines(lines, questions) {
+  const parsed = (lines || []).map(parseLine);
+  const segments = resolveGapLines(parsed.map((l) => l.text), questions);
+  return parsed.map((l, i) => ({ kind: l.kind, level: l.level, segments: segments[i] }));
+}
+
+// resolveGapCells is the table counterpart: each cell may hold several
+// "\n"-separated marked lines (e.g. a bulleted list). Gaps are numbered
+// row-major (left-to-right, top-to-bottom), and top-to-bottom within a
+// cell. Returns rows of cells of resolved lines.
+export function resolveGapCells(rows, questions) {
+  const flat = [];
+  rows.forEach((row, ri) =>
+    row.forEach((cell, ci) => String(cell ?? '').split('\n').forEach((line) => flat.push({ ri, ci, line }))),
   );
+  const resolved = resolveMarkedLines(
+    flat.map((f) => f.line),
+    questions,
+  );
+  const out = rows.map((row) => row.map(() => []));
+  flat.forEach((f, i) => out[f.ri][f.ci].push(resolved[i]));
+  return out;
 }
