@@ -7,10 +7,12 @@ import { LISTENING_CHECK_SECONDS, useCountdown, useLeaveGuard } from '../lib/use
 import { SKILL_CONFIG } from '../lib/skillConfig';
 import { useEvidenceReview } from '../lib/useEvidenceReview';
 import { useSectionAudio } from '../lib/useSectionAudio';
+import { useTextHighlights } from '../lib/useTextHighlights';
 import QuestionList from '../components/QuestionList/QuestionList';
 import { ReviewContext } from '../components/AnswerExplanation/ReviewContext';
 import ListeningTranscript from '../components/ListeningTranscript/ListeningTranscript';
 import ListeningExamPlayer from '../components/ListeningExamPlayer/ListeningExamPlayer';
+import HighlightToolbar from '../components/HighlightToolbar/HighlightToolbar';
 import { totalSeconds } from '../lib/listeningAudio';
 import AutoGradeResult from '../components/AutoGradeResult/AutoGradeResult';
 import QuestionNavBar from '../components/QuestionNavBar/QuestionNavBar';
@@ -55,6 +57,9 @@ export default function ListeningAttemptPage() {
   const confirmLeave = useLeaveGuard(inProgress);
   const audio = useSectionAudio(content, activeIndex);
   const review = useEvidenceReview(testId, !!score, sections, setActiveIndex);
+  // Highlight question text, instructions and (in review) the transcript,
+  // per section — as on the reading page.
+  const highlight = useTextHighlights(activeIndex);
 
   useEffect(() => {
     if (pendingScrollOrder == null) return;
@@ -141,7 +146,7 @@ export default function ListeningAttemptPage() {
         <span className={`attempt-timer ${inProgress && remaining <= 5 * 60 ? 'attempt-timer-low' : ''}`}>{formatTime(remaining)}</span>
       </header>
 
-      <div className="attempt-body">
+      <div className="attempt-body" {...highlight.areaProps}>
         <div className="attempt-prompt-panel">
           <h2>Listening — {SKILL_CONFIG.listening.taskTypeLabel(test.task_type)}</h2>
           {sections.length > 1 && (
@@ -159,13 +164,22 @@ export default function ListeningAttemptPage() {
             </nav>
           )}
           {inProgress ? (
-            <ListeningExamPlayer content={content} started={started} onStart={() => setStarted(true)} />
+            <>
+              <ListeningExamPlayer content={content} started={started} onStart={() => setStarted(true)} />
+              <p className="reading-highlight-hint">Bôi đen câu hỏi để tô đậm — bấm vào phần đã tô để bỏ.</p>
+            </>
           ) : (
             <div className="attempt-audio-panel">
               <audio className="attempt-audio-player" controls {...audio.audioProps} />
             </div>
           )}
-          <ListeningTranscript section={activeIndex} paragraphs={review.transcriptFor(activeIndex)} evidenceFor={review.evidenceFor} />
+          <ListeningTranscript
+            section={activeIndex}
+            paragraphs={review.transcriptFor(activeIndex)}
+            evidenceFor={review.evidenceFor}
+            ranges={highlight.ranges}
+            onRemoveRange={highlight.remove}
+          />
         </div>
 
         <div className="attempt-answer-panel">
@@ -189,6 +203,8 @@ export default function ListeningAttemptPage() {
                 onChange={score ? undefined : handleAnswerChange}
                 disabled={submitting || !!score}
                 results={scoreResults}
+                highlights={highlight.ranges}
+                onHighlightRemove={highlight.remove}
                 skill="listening"
               />
             </ReviewContext.Provider>
@@ -213,6 +229,8 @@ export default function ListeningAttemptPage() {
           onJump={handleJumpToQuestion}
         />
       )}
+
+      <HighlightToolbar selection={highlight.selection} onApply={highlight.apply} toolbarRef={highlight.toolbarRef} />
     </div>
   );
 }
