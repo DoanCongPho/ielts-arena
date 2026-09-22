@@ -12,8 +12,9 @@ import SubmissionDetailPage from './pages/SubmissionDetailPage';
 import CreateTestPage from './pages/CreateTestPage';
 import { isAdmin } from './lib/auth';
 
-// `focus` hides the ProfileHud — used on attempt pages, where the test
-// takes the whole screen and the candidate navigates away on their own.
+// `focus` hides the ProfileHud — used on attempt pages and the review of
+// a submission, where the test takes the whole screen and the candidate
+// navigates away on their own.
 function PrivateRoute({ children, focus = false }) {
   const token = localStorage.getItem('access_token');
   if (!token) return <Navigate to="/login" replace />;
@@ -78,7 +79,7 @@ export default function App() {
           </PrivateRoute>
         } />
         <Route path="/submissions/:submissionId" element={
-          <PrivateRoute>
+          <PrivateRoute focus>
             <SubmissionDetailPage />
           </PrivateRoute>
         } />

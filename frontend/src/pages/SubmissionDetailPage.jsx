@@ -73,7 +73,7 @@ export default function SubmissionDetailPage() {
   );
 
   return (
-    <div className={`attempt-page ${skill === 'reading' ? 'reading-attempt-page' : ''}`}>
+    <div className={`attempt-page attempt-page-focus ${skill === 'reading' ? 'reading-attempt-page' : ''}`}>
       <header className="attempt-header">
         <Button variant="secondary" onClick={() => navigate('/submissions')}>
           ← Bài đã làm
