@@ -680,3 +680,31 @@ func TestPublicContentData_PassesThroughOtherSkills(t *testing.T) {
 		t.Errorf("got %s, want passthrough of %s", public, raw)
 	}
 }
+
+func TestPublicContentData_KeepsAllDiagrams(t *testing.T) {
+	c := validReadingContent()
+	c.Passages[0].QuestionGroups = append(c.Passages[0].QuestionGroups, QuestionGroup{
+		GroupOrder:       4,
+		QuestionType:     QTypeDiagramLabelCompletion,
+		Instructions:     "Label the diagrams below.",
+		DiagramImageURL:  "/assets/diagrams/a.avif",
+		DiagramImageURLs: []string{"/assets/diagrams/b.avif"},
+		Questions:        []Question{{QuestionOrder: 5, Answer: rawAnswer("posts"), AcceptedAnswers: []string{"posts"}}},
+	})
+	raw := marshalContent(t, c)
+	if err := validateContentData("reading", raw); err != nil {
+		t.Fatalf("diagram group rejected: %v", err)
+	}
+	public, err := publicContentData("reading", raw)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	var out ReadingContent
+	if err := json.Unmarshal(public, &out); err != nil {
+		t.Fatal(err)
+	}
+	g := out.Passages[0].QuestionGroups[3]
+	if g.DiagramImageURL != "/assets/diagrams/a.avif" || len(g.DiagramImageURLs) != 1 || g.DiagramImageURLs[0] != "/assets/diagrams/b.avif" {
+		t.Errorf("diagrams lost in public content: %q %v", g.DiagramImageURL, g.DiagramImageURLs)
+	}
+}
