@@ -3,13 +3,15 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { getScore, getTest, submitAnswer, waitForGrading } from '../lib/api';
 import { flattenQuestions } from '../lib/answerUtils';
 import { safeParse } from '../lib/safeParse';
-import { ATTEMPT_SECONDS, useCountdown, useLeaveGuard } from '../lib/useAttemptSession';
+import { LISTENING_CHECK_SECONDS, useCountdown, useLeaveGuard } from '../lib/useAttemptSession';
 import { SKILL_CONFIG } from '../lib/skillConfig';
 import { useEvidenceReview } from '../lib/useEvidenceReview';
 import { useSectionAudio } from '../lib/useSectionAudio';
 import QuestionList from '../components/QuestionList/QuestionList';
 import { ReviewContext } from '../components/AnswerExplanation/ReviewContext';
 import ListeningTranscript from '../components/ListeningTranscript/ListeningTranscript';
+import ListeningExamPlayer from '../components/ListeningExamPlayer/ListeningExamPlayer';
+import { totalSeconds } from '../lib/listeningAudio';
 import AutoGradeResult from '../components/AutoGradeResult/AutoGradeResult';
 import QuestionNavBar from '../components/QuestionNavBar/QuestionNavBar';
 import Button from '../components/ui/Button/Button';
@@ -30,6 +32,8 @@ export default function ListeningAttemptPage() {
   const [submitting, setSubmitting] = useState(false);
   const [score, setScore] = useState(null);
   const [gradeFailed, setGradeFailed] = useState(false);
+  // The recording and the clock start together, on "Bắt đầu nghe".
+  const [started, setStarted] = useState(false);
 
   // Set after clicking a QuestionNavBar pill for a question in a different
   // section — the target element doesn't exist until the section switch
@@ -47,7 +51,7 @@ export default function ListeningAttemptPage() {
   const sections = content?.sections || [];
 
   const inProgress = !!test && !score && !gradeFailed;
-  const remaining = useCountdown(ATTEMPT_SECONDS, inProgress, handleTimeUp);
+  const remaining = useCountdown(totalSeconds(content) + LISTENING_CHECK_SECONDS, inProgress && started, handleTimeUp);
   const confirmLeave = useLeaveGuard(inProgress);
   const audio = useSectionAudio(content, activeIndex);
   const review = useEvidenceReview(testId, !!score, sections, setActiveIndex);
@@ -65,10 +69,12 @@ export default function ListeningAttemptPage() {
     setAnswers((prev) => ({ ...prev, [questionOrder]: value }));
   }
 
-  // Switching section seeks the player to startTime within that section's
-  // recording — the shared file, or the section's own (useSectionAudio).
+  // While the attempt is on, the recording plays straight through on its
+  // own (ListeningExamPlayer) and switching section only changes what's on
+  // screen. In review, it also seeks the review player to startTime within
+  // that section's recording (useSectionAudio).
   function handleSelectSection(i, startTime) {
-    audio.seek(i, startTime);
+    if (!inProgress) audio.seek(i, startTime);
     setActiveIndex(i);
   }
 
@@ -152,9 +158,13 @@ export default function ListeningAttemptPage() {
               ))}
             </nav>
           )}
-          <div className="attempt-audio-panel">
-            <audio className="attempt-audio-player" controls {...audio.audioProps} />
-          </div>
+          {inProgress ? (
+            <ListeningExamPlayer content={content} started={started} onStart={() => setStarted(true)} />
+          ) : (
+            <div className="attempt-audio-panel">
+              <audio className="attempt-audio-player" controls {...audio.audioProps} />
+            </div>
+          )}
           <ListeningTranscript section={activeIndex} paragraphs={review.transcriptFor(activeIndex)} evidenceFor={review.evidenceFor} />
         </div>
 
