@@ -58,6 +58,7 @@ TYPE_MAP = {
     "YES_NO": "yes-no-not-given",
     "MULTIPLE_CHOICE_ONE": "multiple-choice",
     "MULTIPLE_CHOICE_MANY": "multiple-choice-multi",
+    "MATCHING_HEADING": "matching-headings",
     "MATCHING_INFO": "matching-information",
     "MATCHING_FEATURES": "matching-features",
     "MATCHING_ENDINGS": "matching-sentence-endings",
@@ -369,13 +370,15 @@ def convert_group(qset, order):
             for q, a in zip(qs, answers)
         ]
 
-    elif qtype in ("matching-information", "matching-features", "matching-sentence-endings"):
+    elif qtype in ("matching-headings", "matching-information", "matching-features", "matching-sentence-endings"):
         shared = options(qset.get("options"))
         if qtype == "matching-information":
             # YouPass lists bare letters ("A"); spell them out for the dropdown.
             shared = [{"id": o["id"], "text": f"Paragraph {o['id']}" if o["text"] == o["id"] else o["text"]} for o in shared]
         group["shared_options"] = shared
-        if qtype != "matching-sentence-endings":
+        # allow_reuse is only a UI hint for these two; each heading and each
+        # sentence ending is used once.
+        if qtype in ("matching-information", "matching-features"):
             group["allow_reuse"] = bool(qset.get("allow_reuse"))
         group["questions"] = [
             {"question_order": q["order"], "text": clean(html_text(q.get("text"))), "answer": key_answer(q)} for q in qs
