@@ -227,3 +227,13 @@ func (r *MockTestRepository) HasGradedSubmission(ctx context.Context, userID, te
 	}
 	return false, nil
 }
+
+func (r *MockTestRepository) ReplaceTest(ctx context.Context, t *Test) error {
+	existing, ok := r.tests[int(t.ID)]
+	if !ok {
+		return ErrTestNotFound
+	}
+	t.CreatedAt = existing.CreatedAt
+	r.tests[int(t.ID)] = t
+	return nil
+}

@@ -17,6 +17,9 @@ type Repository interface {
 	CreateTest(ctx context.Context, t *Test) (*Test, error)
 	GetTestByID(ctx context.Context, id uint64) (*Test, error)
 	GetListTest(ctx context.Context, skill string, limit, offset int) ([]Test, int, error)
+	// ReplaceTest overwrites everything but the skill and creation time of
+	// test t.ID — used to re-import a test with corrected content.
+	ReplaceTest(ctx context.Context, t *Test) error
 	// --- submission ---
 	CreateSubmission(ctx context.Context, s *Submission) (*Submission, error)
 	GetSubmissionByID(ctx context.Context, id uint64) (*Submission, error)
@@ -122,6 +125,17 @@ func (r *repository) CreateTest(ctx context.Context, t *Test) (*Test, error) {
 	}
 	t.ID = uint64(id)
 	return t, nil
+}
+
+func (r *repository) ReplaceTest(ctx context.Context, t *Test) error {
+	_, err := r.db.ExecContext(ctx,
+		"UPDATE tests SET task_type = ?, series = ?, volume = ?, test_number = ?, content_data = ?, thumbnail_url = ?, source = ?, is_current = ?, xp_gain = ? WHERE id = ?",
+		t.TaskType, nullIfZero(t.Series), nullIfZero(t.Volume), nullIfZero(t.TestNumber), t.ContentData, t.ThumbnailURL, t.Source, t.IsCurrent, t.XPGain, t.ID,
+	)
+	if err != nil {
+		return fmt.Errorf("replace test: %w", err)
+	}
+	return nil
 }
 
 func (r *repository) GetTestByID(ctx context.Context, id uint64) (*Test, error) {

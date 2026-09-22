@@ -61,6 +61,22 @@ type CreateTestRequest struct {
 	XPGain       int             `json:"xp_gain"`
 }
 
+// Test is the Test this request creates.
+func (r *CreateTestRequest) Test() Test {
+	return Test{
+		Skill:        r.Skill,
+		TaskType:     r.TaskType,
+		Series:       r.Series,
+		Volume:       r.Volume,
+		TestNumber:   r.TestNumber,
+		ContentData:  r.ContentData,
+		ThumbnailURL: r.ThumbnailURL,
+		Source:       r.Source,
+		IsCurrent:    r.IsCurrent,
+		XPGain:       r.XPGain,
+	}
+}
+
 func (r *CreateTestRequest) Validate() error {
 	switch r.Skill {
 	case "writing", "speaking", "reading", "listening":

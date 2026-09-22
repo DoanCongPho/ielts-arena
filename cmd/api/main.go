@@ -31,6 +31,10 @@ func checkhealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	// Needs no config or database, so it runs before either is loaded.
+	if len(os.Args) > 1 && os.Args[1] == "validate-test" {
+		os.Exit(ielts_test.RunValidateCmd(os.Args[2:]))
+	}
 	cfg := config.MustLoad()
 	if len(os.Args) > 1 && os.Args[1] == "migrate" {
 		os.Exit(database.RunMigrateCmd(cfg, migrations.FS, os.Args[2:]))
@@ -49,6 +53,11 @@ func main() {
 	plat, err := platform.Build(cfg)
 	if err != nil {
 		log.Fatal(err)
+	}
+	if len(os.Args) > 1 && os.Args[1] == "import-test" {
+		code := ielts_test.RunImportCmd(plat.DB, os.Args[2:])
+		_ = plat.Close(context.Background())
+		os.Exit(code)
 	}
 	defer func() { _ = plat.Close(context.Background()) }()
 

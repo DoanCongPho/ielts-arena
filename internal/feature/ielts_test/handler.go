@@ -87,18 +87,7 @@ func (h *Handler) createTestHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	created, err := h.svc.PostTest(r.Context(), Test{
-		Skill:        body.Skill,
-		TaskType:     body.TaskType,
-		Series:       body.Series,
-		Volume:       body.Volume,
-		TestNumber:   body.TestNumber,
-		ContentData:  body.ContentData,
-		ThumbnailURL: body.ThumbnailURL,
-		Source:       body.Source,
-		IsCurrent:    body.IsCurrent,
-		XPGain:       body.XPGain,
-	})
+	created, err := h.svc.PostTest(r.Context(), body.Test())
 	if err != nil {
 		httpx.WriteInternalError(w, "ielts_test.create_test", err)
 		return
