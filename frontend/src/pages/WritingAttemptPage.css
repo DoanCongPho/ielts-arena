@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   overflow-y: auto;
-  background: var(--paper-50);
+  background: var(--paper-200);
   color: var(--ink-900);
   padding: var(--layout-fixed-hud-offset) var(--space-6) var(--space-7);
 }
@@ -89,8 +89,9 @@
 .attempt-prompt-panel,
 .attempt-answer-panel {
   background: var(--surface-0);
-  border: 1px solid var(--hairline);
+  border: 1px solid var(--hairline-strong);
   border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
   padding: var(--space-5);
 }
 

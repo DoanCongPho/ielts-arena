@@ -8,8 +8,10 @@
   --ink-700: #3a4457;
   --ink-400: #7a8296;
   --paper-50: #eef1ee;
+  --paper-200: #dce2dd; /* backdrop behind attempt panels, so the white panels stand out */
   --surface-0: #ffffff;
   --hairline: rgba(22, 35, 63, 0.1);
+  --hairline-strong: rgba(22, 35, 63, 0.16);
 
   /* §1.2 Skill identity colors */
   --reading-600: #1c7a6c;
@@ -28,6 +30,7 @@
   /* §1.3 Signature accent — Band Gold */
   --gold-600: #b8862e;
   --gold-100: #f7edd9;
+  --highlighter-yellow: #fff176; /* text-marker yellow for passage highlights */
 
   /* §1.4 Semantic */
   --success-600: #2f8f5b;
