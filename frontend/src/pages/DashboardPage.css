@@ -15,7 +15,7 @@
   align-items: center;
   text-align: center;
   width: 100%;
-  max-width: 460px;
+  max-width: 560px;
 }
 
 .dashboard-tag {
@@ -31,20 +31,20 @@
 .dashboard-nav-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-4);
   width: 100%;
 }
 
 .dashboard-nav-item {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-5);
 }
 
 .dashboard-nav-text {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
   text-align: left;
   min-width: 0;
 }

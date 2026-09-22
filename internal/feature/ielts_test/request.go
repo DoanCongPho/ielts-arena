@@ -5,7 +5,7 @@ import (
 	"errors"
 )
 
-const defaultPageSize = 10
+const defaultPageSize = 12
 
 type ListTestRequest struct {
 	Page int `json:"page"`

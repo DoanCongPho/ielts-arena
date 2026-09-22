@@ -32,7 +32,6 @@ type Repository interface {
 	// submission_xp_grants table's primary key, not by a check-then-write
 	// race. Safe to call once per graded submission.
 	GrantIfFirstAttempt(ctx context.Context, userID, testID, submissionID uint64, amount int) (granted bool, level int, xp int, err error)
-	UpdateEquippedFrame(ctx context.Context, userID uint64, frameLevel int) error
 }
 
 type userRepository struct {
@@ -43,12 +42,11 @@ func NewUserRepository(db *sql.DB) Repository {
 	return &userRepository{db: db}
 }
 
-const userColumns = `id, name, email, password_hash, level, xp, rank_score, image_url, role, equipped_frame_level, created_at, updated_at`
+const userColumns = `id, name, email, password_hash, level, xp, rank_score, image_url, role, created_at, updated_at`
 
 func scanUser(row interface{ Scan(dest ...any) error }) (*User, error) {
 	var user User
 	var imageURL sql.NullString
-	var equippedFrameLevel sql.NullInt64
 	err := row.Scan(
 		&user.ID,
 		&user.Name,
@@ -59,7 +57,6 @@ func scanUser(row interface{ Scan(dest ...any) error }) (*User, error) {
 		&user.RankScore,
 		&imageURL,
 		&user.Role,
-		&equippedFrameLevel,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -67,10 +64,6 @@ func scanUser(row interface{ Scan(dest ...any) error }) (*User, error) {
 		return nil, err
 	}
 	user.ImageURL = imageURL.String
-	if equippedFrameLevel.Valid {
-		v := int(equippedFrameLevel.Int64)
-		user.EquippedFrameLevel = &v
-	}
 	return &user, nil
 }
 
@@ -206,24 +199,6 @@ func (u *userRepository) GrantIfFirstAttempt(ctx context.Context, userID, testID
 		return false, 0, 0, fmt.Errorf("commit xp grant: %w", err)
 	}
 	return true, newLevel, newXP, nil
-}
-
-func (u *userRepository) UpdateEquippedFrame(ctx context.Context, userID uint64, frameLevel int) error {
-	res, err := u.db.ExecContext(ctx,
-		"UPDATE users SET equipped_frame_level = ?, updated_at = ? WHERE id = ?",
-		frameLevel, time.Now(), userID,
-	)
-	if err != nil {
-		return fmt.Errorf("update equipped frame: %w", err)
-	}
-	n, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("update equipped frame rows affected: %w", err)
-	}
-	if n == 0 {
-		return ErrUserNotFound
-	}
-	return nil
 }
 
 func isDuplicateKeyErr(err error) bool {

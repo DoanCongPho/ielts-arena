@@ -26,6 +26,5 @@ obj/
 media/
 internal/assets/audio/
 
-# Large design assets consumed only by the frontend build (copied into
-# frontend/public/avatar-frames instead) — irrelevant to the API image.
+# Large design assets used only by the frontend — irrelevant to the API image.
 asset/

@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react';
-import { getProfile, setEquippedFrame } from '../../lib/api';
-import AvatarFrame from '../ui/AvatarFrame/AvatarFrame';
+import { getProfile } from '../../lib/api';
 import BandMeter from '../ui/BandMeter/BandMeter';
 import './ProfileHud.css';
 
 export default function ProfileHud() {
   const [profile, setProfile] = useState(null);
-  const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,39 +36,16 @@ export default function ProfileHud() {
     current_level_xp: currentLevelXP,
     xp_to_next_level: xpToNextLevel,
     image_url: imageURL,
-    equipped_frame_level: equippedFrameLevel,
-    unlocked_max_frame_level: unlockedMaxFrameLevel,
   } = profile;
 
   const xpSpan = currentLevelXP + xpToNextLevel;
 
-  async function handlePickFrame(frameLevel) {
-    if (frameLevel === equippedFrameLevel) {
-      setPickerOpen(false);
-      return;
-    }
-    try {
-      const updated = await setEquippedFrame(frameLevel);
-      setProfile(updated);
-    } catch {
-      // Leave the current selection in place on failure.
-    }
-    setPickerOpen(false);
-  }
-
-  const unlockedFrames = Array.from({ length: unlockedMaxFrameLevel }, (_, i) => i + 1);
-
   return (
     <div className="profile-hud">
       <div className="profile-hud-main">
-        <button
-          type="button"
-          className="profile-hud-avatar-btn"
-          onClick={() => setPickerOpen((open) => !open)}
-          aria-label="Change avatar frame"
-        >
-          <AvatarFrame imageUrl={imageURL} frameLevel={equippedFrameLevel} state="equipped" size={96} />
-        </button>
+        <span className="profile-hud-avatar" aria-hidden="true">
+          {imageURL ? <img src={imageURL} alt="" /> : name?.charAt(0).toUpperCase()}
+        </span>
         <div className="profile-hud-info">
           <div className="profile-hud-name-row">
             <span className="profile-hud-level text-label">Lv. {level}</span>
@@ -84,26 +59,6 @@ export default function ProfileHud() {
           />
         </div>
       </div>
-
-      {pickerOpen && (
-        <div className="profile-hud-picker">
-          {unlockedFrames.map((frameLevel) => (
-            <button
-              key={frameLevel}
-              type="button"
-              className="profile-hud-picker-item"
-              onClick={() => handlePickFrame(frameLevel)}
-              aria-label={`Equip frame ${frameLevel}`}
-            >
-              <AvatarFrame
-                frameLevel={frameLevel}
-                state={frameLevel === equippedFrameLevel ? 'equipped' : 'unlocked'}
-                size={32}
-              />
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

@@ -12,8 +12,8 @@ func TestListTestRequest_Offset(t *testing.T) {
 	}{
 		{0, 0},
 		{1, 0},
-		{2, 10},
-		{5, 40},
+		{2, 12},
+		{5, 48},
 	}
 	for _, tc := range cases {
 		r := ListTestRequest{Page: tc.page}
@@ -33,7 +33,7 @@ func TestListSubmissionRequest_Offset(t *testing.T) {
 	}{
 		{0, 0},
 		{1, 0},
-		{3, 20},
+		{3, 24},
 	}
 	for _, tc := range cases {
 		r := ListSubmissionRequest{Page: tc.page}

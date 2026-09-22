@@ -156,10 +156,3 @@ export function getSubmission(id) {
 export function getProfile() {
   return request('/api/profile');
 }
-
-export function setEquippedFrame(frameLevel) {
-  return request('/api/profile/frame', {
-    method: 'PUT',
-    body: JSON.stringify({ frame_level: frameLevel }),
-  });
-}
