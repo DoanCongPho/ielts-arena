@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getScore, getTest, submitAnswer, waitForGrading } from '../lib/api';
+import { flattenQuestions } from '../lib/answerUtils';
 import { safeParse } from '../lib/safeParse';
 import { mergeRanges, textOffset } from '../lib/highlightText';
 import { SKILL_CONFIG } from '../lib/skillConfig';
@@ -177,7 +178,7 @@ export default function ReadingAttemptPage() {
   const passages = content?.passages || [];
   const activePassage = passages[activeIndex];
   const activeGroups = activePassage?.question_groups || [];
-  const allQuestions = passages.flatMap((p) => (p.question_groups || []).flatMap((g) => g.questions));
+  const allQuestions = passages.flatMap((p) => flattenQuestions(p.question_groups));
   const scoreResults = score ? safeParse(score.details)?.results : undefined;
 
   return (

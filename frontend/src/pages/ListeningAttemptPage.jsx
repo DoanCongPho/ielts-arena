@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getScore, getTest, submitAnswer, waitForGrading } from '../lib/api';
+import { flattenQuestions } from '../lib/answerUtils';
 import { safeParse } from '../lib/safeParse';
 import { SKILL_CONFIG } from '../lib/skillConfig';
 import QuestionList from '../components/QuestionList/QuestionList';
@@ -105,7 +106,7 @@ export default function ListeningAttemptPage() {
   const sections = content?.sections || [];
   const activeSection = sections[activeIndex];
   const activeGroups = activeSection?.question_groups || [];
-  const allQuestions = sections.flatMap((s) => (s.question_groups || []).flatMap((g) => g.questions));
+  const allQuestions = sections.flatMap((s) => flattenQuestions(s.question_groups));
   const scoreResults = score ? safeParse(score.details)?.results : undefined;
 
   return (

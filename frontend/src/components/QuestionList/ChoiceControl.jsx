@@ -1,3 +1,4 @@
+import { questionNumberLabel, questionSpan } from '../../lib/answerUtils';
 import HighlightableText from '../HighlightableText/HighlightableText';
 
 const TFNG_OPTIONS = ['TRUE', 'FALSE', 'NOT GIVEN'].map((v) => ({ id: v, text: v }));
@@ -20,6 +21,7 @@ function optionLabel(opt) {
 // shared list" rather than "pick from this question's own options".
 export default function ChoiceControl({ group, answers, onChange, disabled, results, highlights, onHighlightRemove }) {
   const isMulti = group.question_type === 'multiple-choice-multi';
+  const span = questionSpan(group);
 
   return (
     <div className="choice-control">
@@ -46,7 +48,7 @@ export default function ChoiceControl({ group, answers, onChange, disabled, resu
         return (
           <div key={order} id={`question-${order}`} className={itemClass}>
             <p className="question-item-text">
-              <span className="question-item-number">Câu {order}</span>{' '}
+              <span className="question-item-number">Câu {questionNumberLabel(order, span)}</span>{' '}
               <HighlightableText id={textKey} text={q.text} ranges={highlights?.[textKey]} onRemoveRange={onHighlightRemove} />
             </p>
 
@@ -66,7 +68,10 @@ export default function ChoiceControl({ group, answers, onChange, disabled, resu
             </div>
 
             {result && !result.correct && (
-              <p className="question-item-correct-answer">Đáp án đúng: {(result.correct_answer || []).join(', ')}</p>
+              <p className="question-item-correct-answer">
+                Đáp án đúng: {(result.correct_answer || []).join(', ')}
+                {result.max_points > 1 && ` (bạn được ${result.points}/${result.max_points} điểm)`}
+              </p>
             )}
           </div>
         );

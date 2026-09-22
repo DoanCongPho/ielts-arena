@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { isAnswered } from '../../lib/answerUtils';
+import { isAnswered, questionNumberLabel } from '../../lib/answerUtils';
 import BandMeter from '../ui/BandMeter/BandMeter';
 import './QuestionNavBar.css';
 
@@ -9,12 +9,23 @@ import './QuestionNavBar.css';
 // (green once answered) and, once `results` is passed post-grading, review
 // (green if correct, red if incorrect) — so a graded attempt stays
 // navigable instead of losing the strip the moment it's submitted.
+// Counts are in marks, like the score: a question with `span` > 1 (a
+// "choose TWO" multi-select) counts per key picked / per point earned.
 export default function QuestionNavBar({ questions, answers, results, onJump }) {
   const stripRef = useRef(null);
   const sorted = [...questions].sort((a, b) => a.question_order - b.question_order);
   const isReview = !!results;
-  const correctCount = sorted.filter((q) => results?.[q.question_order]?.correct).length;
-  const answeredCount = sorted.filter((q) => isAnswered(answers?.[q.question_order])).length;
+  const spanOf = (q) => q.span || 1;
+  const totalMarks = sorted.reduce((n, q) => n + spanOf(q), 0);
+  const correctCount = sorted.reduce((n, q) => {
+    const r = results?.[q.question_order];
+    return n + (r ? r.points ?? (r.correct ? spanOf(q) : 0) : 0);
+  }, 0);
+  const answeredCount = sorted.reduce((n, q) => {
+    const a = answers?.[q.question_order];
+    if (!isAnswered(a)) return n;
+    return n + (Array.isArray(a) ? Math.min(a.length, spanOf(q)) : 1);
+  }, 0);
 
   function scrollStrip(direction) {
     stripRef.current?.scrollBy({ left: direction * 240, behavior: 'smooth' });
@@ -25,11 +36,11 @@ export default function QuestionNavBar({ questions, answers, results, onJump }) 
       <div className="question-nav-bar-status">
         <span className="question-nav-bar-label text-label">Câu hỏi</span>
         <span className="question-nav-bar-count text-data-sm">
-          {isReview ? `Đúng ${correctCount}/${sorted.length}` : `Đã làm ${answeredCount}/${sorted.length}`}
+          {isReview ? `Đúng ${correctCount}/${totalMarks}` : `Đã làm ${answeredCount}/${totalMarks}`}
         </span>
         <BandMeter
           value={isReview ? correctCount : answeredCount}
-          max={sorted.length || 1}
+          max={totalMarks || 1}
           className="question-nav-bar-meter"
         />
       </div>
@@ -57,7 +68,7 @@ export default function QuestionNavBar({ questions, answers, results, onJump }) 
               className={`question-nav-pill ${stateClass}`}
               onClick={() => onJump(order)}
             >
-              {order}
+              {questionNumberLabel(order, spanOf(q))}
             </button>
           );
         })}

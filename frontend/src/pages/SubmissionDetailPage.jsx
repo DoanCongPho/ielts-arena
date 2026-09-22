@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { getScore, getSubmission, getTest } from '../lib/api';
+import { flattenQuestions } from '../lib/answerUtils';
 import { safeParse } from '../lib/safeParse';
 import { SKILL_CONFIG } from '../lib/skillConfig';
 import ScoreResult from '../components/ScoreResult/ScoreResult';
@@ -125,7 +126,7 @@ function MultiUnitReview({ skill, test, content, payload, score, notGradedMessag
   const activeUnit = units[activeIndex];
   const activeGroups = activeUnit?.question_groups || [];
   const scoreResults = score ? safeParse(score.details)?.results : undefined;
-  const allQuestions = units.flatMap((u) => (u.question_groups || []).flatMap((g) => g.questions));
+  const allQuestions = units.flatMap((u) => flattenQuestions(u.question_groups));
   const config = SKILL_CONFIG[skill];
 
   useEffect(() => {
