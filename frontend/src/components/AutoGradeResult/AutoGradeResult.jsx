@@ -1,3 +1,4 @@
+import { questionNumberLabel } from '../../lib/answerUtils';
 import { safeParse } from '../../lib/safeParse';
 import ScoreCard from '../ui/ScoreCard/ScoreCard';
 import Button from '../ui/Button/Button';
@@ -37,7 +38,7 @@ export default function AutoGradeResult({ score, questions, onSeek, skill, compa
             const r = results[order];
             if (!r) return null;
             const question = questionByOrder[order];
-            const label = question?.text || `Câu ${order}`;
+            const label = question?.text || `Câu ${questionNumberLabel(Number(order), question?.span)}`;
             return (
               <div
                 key={order}
@@ -46,7 +47,7 @@ export default function AutoGradeResult({ score, questions, onSeek, skill, compa
                 <div className="autograde-result-item-header">
                   <span>{label}</span>
                   <span className={`autograde-result-badge ${r.correct ? 'autograde-result-badge-correct' : 'autograde-result-badge-incorrect'}`}>
-                    {r.correct ? 'Đúng' : 'Sai'}
+                    {r.correct ? 'Đúng' : r.points > 0 ? `${r.points}/${r.max_points}` : 'Sai'}
                   </span>
                 </div>
                 <p className="autograde-result-item-answer">

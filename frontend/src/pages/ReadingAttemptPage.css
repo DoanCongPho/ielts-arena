@@ -21,6 +21,18 @@
   overflow-y: auto;
 }
 
+/* Submission review (SubmissionDetailPage) wraps the body in
+   .submission-multi-review alongside the score card and nav bar; let that
+   wrapper take the remaining height so the panes can scroll inside it. */
+.reading-attempt-page .submission-multi-review {
+  flex: 1;
+  min-height: 0;
+}
+
+.reading-attempt-page .submission-multi-review > :not(.reading-attempt-body) {
+  flex-shrink: 0;
+}
+
 /* The shared .attempt-passage-text rule caps itself at max-height: 480px
    with its own inner scrollbar — here the outer panel is already the
    scroll container, so let the passage text flow naturally inside it
@@ -54,6 +66,10 @@
     overflow-y: auto;
   }
 
+  .reading-attempt-page .submission-multi-review {
+    flex: none;
+  }
+
   .reading-scroll-panel {
     height: auto;
     overflow-y: visible;
@@ -68,14 +84,15 @@
 }
 
 .reading-highlight-mark {
-  background: var(--reading-fill);
+  background: var(--highlighter-yellow);
+  color: inherit;
   padding: 0 1px;
   border-radius: 2px;
   cursor: pointer;
 }
 
 .reading-highlight-mark:hover {
-  outline: 1px dashed var(--reading-600);
+  outline: 1px dashed var(--gold-600);
 }
 
 .reading-highlight-toolbar {

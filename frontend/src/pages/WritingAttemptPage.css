@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   overflow-y: auto;
-  background: var(--paper-50);
+  background: var(--paper-200);
   color: var(--ink-900);
   padding: var(--layout-fixed-hud-offset) var(--space-6) var(--space-7);
 }
@@ -19,6 +19,36 @@
   font-weight: 600;
 }
 
+/* Attempt pages render without the ProfileHud (App.jsx `focus`), so they
+   don't need to leave room for it at the top. */
+.attempt-page-focus {
+  padding-top: var(--space-4);
+}
+
+.attempt-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  background: var(--surface-0);
+  color: var(--ink-900);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.attempt-back:hover {
+  background: var(--paper-50);
+}
+
+.attempt-timer-low {
+  color: var(--error-600);
+}
+
 .attempt-header {
   display: flex;
   align-items: center;
@@ -29,6 +59,7 @@
 }
 
 .attempt-timer {
+  margin-left: auto;
   display: inline-flex;
   align-items: center;
   font-family: var(--font-data);
@@ -58,8 +89,9 @@
 .attempt-prompt-panel,
 .attempt-answer-panel {
   background: var(--surface-0);
-  border: 1px solid var(--hairline);
+  border: 1px solid var(--hairline-strong);
   border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
   padding: var(--space-5);
 }
 

@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getScore, getTest, submitAnswer, waitForGrading } from '../lib/api';
+import { flattenQuestions } from '../lib/answerUtils';
 import { safeParse } from '../lib/safeParse';
+import { ATTEMPT_SECONDS, useCountdown, useLeaveGuard } from '../lib/useAttemptSession';
 import { SKILL_CONFIG } from '../lib/skillConfig';
 import QuestionList from '../components/QuestionList/QuestionList';
 import AutoGradeResult from '../components/AutoGradeResult/AutoGradeResult';
@@ -22,7 +24,6 @@ export default function ListeningAttemptPage() {
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [answers, setAnswers] = useState({});
-  const [seconds, setSeconds] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [score, setScore] = useState(null);
   const [gradeFailed, setGradeFailed] = useState(false);
@@ -39,11 +40,9 @@ export default function ListeningAttemptPage() {
       .finally(() => setLoading(false));
   }, [testId]);
 
-  useEffect(() => {
-    if (score || gradeFailed) return;
-    const id = setInterval(() => setSeconds((s) => s + 1), 1000);
-    return () => clearInterval(id);
-  }, [score, gradeFailed]);
+  const inProgress = !!test && !score && !gradeFailed;
+  const remaining = useCountdown(ATTEMPT_SECONDS, inProgress, handleTimeUp);
+  const confirmLeave = useLeaveGuard(inProgress);
 
   useEffect(() => {
     if (pendingScrollOrder == null) return;
@@ -78,6 +77,11 @@ export default function ListeningAttemptPage() {
     setPendingScrollOrder(order);
   }
 
+  // Time's up: hand in the answers as they stand, like a real paper.
+  function handleTimeUp() {
+    if (!submitting) handleSubmit();
+  }
+
   async function handleSubmit() {
     setSubmitting(true);
     setError('');
@@ -105,16 +109,16 @@ export default function ListeningAttemptPage() {
   const sections = content?.sections || [];
   const activeSection = sections[activeIndex];
   const activeGroups = activeSection?.question_groups || [];
-  const allQuestions = sections.flatMap((s) => (s.question_groups || []).flatMap((g) => g.questions));
+  const allQuestions = sections.flatMap((s) => flattenQuestions(s.question_groups));
   const scoreResults = score ? safeParse(score.details)?.results : undefined;
 
   return (
-    <div className="attempt-page">
+    <div className="attempt-page attempt-page-focus">
       <header className="attempt-header">
-        <Button variant="secondary" onClick={() => navigate('/practice/listening')}>
-          ← Danh sách đề
-        </Button>
-        <span className="attempt-timer">{formatTime(seconds)}</span>
+        <button type="button" className="attempt-back" onClick={() => confirmLeave() && navigate('/practice/listening')} aria-label="Về danh sách đề" title="Về danh sách đề">
+          ←
+        </button>
+        <span className={`attempt-timer ${inProgress && remaining <= 5 * 60 ? 'attempt-timer-low' : ''}`}>{formatTime(remaining)}</span>
       </header>
 
       <div className="attempt-body">
@@ -163,7 +167,8 @@ export default function ListeningAttemptPage() {
 
           {error && <p className="practice-status practice-error">{error}</p>}
 
-          {!score && !gradeFailed && (
+          {/* Submit only from the last section, like the end of a real paper. */}
+          {!score && !gradeFailed && activeIndex === sections.length - 1 && (
             <Button variant="primary" className="attempt-submit-btn" onClick={handleSubmit} disabled={submitting}>
               {submitting ? 'Đang chấm điểm...' : 'Nộp bài'}
             </Button>

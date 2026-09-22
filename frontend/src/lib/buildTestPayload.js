@@ -1,3 +1,4 @@
+import { questionSpan } from './answerUtils';
 import { CHOICE_TYPES, PLAIN_TYPES, SHARED_OPTIONS_TYPES } from './questionTypes';
 
 function cleanOptions(list) {
@@ -19,8 +20,9 @@ function splitAccepted(acceptedStr, answer) {
   return parts;
 }
 
-function buildQuestion(q, groupType, hasWordBank, orderRef) {
-  const question_order = orderRef.next++;
+function buildQuestion(q, groupType, hasWordBank, span, orderRef) {
+  const question_order = orderRef.next;
+  orderRef.next += span;
 
   if (CHOICE_TYPES.has(groupType)) {
     const out = { question_order, answer: q.answer };
@@ -58,7 +60,7 @@ function buildGroup(group, groupOrder, orderRef) {
     group_order: groupOrder,
     question_type: type,
     instructions: group.instructions,
-    questions: group.questions.map((q) => buildQuestion(q, type, group.has_word_bank, orderRef)),
+    questions: group.questions.map((q) => buildQuestion(q, type, group.has_word_bank, questionSpan(group), orderRef)),
   };
 
   if (type === 'multiple-choice-multi') out.select_count = group.select_count;
@@ -110,7 +112,8 @@ function buildGroup(group, groupOrder, orderRef) {
 
 // buildTestPayload assembles the exact CreateTestRequest body the backend
 // expects, auto-numbering question_order globally (1..N, in document
-// order) so authors never have to manage that numbering by hand.
+// order; a multi-select question takes select_count numbers) so authors
+// never have to manage that numbering by hand.
 export function buildTestPayload({ skill, taskType, source, isCurrent, xpGain, thumbnailUrl, writingContent, passages, listeningAudioUrl, sections }) {
   let content_data;
 

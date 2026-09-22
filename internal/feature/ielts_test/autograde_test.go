@@ -349,6 +349,26 @@ func TestValidateGroupShape(t *testing.T) {
 // validateQuestionOrderContinuity / containsFold / countGaps / requireGapCount
 // ---------------------------------------------------------------------------
 
+func TestValidateContentData_MultiSelectSpansSelectCount(t *testing.T) {
+	// validReadingContent ends with a select_count-2 multiple-choice-multi
+	// question at order 3, which therefore covers 3 and 4.
+	withNext := func(order int) ReadingContent {
+		c := validReadingContent()
+		groups := &c.Passages[0].QuestionGroups
+		*groups = append(*groups, sentenceCompletionGroup(4, order, "x", []string{"x"}))
+		return c
+	}
+	if err := validateContentData("reading", marshalContent(t, withNext(5))); err != nil {
+		t.Errorf("next question at 5 should follow a 3-4 multi-select: %v", err)
+	}
+	if err := validateContentData("reading", marshalContent(t, withNext(4))); err == nil {
+		t.Error("expected duplicate error: 4 is already covered by the multi-select at 3")
+	}
+	if err := validateContentData("reading", marshalContent(t, withNext(6))); err == nil {
+		t.Error("expected gap error: nothing covers 5")
+	}
+}
+
 func TestValidateQuestionOrderContinuity(t *testing.T) {
 	cases := []struct {
 		name    string
@@ -413,6 +433,40 @@ func TestAnswersMatch_MultipleChoiceMulti(t *testing.T) {
 	}
 	if answersMatch(q, []string{"A"}) {
 		t.Error("expected partial answer to fail")
+	}
+}
+
+func TestAnswerPoints_MultipleChoiceMulti(t *testing.T) {
+	q := gradableQuestion{
+		Question:  Question{Answer: rawAnswerArray([]string{"B", "C"})},
+		GroupType: QTypeMultipleChoiceMulti,
+		Span:      2,
+	}
+	cases := []struct {
+		name      string
+		submitted []string
+		want      int
+	}{
+		{"both keys, any order/case", []string{"c", "B"}, 2},
+		{"one right one wrong", []string{"B", "E"}, 1},
+		{"only one ticked", []string{"C"}, 1},
+		{"duplicate key counts once", []string{"B", "B"}, 1},
+		{"blank", nil, 0},
+	}
+	for _, c := range cases {
+		if got := answerPoints(q, c.submitted); got != c.want {
+			t.Errorf("%s: answerPoints(%v) = %d, want %d", c.name, c.submitted, got, c.want)
+		}
+	}
+}
+
+func TestAnswerPoints_SingleMark(t *testing.T) {
+	q := gradableQuestion{Question: Question{Answer: rawAnswer("A")}, GroupType: QTypeMultipleChoice, Span: 1}
+	if got := answerPoints(q, []string{"a"}); got != 1 {
+		t.Errorf("correct answer: got %d, want 1", got)
+	}
+	if got := answerPoints(q, []string{"B"}); got != 0 {
+		t.Errorf("wrong answer: got %d, want 0", got)
 	}
 }
 
@@ -495,13 +549,25 @@ func TestBandFromRawScore(t *testing.T) {
 		want           float64
 	}{
 		{0, 0, 0},
-		{40, 40, 9},
-		{39, 40, 9},
-		{35, 40, 8},
-		{30, 40, 7},
-		{20, 40, 5.5},
-		{4, 40, 2.5},
-		{0, 40, 2},
+		// Every row boundary of the Listening / Academic Reading table.
+		{40, 40, 9}, {39, 40, 9},
+		{38, 40, 8.5}, {37, 40, 8.5},
+		{36, 40, 8}, {35, 40, 8},
+		{34, 40, 7.5}, {33, 40, 7.5},
+		{32, 40, 7}, {30, 40, 7},
+		{29, 40, 6.5}, {27, 40, 6.5},
+		{26, 40, 6}, {23, 40, 6},
+		{22, 40, 5.5}, {20, 40, 5.5},
+		{19, 40, 5}, {16, 40, 5},
+		{15, 40, 4.5}, {13, 40, 4.5},
+		{12, 40, 4}, {10, 40, 4},
+		{9, 40, 3.5}, {7, 40, 3.5},
+		{6, 40, 3}, {5, 40, 3},
+		{4, 40, 2.5}, {3, 40, 2.5},
+		{2, 40, 2}, {0, 40, 2},
+		// Non-40 tests scale to 40: 10/13 -> 30.8 -> 31 -> 7.
+		{10, 13, 7},
+		{13, 13, 9},
 	}
 	for _, tc := range cases {
 		if got := bandFromRawScore(tc.correct, tc.total); got != tc.want {

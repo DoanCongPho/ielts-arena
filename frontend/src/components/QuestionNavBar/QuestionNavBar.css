@@ -7,8 +7,9 @@
   margin-top: var(--space-2);
   margin-bottom: 2px;
   background: var(--surface-0);
-  border: 1px solid var(--hairline);
+  border: 1px solid var(--hairline-strong);
   border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
 }
 
 .question-nav-bar-status {

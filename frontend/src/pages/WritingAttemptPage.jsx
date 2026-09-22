@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { getScore, getTest, submitAnswer, waitForGrading } from '../lib/api';
 import { safeParse } from '../lib/safeParse';
+import { ATTEMPT_SECONDS, useCountdown, useLeaveGuard } from '../lib/useAttemptSession';
 import ScoreResult from '../components/ScoreResult/ScoreResult';
 import Button from '../components/ui/Button/Button';
 import './WritingAttemptPage.css';
@@ -16,7 +17,6 @@ export default function WritingAttemptPage() {
   const [error, setError] = useState('');
 
   const [text, setText] = useState('');
-  const [seconds, setSeconds] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [score, setScore] = useState(null);
   const [gradeFailed, setGradeFailed] = useState(false);
@@ -28,11 +28,17 @@ export default function WritingAttemptPage() {
       .finally(() => setLoading(false));
   }, [testId]);
 
-  useEffect(() => {
-    if (score || gradeFailed) return;
-    const id = setInterval(() => setSeconds((s) => s + 1), 1000);
-    return () => clearInterval(id);
-  }, [score, gradeFailed]);
+  const inProgress = !!test && !score && !gradeFailed;
+  const remaining = useCountdown(ATTEMPT_SECONDS, inProgress, handleTimeUp);
+  const confirmLeave = useLeaveGuard(inProgress);
+
+  // Time's up: hand in whatever has been written. An empty answer isn't
+  // worth an LLM grading call, so it's not submitted.
+  function handleTimeUp() {
+    if (submitting) return;
+    if (text.trim()) handleSubmit();
+    else setError('Hết giờ — bạn chưa viết gì nên bài không được nộp.');
+  }
 
   async function handleSubmit() {
     setSubmitting(true);
@@ -61,12 +67,12 @@ export default function WritingAttemptPage() {
   const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
 
   return (
-    <div className="attempt-page">
+    <div className="attempt-page attempt-page-focus">
       <header className="attempt-header">
-        <Button variant="secondary" onClick={() => navigate('/practice/writing')}>
-          ← Danh sách đề
-        </Button>
-        <span className="attempt-timer">{formatTime(seconds)}</span>
+        <button type="button" className="attempt-back" onClick={() => confirmLeave() && navigate('/practice/writing')} aria-label="Về danh sách đề" title="Về danh sách đề">
+          ←
+        </button>
+        <span className={`attempt-timer ${inProgress && remaining <= 5 * 60 ? 'attempt-timer-low' : ''}`}>{formatTime(remaining)}</span>
       </header>
 
       <div className="attempt-body">

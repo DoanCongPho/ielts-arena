@@ -83,9 +83,9 @@
             ],
             "allow_reuse": false,
             "questions": [
-              { "question_order": 8, "text": "Paragraph A", "answer": "iv" },
-              { "question_order": 9, "text": "Paragraph B", "answer": "i" },
-              { "question_order": 10, "text": "Paragraph C", "answer": "ii" }
+              { "question_order": 9, "text": "Paragraph A", "answer": "iv" },
+              { "question_order": 10, "text": "Paragraph B", "answer": "i" },
+              { "question_order": 11, "text": "Paragraph C", "answer": "ii" }
             ]
           },
           {
@@ -99,8 +99,8 @@
             ],
             "allow_reuse": true,
             "questions": [
-              { "question_order": 11, "text": "a reference to chocolate being used as a means of payment", "answer": "B" },
-              { "question_order": 12, "text": "a mention of a specific century when a key ingredient was added", "answer": "C" }
+              { "question_order": 12, "text": "a reference to chocolate being used as a means of payment", "answer": "B" },
+              { "question_order": 13, "text": "a mention of a specific century when a key ingredient was added", "answer": "C" }
             ]
           },
           {
@@ -114,8 +114,8 @@
             ],
             "allow_reuse": false,
             "questions": [
-              { "question_order": 13, "text": "Introduced sugar into chocolate production", "answer": "B" },
-              { "question_order": 14, "text": "Used cacao beans as currency", "answer": "A" }
+              { "question_order": 14, "text": "Introduced sugar into chocolate production", "answer": "B" },
+              { "question_order": 15, "text": "Used cacao beans as currency", "answer": "A" }
             ]
           },
           {
@@ -129,8 +129,8 @@
               { "id": "D", "text": "is a modern invention." }
             ],
             "questions": [
-              { "question_order": 15, "text": "Cacao...", "answer": "A" },
-              { "question_order": 16, "text": "Chocolate...", "answer": "B" }
+              { "question_order": 16, "text": "Cacao...", "answer": "A" },
+              { "question_order": 17, "text": "Chocolate...", "answer": "B" }
             ]
           }
         ]
@@ -150,8 +150,8 @@
             "instructions": "Complete the sentences below. Write NO MORE THAN TWO WORDS from the passage for each answer.",
             "word_limit": 2,
             "questions": [
-              { "question_order": 17, "text": "Bike-share schemes have reduced short __ trips in city centres.", "answer": "car trips", "accepted_answers": ["car trips", "car"] },
-              { "question_order": 18, "text": "The biggest obstacle to cycling uptake is a lack of __.", "answer": "cycle lanes", "accepted_answers": ["cycle lanes", "safe cycle lanes"] }
+              { "question_order": 18, "text": "Bike-share schemes have reduced short __ trips in city centres.", "answer": "car trips", "accepted_answers": ["car trips", "car"] },
+              { "question_order": 19, "text": "The biggest obstacle to cycling uptake is a lack of __.", "answer": "cycle lanes", "accepted_answers": ["cycle lanes", "safe cycle lanes"] }
             ]
           },
           {
@@ -169,9 +169,9 @@
             ],
             "summary_text": "Cities that build a connected {{gap}} of cycle lanes see the fastest growth in {{gap}}. Lanes that are physically {{gap}} from traffic are especially effective.",
             "questions": [
-              { "question_order": 19, "answer": "B" },
-              { "question_order": 20, "answer": "D" },
-              { "question_order": 21, "answer": "F" }
+              { "question_order": 20, "answer": "B" },
+              { "question_order": 21, "answer": "D" },
+              { "question_order": 22, "answer": "F" }
             ]
           },
           {
@@ -181,8 +181,8 @@
             "has_word_bank": false,
             "summary_text": "London's bike-share scheme began in {{gap}} with 5,000 bicycles, and had grown to more than 11,500 bicycles and {{gap}} docking stations within a decade.",
             "questions": [
-              { "question_order": 22, "answer": "2010", "accepted_answers": ["2010"] },
-              { "question_order": 23, "answer": "800", "accepted_answers": ["800"] }
+              { "question_order": 23, "answer": "2010", "accepted_answers": ["2010"] },
+              { "question_order": 24, "answer": "800", "accepted_answers": ["800"] }
             ]
           },
           {
@@ -197,8 +197,8 @@
               ]
             },
             "questions": [
-              { "question_order": 24, "answer": "5,000", "accepted_answers": ["5,000", "5000"] },
-              { "question_order": 25, "answer": "800", "accepted_answers": ["800"] }
+              { "question_order": 25, "answer": "5,000", "accepted_answers": ["5,000", "5000"] },
+              { "question_order": 26, "answer": "800", "accepted_answers": ["800"] }
             ]
           },
           {
@@ -207,8 +207,8 @@
             "instructions": "Answer the questions below. Choose NO MORE THAN THREE WORDS from the passage.",
             "word_limit": 3,
             "questions": [
-              { "question_order": 26, "text": "What do surveys identify as the biggest barrier to cycling uptake?", "answer": "lack of safe cycle lanes", "accepted_answers": ["lack of safe cycle lanes", "safe cycle lanes", "cycle lanes"] },
-              { "question_order": 27, "text": "By how much did short car trips fall in cities with bike-share schemes?", "answer": "12 percent", "accepted_answers": ["12 percent", "12%", "up to 12 percent"] }
+              { "question_order": 27, "text": "What do surveys identify as the biggest barrier to cycling uptake?", "answer": "lack of safe cycle lanes", "accepted_answers": ["lack of safe cycle lanes", "safe cycle lanes", "cycle lanes"] },
+              { "question_order": 28, "text": "By how much did short car trips fall in cities with bike-share schemes?", "answer": "12 percent", "accepted_answers": ["12 percent", "12%", "up to 12 percent"] }
             ]
           }
         ]
@@ -228,8 +228,8 @@
             "instructions": "Label the diagram below. Choose ONE WORD ONLY from the passage for each answer.",
             "diagram_image_url": "https://example.com/diagrams/wind-turbine.png",
             "questions": [
-              { "question_order": 28, "text": "Part connecting the rotor blades to the generator shaft", "answer": "hub", "accepted_answers": ["hub"] },
-              { "question_order": 29, "text": "Housing at the top of the tower that contains the generator", "answer": "nacelle", "accepted_answers": ["nacelle"] }
+              { "question_order": 29, "text": "Part connecting the rotor blades to the generator shaft", "answer": "hub", "accepted_answers": ["hub"] },
+              { "question_order": 30, "text": "Housing at the top of the tower that contains the generator", "answer": "nacelle", "accepted_answers": ["nacelle"] }
             ]
           },
           {
@@ -245,10 +245,10 @@
               ]
             },
             "questions": [
-              { "question_order": 30, "answer": "blades", "accepted_answers": ["blades", "rotor blades"] },
-              { "question_order": 31, "answer": "shaft", "accepted_answers": ["shaft"] },
-              { "question_order": 32, "answer": "electricity", "accepted_answers": ["electricity", "electrical current"] },
-              { "question_order": 33, "answer": "storage", "accepted_answers": ["storage", "backup capacity", "storage capacity"] }
+              { "question_order": 31, "answer": "blades", "accepted_answers": ["blades", "rotor blades"] },
+              { "question_order": 32, "answer": "shaft", "accepted_answers": ["shaft"] },
+              { "question_order": 33, "answer": "electricity", "accepted_answers": ["electricity", "electrical current"] },
+              { "question_order": 34, "answer": "storage", "accepted_answers": ["storage", "backup capacity", "storage capacity"] }
             ]
           },
           {
@@ -256,9 +256,9 @@
             "question_type": "true-false-not-given",
             "instructions": "Do the following statements agree with the information given in the passage? Write TRUE, FALSE or NOT GIVEN.",
             "questions": [
-              { "question_order": 34, "text": "Solar panels have moving parts similar to wind turbines.", "answer": "FALSE" },
-              { "question_order": 35, "text": "Solar installations are generally cheaper to maintain than wind turbines.", "answer": "TRUE" },
-              { "question_order": 36, "text": "Government subsidies for battery storage have increased in the past decade.", "answer": "NOT GIVEN" }
+              { "question_order": 35, "text": "Solar panels have moving parts similar to wind turbines.", "answer": "FALSE" },
+              { "question_order": 36, "text": "Solar installations are generally cheaper to maintain than wind turbines.", "answer": "TRUE" },
+              { "question_order": 37, "text": "Government subsidies for battery storage have increased in the past decade.", "answer": "NOT GIVEN" }
             ]
           },
           {
@@ -267,7 +267,7 @@
             "instructions": "Choose the correct letter, A, B, C or D.",
             "questions": [
               {
-                "question_order": 37,
+                "question_order": 38,
                 "text": "According to the passage, battery storage costs have:",
                 "options": [
                   { "id": "A", "text": "risen slightly over the past decade" },
@@ -285,9 +285,9 @@
             "instructions": "Complete the sentences below. Write NO MORE THAN TWO WORDS from the passage for each answer.",
             "word_limit": 2,
             "questions": [
-              { "question_order": 38, "text": "Both wind and solar power share the problem of __.", "answer": "intermittency", "accepted_answers": ["intermittency"] },
-              { "question_order": 39, "text": "Wind turbines use large __ connected to a hub.", "answer": "rotor blades", "accepted_answers": ["rotor blades", "blades"] },
-              { "question_order": 40, "text": "Falling __ costs have made large-scale storage more viable.", "answer": "battery", "accepted_answers": ["battery", "battery storage"] }
+              { "question_order": 39, "text": "Both wind and solar power share the problem of __.", "answer": "intermittency", "accepted_answers": ["intermittency"] },
+              { "question_order": 40, "text": "Wind turbines use large __ connected to a hub.", "answer": "rotor blades", "accepted_answers": ["rotor blades", "blades"] },
+              { "question_order": 41, "text": "Falling __ costs have made large-scale storage more viable.", "answer": "battery", "accepted_answers": ["battery", "battery storage"] }
             ]
           }
         ]

@@ -123,7 +123,7 @@ type QuestionGroup struct {
 	Instructions    string          `json:"instructions"`
 	Questions       []Question      `json:"questions"`
 	SharedOptions   []Option        `json:"shared_options,omitempty"`    // matching-headings/information/features/sentence-endings/matching
-	SelectCount     int             `json:"select_count,omitempty"`      // multiple-choice-multi
+	SelectCount     int             `json:"select_count,omitempty"`      // multiple-choice-multi; also how many question numbers each question spans
 	AllowReuse      *bool           `json:"allow_reuse,omitempty"`       // matching-information (true) / matching-features (false) — UI hint only
 	WordLimit       int             `json:"word_limit,omitempty"`        // sentence-completion / short-answer — UI hint only
 	HasWordBank     bool            `json:"has_word_bank,omitempty"`     // summary-completion
@@ -161,9 +161,13 @@ type Option struct {
 // QuestionResult is the per-question outcome of auto-grading. Submitted/
 // correct answers are always represented as string slices — a single-
 // element slice for single-answer types — so callers don't need to
-// special-case multi-select vs. single-select display.
+// special-case multi-select vs. single-select display. Correct means full
+// marks; Points/MaxPoints carry partial credit for a multiple-choice-multi
+// question, which is worth one mark per key (see questionSpan).
 type QuestionResult struct {
 	Correct         bool     `json:"correct"`
+	Points          int      `json:"points"`
+	MaxPoints       int      `json:"max_points"`
 	SubmittedAnswer []string `json:"submitted_answer"`
 	CorrectAnswer   []string `json:"correct_answer"`
 }
@@ -220,6 +224,8 @@ type AnswerPayload struct {
 // AutoGradeDetails is what gets marshalled into Score.Details for
 // auto-graded skills (reading, listening). Results is keyed by
 // question_order (as a decimal string), matching AnswerPayload.Answers.
+// CorrectCount/TotalCount count marks, not question objects: a "Choose TWO"
+// question contributes two to TotalCount.
 type AutoGradeDetails struct {
 	CorrectCount int                       `json:"correct_count"`
 	TotalCount   int                       `json:"total_count"`

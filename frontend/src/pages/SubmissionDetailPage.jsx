@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { getScore, getSubmission, getTest } from '../lib/api';
+import { flattenQuestions } from '../lib/answerUtils';
 import { safeParse } from '../lib/safeParse';
 import { SKILL_CONFIG } from '../lib/skillConfig';
 import ScoreResult from '../components/ScoreResult/ScoreResult';
@@ -11,6 +12,7 @@ import QuestionNavBar from '../components/QuestionNavBar/QuestionNavBar';
 import Button from '../components/ui/Button/Button';
 import './PracticePage.css';
 import './WritingAttemptPage.css';
+import './ReadingAttemptPage.css';
 
 export default function SubmissionDetailPage() {
   const { submissionId } = useParams();
@@ -66,7 +68,7 @@ export default function SubmissionDetailPage() {
   );
 
   return (
-    <div className="attempt-page">
+    <div className={`attempt-page ${skill === 'reading' ? 'reading-attempt-page' : ''}`}>
       <header className="attempt-header">
         <Button variant="secondary" onClick={() => navigate('/submissions')}>
           ← Bài đã làm
@@ -125,8 +127,9 @@ function MultiUnitReview({ skill, test, content, payload, score, notGradedMessag
   const activeUnit = units[activeIndex];
   const activeGroups = activeUnit?.question_groups || [];
   const scoreResults = score ? safeParse(score.details)?.results : undefined;
-  const allQuestions = units.flatMap((u) => (u.question_groups || []).flatMap((g) => g.questions));
+  const allQuestions = units.flatMap((u) => flattenQuestions(u.question_groups));
   const config = SKILL_CONFIG[skill];
+  const isReading = skill === 'reading';
 
   useEffect(() => {
     if (pendingScrollOrder == null) return;
@@ -163,8 +166,11 @@ function MultiUnitReview({ skill, test, content, payload, score, notGradedMessag
     <div className="submission-multi-review">
       {score && <AutoGradeResult score={score} skill={skill} compact />}
 
-      <div className="attempt-body">
-        <div className="attempt-prompt-panel">
+      {/* Reading reviews use the attempt page's two independently scrolling
+          panes, so the passage and the marked answers can be read side by
+          side. */}
+      <div className={`attempt-body ${isReading ? 'reading-attempt-body' : ''}`}>
+        <div className={`attempt-prompt-panel ${isReading ? 'reading-scroll-panel' : ''}`}>
           <h2>{skill === 'reading' ? 'Reading' : 'Listening'} — {config.taskTypeLabel(test.task_type)}</h2>
 
           {units.length > 1 && (
@@ -203,7 +209,7 @@ function MultiUnitReview({ skill, test, content, payload, score, notGradedMessag
           )}
         </div>
 
-        <div className="attempt-answer-panel">
+        <div className={`attempt-answer-panel ${isReading ? 'reading-scroll-panel' : ''}`}>
           <QuestionList
             groups={activeGroups}
             answers={payload?.answers}

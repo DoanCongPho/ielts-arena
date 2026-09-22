@@ -1,3 +1,4 @@
+import { questionSpan } from '../../lib/answerUtils';
 import ChoiceControl from './ChoiceControl';
 import MatchingDragDrop from './MatchingDragDrop';
 import PlainInputGroup from './PlainInputGroup';
@@ -18,10 +19,11 @@ const MATCHING_TYPES = new Set([
 const PLAIN_INPUT_TYPES = new Set(['sentence-completion', 'short-answer', 'diagram-label-completion']);
 const STRUCTURED_TYPES = new Set(['summary-completion', 'table-completion', 'note-completion', 'flow-chart-completion', 'form-completion']);
 
-function questionRangeLabel(questions) {
-  const orders = questions.map((q) => q.question_order);
+function questionRangeLabel(group) {
+  const span = questionSpan(group);
+  const orders = group.questions.map((q) => q.question_order);
   const min = Math.min(...orders);
-  const max = Math.max(...orders);
+  const max = Math.max(...orders) + span - 1;
   return min === max ? `Câu ${min}` : `Câu ${min}-${max}`;
 }
 
@@ -36,7 +38,7 @@ export default function GroupBlock({ group, answers, onChange, disabled, results
     <Card padding="compact" className="question-group-block">
       <header className="question-group-header">
         <SkillTag skill={skill} className="question-group-range">
-          {questionRangeLabel(group.questions)}
+          {questionRangeLabel(group)}
         </SkillTag>
         <HighlightableText
           as="p"

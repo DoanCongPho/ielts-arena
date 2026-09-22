@@ -100,6 +100,22 @@
   overflow: hidden;
 }
 
+/* Inside an attempt panel the panel is already the card — drop each
+   group's own frame (a card inside a card) and separate groups with a
+   rule instead. */
+.attempt-answer-panel .question-group-block {
+  background: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.attempt-answer-panel .question-group-block + .question-group-block {
+  border-top: 1px solid var(--hairline-strong);
+  padding-top: var(--space-5);
+}
+
 .question-group-header {
   margin-bottom: var(--space-4);
 }
