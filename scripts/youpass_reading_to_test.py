@@ -23,12 +23,20 @@ YouPass shape, as far as this script relies on it:
           .correct_answer             single-key types
           .correct_answers[]          fill-in-blank types
           .options[] {option, text}   per-question multiple-choice options
+          .explain                    HTML explanation -> `explanation`
+          .locate_info                where the answer is, as 1-based
+                                      {paragraph: vocab block, sentence,
+                                      index: word} ranges -> `evidence`
 
 Stdlib only. Usage:
 
     python3 scripts/youpass_reading_to_test.py IN.json [-o OUT.json]
         [--task-type test1] [--xp-gain 50] [--source youpass]
         [--thumbnail-url URL] [--not-current]
+        [--series cambridge --volume 20 --test-number 1 | --no-series]
+
+The book (series / volume / test_number) is read from the quiz title
+("Orange 20 Reading - Test 1" -> cambridge 20, test 1) unless given.
 """
 
 import argparse
@@ -100,7 +108,10 @@ class _BlockParser(HTMLParser):
             t, parts, _ = self.stack.pop()
             text = clean("".join(parts))
             if text:
-                self.blocks.append((t, text))
+                # <li><div>x</div></li>: the div owns the text, but it's
+                # still a list item.
+                in_li = any(s[0] == "li" for s in self.stack)
+                self.blocks.append(("li" if in_li else t, text))
             if t == tag:
                 break
 
@@ -139,12 +150,17 @@ def convert_paragraphs(part):
     non-empty level-1 block, sentences joined with a space. Empty padding
     blocks and a block repeating the passage title are dropped; standfirst
     and footnote blocks are kept as unlabelled paragraphs since they're part
-    of the printed passage."""
-    blocks = []
-    for block in part.get("vocabs") or []:
-        text = clean(" ".join(c.get("value", "") for c in block.get("children") or []))
+    of the printed passage.
+
+    Also returns, for convert_evidence, a map from each kept block's index
+    in `vocabs` to (its paragraph index, its cleaned sentences)."""
+    kept = []
+    for bi, block in enumerate(part.get("vocabs") or []):
+        sentences = [clean(c.get("value", "")) for c in block.get("children") or []]
+        text = clean(" ".join(sentences))
         if text and text != clean(part.get("title")):
-            blocks.append(text)
+            kept.append((bi, text, sentences))
+    blocks = [text for _, text, _ in kept]
     if not blocks:
         raise ConvertError(f"part {part.get('passage')!r} has no passage text — export it with vocabs populated")
 
@@ -156,13 +172,89 @@ def convert_paragraphs(part):
     use_labels = len(letters) >= 2 and letters == [chr(ord("A") + k) for k in range(len(letters))]
 
     paragraphs = []
+    block_map = {}
     label_at = dict(labelled) if use_labels else {}
-    for i, text in enumerate(blocks):
+    for i, (bi, text, sentences) in enumerate(kept):
         label = label_at.get(i, "")
         if label:
             text = _LABEL_RE.sub("", text, count=1)
         paragraphs.append({"label": label, "text": text})
-    return paragraphs
+        block_map[bi] = (i, sentences)
+    return paragraphs, block_map
+
+
+# ---------------------------------------------------------------------------
+# Explanations and evidence
+# ---------------------------------------------------------------------------
+
+
+def convert_explanation(src):
+    """YouPass's explanation HTML as plain text: one line per block, list
+    items bulleted."""
+    return "\n".join(f"• {text}" if tag == "li" else text for tag, text in html_blocks(src))
+
+
+def locate_ranges(locate):
+    """A question's paragraph_ranges. YouPass puts them directly on the
+    question, or — for a choose-TWO question — one set per key under
+    "0", "1", ..."""
+    if not isinstance(locate, dict):
+        return []
+    if "paragraph_ranges" in locate:
+        return locate["paragraph_ranges"] or []
+    return [r for v in locate.values() if isinstance(v, dict) for r in v.get("paragraph_ranges") or []]
+
+
+def convert_evidence(q, paragraphs, block_map):
+    """Turns locate_info's word ranges into {paragraph, quote} evidence.
+    Every quote is checked against its paragraph the way the backend will
+    (whitespace / quote style folded — clean() already does both); one that
+    doesn't match is dropped with a warning rather than failing the test."""
+    evidence = []
+    for rng in locate_ranges(q.get("locate_info")):
+        start, end = rng.get("start") or {}, rng.get("end") or {}
+        bi = (start.get("paragraph") or 0) - 1
+        if bi not in block_map:
+            continue
+        pi, sentences = block_map[bi]
+        # A range running into the next block is cut at the end of this one.
+        same_block = end.get("paragraph") == start.get("paragraph")
+        last_sentence = end.get("sentence", len(sentences)) if same_block else len(sentences)
+        words = []
+        for k in range(start.get("sentence", 1), last_sentence + 1):
+            if not 1 <= k <= len(sentences):
+                continue
+            w = sentences[k - 1].split()
+            lo = start.get("index", 1) - 1 if k == start.get("sentence") else 0
+            hi = end.get("index", len(w)) if same_block and k == last_sentence else len(w)
+            words += w[max(lo, 0):hi]
+        quote = " ".join(words)
+        label = paragraphs[pi]["label"]
+        if label and quote.startswith(f"{label}. "):
+            quote = quote[len(label) + 2 :]
+        if quote and quote in paragraphs[pi]["text"]:
+            if {"paragraph": pi, "quote": quote} not in evidence:
+                evidence.append({"paragraph": pi, "quote": quote})
+        else:
+            print(f"warning: question {q.get('order')}: dropped evidence that doesn't match the passage", file=sys.stderr)
+    return evidence
+
+
+def attach_explanations(passage, sets, block_map):
+    """Adds explanation / evidence from the raw YouPass questions to the
+    converted ones, matched by question_order."""
+    raw_by_order = {q["order"]: q for s in sets for q in s["questions"]}
+    for group in passage["question_groups"]:
+        for q in group["questions"]:
+            raw = raw_by_order.get(q["question_order"])
+            if not raw:
+                continue
+            explanation = convert_explanation(raw.get("explain"))
+            if explanation:
+                q["explanation"] = explanation
+            evidence = convert_evidence(raw, passage["paragraphs"], block_map)
+            if evidence:
+                q["evidence"] = evidence
 
 
 # ---------------------------------------------------------------------------
@@ -337,7 +429,7 @@ def convert_group(qset, order):
 # ---------------------------------------------------------------------------
 
 
-def convert(raw, task_type, xp_gain, source, thumbnail_url, is_current):
+def convert(raw, task_type, xp_gain, source, thumbnail_url, is_current, series=None):
     data = raw.get("data", raw)
     parts = sorted(data.get("parts") or [], key=lambda p: (p.get("passage") or 0, p.get("sort") or 0))
     if not parts:
@@ -346,17 +438,22 @@ def convert(raw, task_type, xp_gain, source, thumbnail_url, is_current):
     passages = []
     for part in parts:
         sets = sorted(part.get("question_sets") or [], key=lambda s: s.get("sort") or 0)
-        passages.append(
-            {
-                "title": clean(part.get("title")),
-                "paragraphs": convert_paragraphs(part),
-                "question_groups": [convert_group(s, i + 1) for i, s in enumerate(sets)],
-            }
-        )
+        paragraphs, block_map = convert_paragraphs(part)
+        passage = {
+            "title": clean(part.get("title")),
+            "paragraphs": paragraphs,
+            "question_groups": [convert_group(s, i + 1) for i, s in enumerate(sets)],
+        }
+        attach_explanations(passage, sets, block_map)
+        passages.append(passage)
 
     body = {
         "skill": "reading",
         "task_type": task_type,
+    }
+    if series:
+        body["series"], body["volume"], body["test_number"] = series
+    body |= {
         "source": source,
         "is_current": is_current,
         "xp_gain": xp_gain,
@@ -365,6 +462,13 @@ def convert(raw, task_type, xp_gain, source, thumbnail_url, is_current):
         body["thumbnail_url"] = thumbnail_url
     body["content_data"] = {"passages": passages}
     return body
+
+
+def guess_series(data):
+    """("cambridge", volume, test) from a title like "Orange 20 Reading -
+    Test 1" (YouPass's name for Cambridge IELTS 20), else None."""
+    m = re.search(r"(\d+)\D*?\bTest\s*(\d+)", data.get("title") or "", re.I)
+    return ("cambridge", int(m.group(1)), int(m.group(2))) if m else None
 
 
 def guess_task_type(path, n_parts):
@@ -383,10 +487,21 @@ def main():
     ap.add_argument("--source", default="youpass")
     ap.add_argument("--thumbnail-url", default="")
     ap.add_argument("--not-current", action="store_true", help="set is_current=false")
+    ap.add_argument("--series", help="book series, e.g. cambridge (default: from the quiz title)")
+    ap.add_argument("--volume", type=int, help="book volume, e.g. 20")
+    ap.add_argument("--test-number", type=int, help="test number within the book")
+    ap.add_argument("--no-series", action="store_true", help="don't place the test in a book")
     args = ap.parse_args()
 
     raw = json.loads(args.input.read_text(encoding="utf-8"))
-    n_parts = len(raw.get("data", raw).get("parts") or [])
+    data = raw.get("data", raw)
+    n_parts = len(data.get("parts") or [])
+    series = None
+    if not args.no_series:
+        guessed = guess_series(data) or (None, None, None)
+        series = (args.series or guessed[0], args.volume or guessed[1], args.test_number or guessed[2])
+        if not all(series):
+            sys.exit("error: couldn't tell the book from the title — pass --series/--volume/--test-number or --no-series")
     try:
         body = convert(
             raw,
@@ -395,6 +510,7 @@ def main():
             source=args.source,
             thumbnail_url=args.thumbnail_url,
             is_current=not args.not_current,
+            series=series,
         )
     except ConvertError as e:
         sys.exit(f"error: {e}")
