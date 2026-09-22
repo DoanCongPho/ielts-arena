@@ -24,7 +24,7 @@ type Service interface {
 	// GetAnswerKey returns a reading/listening test's answers, explanations
 	// and evidence keyed by question_order — to admins, or to a user who
 	// has a graded attempt at it (ErrAnswerKeyLocked otherwise).
-	GetAnswerKey(ctx context.Context, userID uint64, isAdmin bool, testID uint64) (map[string]AnswerKeyEntry, error)
+	GetAnswerKey(ctx context.Context, userID uint64, isAdmin bool, testID uint64) (*AnswerKey, error)
 	//submit
 	SubmitAnswer(ctx context.Context, userID uint64, req SubmitRequest) (*Submission, error)
 	GetSubmissionByID(ctx context.Context, userID uint64, submissionID uint64) (*Submission, error)
@@ -115,7 +115,7 @@ func (s *service) PostTest(ctx context.Context, test Test) (*Test, error) {
 	return s.repo.CreateTest(ctx, &test)
 }
 
-func (s *service) GetAnswerKey(ctx context.Context, userID uint64, isAdmin bool, testID uint64) (map[string]AnswerKeyEntry, error) {
+func (s *service) GetAnswerKey(ctx context.Context, userID uint64, isAdmin bool, testID uint64) (*AnswerKey, error) {
 	t, err := s.repo.GetTestByID(ctx, testID)
 	if err != nil {
 		return nil, err
@@ -136,13 +136,22 @@ func (s *service) GetAnswerKey(ctx context.Context, userID uint64, isAdmin bool,
 	if err != nil {
 		return nil, fmt.Errorf("read test content: %w", err)
 	}
-	key := make(map[string]AnswerKeyEntry, len(questions))
+	key := &AnswerKey{Questions: make(map[string]AnswerKeyEntry, len(questions))}
 	for _, q := range questions {
-		key[strconv.Itoa(q.QuestionOrder)] = AnswerKeyEntry{
+		key.Questions[strconv.Itoa(q.QuestionOrder)] = AnswerKeyEntry{
 			Answer:          q.Answer,
 			AcceptedAnswers: q.AcceptedAnswers,
 			Explanation:     q.Explanation,
 			Evidence:        q.Evidence,
+		}
+	}
+	if t.Skill == "listening" {
+		var content ListeningContent
+		if err := json.Unmarshal(t.ContentData, &content); err != nil {
+			return nil, fmt.Errorf("read test content: %w", err)
+		}
+		for _, sec := range content.Sections {
+			key.Transcripts = append(key.Transcripts, sec.Transcript)
 		}
 	}
 	return key, nil

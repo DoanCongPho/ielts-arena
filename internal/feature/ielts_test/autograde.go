@@ -52,7 +52,7 @@ func validateContentData(skill string, raw []byte) error {
 			if err := validateQuestionGroups(p.QuestionGroups, readingQuestionTypes, &orders); err != nil {
 				return err
 			}
-			if err := validateEvidence(p); err != nil {
+			if err := validateEvidence(p.Paragraphs, p.QuestionGroups, "passage"); err != nil {
 				return err
 			}
 		}
@@ -64,11 +64,15 @@ func validateContentData(skill string, raw []byte) error {
 		if err := json.Unmarshal(raw, &c); err != nil {
 			return fmt.Errorf("invalid content_data for listening: %w", err)
 		}
-		if c.AudioURL == "" {
-			return errors.New("content_data.audio_url is required for listening")
-		}
 		if len(c.Sections) == 0 {
 			return errors.New("content_data.sections is required for listening")
+		}
+		if c.AudioURL == "" {
+			for _, sec := range c.Sections {
+				if sec.AudioURL == "" {
+					return errors.New("content_data.audio_url is required for listening unless every section has its own audio_url")
+				}
+			}
 		}
 		var orders []int
 		for _, sec := range c.Sections {
@@ -78,12 +82,8 @@ func validateContentData(skill string, raw []byte) error {
 			if err := validateQuestionGroups(sec.QuestionGroups, listeningQuestionTypes, &orders); err != nil {
 				return err
 			}
-			for _, g := range sec.QuestionGroups {
-				for _, q := range g.Questions {
-					if len(q.Evidence) > 0 {
-						return fmt.Errorf("question_order %d: evidence is only supported for reading", q.QuestionOrder)
-					}
-				}
+			if err := validateEvidence(sec.Transcript, sec.QuestionGroups, "transcript"); err != nil {
+				return err
 			}
 		}
 		if err := validateQuestionOrderContinuity(orders); err != nil {
@@ -169,22 +169,23 @@ func validateQuestionGroups(groups []QuestionGroup, allowed map[QuestionType]boo
 	return nil
 }
 
-// validateEvidence checks that every evidence entry in p points at one of
-// its paragraphs and quotes it verbatim (modulo whitespace and quote
-// style) — the check that catches an importer, human or AI, citing text
-// that isn't in the passage.
-func validateEvidence(p ReadingPassage) error {
-	for _, g := range p.QuestionGroups {
+// validateEvidence checks that every evidence entry in groups points at
+// one of paragraphs (a reading passage, or a listening section's
+// transcript — named by `source` in errors) and quotes it verbatim (modulo
+// whitespace and quote style): the check that catches an importer, human
+// or AI, citing text that isn't there.
+func validateEvidence(paragraphs []Paragraph, groups []QuestionGroup, source string) error {
+	for _, g := range groups {
 		for _, q := range g.Questions {
 			for _, e := range q.Evidence {
-				if e.Paragraph < 0 || e.Paragraph >= len(p.Paragraphs) {
-					return fmt.Errorf("question_order %d: evidence paragraph %d is out of range (the passage has %d)", q.QuestionOrder, e.Paragraph, len(p.Paragraphs))
+				if e.Paragraph < 0 || e.Paragraph >= len(paragraphs) {
+					return fmt.Errorf("question_order %d: evidence paragraph %d is out of range (the %s has %d)", q.QuestionOrder, e.Paragraph, source, len(paragraphs))
 				}
 				quote := normalizeQuote(e.Quote)
 				if quote == "" {
 					return fmt.Errorf("question_order %d: evidence quote is empty", q.QuestionOrder)
 				}
-				if !strings.Contains(normalizeQuote(p.Paragraphs[e.Paragraph].Text), quote) {
+				if !strings.Contains(normalizeQuote(paragraphs[e.Paragraph].Text), quote) {
 					return fmt.Errorf("question_order %d: evidence quote %q is not in paragraph %d", q.QuestionOrder, e.Quote, e.Paragraph)
 				}
 			}
@@ -627,6 +628,7 @@ func publicContentData(skill string, raw []byte) (json.RawMessage, error) {
 		}
 		for i := range content.Sections {
 			redactQuestionsInPlace(content.Sections[i].QuestionGroups)
+			content.Sections[i].Transcript = nil
 		}
 		return json.Marshal(content)
 	default:

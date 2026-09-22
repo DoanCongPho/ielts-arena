@@ -402,15 +402,65 @@ func TestValidateContentData_Evidence(t *testing.T) {
 	}
 }
 
-func TestValidateContentData_ListeningRejectsEvidence(t *testing.T) {
+// listeningWithEvidence is a one-section listening test with its own audio
+// and the given transcript, whose only question cites ev.
+func listeningWithEvidence(transcript []Paragraph, ev ...Evidence) ListeningContent {
 	group := sentenceCompletionGroup(1, 1, "cat", []string{"cat"})
-	group.Questions[0].Evidence = []Evidence{{Paragraph: 0, Quote: "x"}}
-	c := ListeningContent{
-		AudioURL: "https://example.com/audio.mp3",
-		Sections: []ListeningSection{{SectionEndTime: 60, QuestionGroups: []QuestionGroup{group}}},
+	group.Questions[0].Evidence = ev
+	return ListeningContent{
+		Sections: []ListeningSection{{
+			AudioURL:       "https://example.com/section1.mp3",
+			SectionEndTime: 60,
+			Transcript:     transcript,
+			QuestionGroups: []QuestionGroup{group},
+		}},
 	}
+}
+
+func TestValidateContentData_ListeningEvidenceQuotesTranscript(t *testing.T) {
+	transcript := []Paragraph{{Text: "Good morning."}, {Text: "My cat is called Tom."}}
+	if err := validateContentData("listening", marshalContent(t, listeningWithEvidence(transcript, Evidence{Paragraph: 1, Quote: "My cat"}))); err != nil {
+		t.Errorf("quote from the transcript rejected: %v", err)
+	}
+	if err := validateContentData("listening", marshalContent(t, listeningWithEvidence(transcript, Evidence{Paragraph: 1, Quote: "My dog"}))); err == nil {
+		t.Error("expected a quote that isn't in the transcript to be rejected")
+	}
+	if err := validateContentData("listening", marshalContent(t, listeningWithEvidence(nil, Evidence{Paragraph: 0, Quote: "x"}))); err == nil {
+		t.Error("expected evidence without a transcript to be rejected")
+	}
+}
+
+func TestValidateContentData_ListeningAudio(t *testing.T) {
+	c := listeningWithEvidence(nil)
+	if err := validateContentData("listening", marshalContent(t, c)); err != nil {
+		t.Errorf("per-section audio without a test-wide audio_url rejected: %v", err)
+	}
+	c.Sections = append(c.Sections, ListeningSection{SectionEndTime: 60, QuestionGroups: []QuestionGroup{sentenceCompletionGroup(1, 2, "dog", []string{"dog"})}})
 	if err := validateContentData("listening", marshalContent(t, c)); err == nil {
-		t.Error("expected evidence on a listening question to be rejected")
+		t.Error("expected an error: section 2 has no audio and there's no test-wide audio_url")
+	}
+	c.AudioURL = "https://example.com/full.mp3"
+	if err := validateContentData("listening", marshalContent(t, c)); err != nil {
+		t.Errorf("test-wide audio_url should cover section 2: %v", err)
+	}
+}
+
+func TestPublicContentData_RedactsListeningTranscript(t *testing.T) {
+	raw := marshalContent(t, listeningWithEvidence([]Paragraph{{Text: "My cat is called Tom."}}, Evidence{Paragraph: 0, Quote: "My cat"}))
+	public, err := publicContentData("listening", raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out ListeningContent
+	if err := json.Unmarshal(public, &out); err != nil {
+		t.Fatal(err)
+	}
+	sec := out.Sections[0]
+	if sec.Transcript != nil || sec.QuestionGroups[0].Questions[0].Evidence != nil {
+		t.Errorf("transcript/evidence leaked: %+v", sec)
+	}
+	if sec.AudioURL == "" {
+		t.Error("section audio_url must stay public")
 	}
 }
 

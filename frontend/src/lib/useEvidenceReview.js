@@ -2,14 +2,20 @@ import { useEffect, useState } from 'react';
 import { getAnswerKey } from './api';
 import { evidenceRanges } from './evidence';
 
-// useEvidenceReview powers a graded reading review: once `enabled` it loads
-// the test's answer key (explanations + evidence), and locate(order) moves
-// to the passage holding that question, highlights the text its evidence
-// cites and scrolls to it. evidenceFor(passage, paragraph) gives the
-// highlight ranges for one paragraph, to pass to HighlightableText.
-// selectPassage is the page's own passage-tab setter.
-export function useEvidenceReview(testId, enabled, passages, selectPassage) {
+// useEvidenceReview powers a graded review: once `enabled` it loads the
+// test's answer key (explanations + evidence, and for listening each
+// section's transcript), and locate(order) moves to the passage / section
+// holding that question, highlights the text its evidence cites and
+// scrolls to it. evidenceFor(unit, paragraph) gives the highlight ranges
+// for one paragraph, to pass to HighlightableText.
+//
+// `units` are the passages (reading) or sections (listening), each with
+// question_groups; the text evidence points into is unit.paragraphs, or
+// for listening the transcript loaded here (units without paragraphs get
+// transcripts[i]). selectUnit is the page's own tab setter.
+export function useEvidenceReview(testId, enabled, units, selectUnit) {
   const [answerKey, setAnswerKey] = useState(null);
+  const [transcripts, setTranscripts] = useState(null);
   const [focus, setFocus] = useState(null);
 
   useEffect(() => {
@@ -17,7 +23,9 @@ export function useEvidenceReview(testId, enabled, passages, selectPassage) {
     let cancelled = false;
     getAnswerKey(testId)
       .then((key) => {
-        if (!cancelled) setAnswerKey(key);
+        if (cancelled) return;
+        setAnswerKey(key.questions);
+        setTranscripts(key.transcripts || null);
       })
       // Explanations are extra: without them the review still shows the
       // marked answers, so a failed fetch just leaves them out.
@@ -34,16 +42,20 @@ export function useEvidenceReview(testId, enabled, passages, selectPassage) {
     mark?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, [focus]);
 
+  function textOf(unit) {
+    return units[unit]?.paragraphs || transcripts?.[unit] || [];
+  }
+
   function locate(order) {
     const entry = answerKey?.[order];
-    const passage = passages.findIndex((p) =>
-      (p.question_groups || []).some((g) => g.questions.some((q) => q.question_order === order)),
+    const passage = units.findIndex((u) =>
+      (u.question_groups || []).some((g) => g.questions.some((q) => q.question_order === order)),
     );
     if (passage === -1 || !entry?.evidence?.length) return;
-    const ranges = evidenceRanges(passages[passage].paragraphs, entry.evidence);
+    const ranges = evidenceRanges(textOf(passage), entry.evidence);
     const found = Object.keys(ranges).map(Number);
     if (found.length === 0) return;
-    selectPassage(passage);
+    selectUnit(passage);
     // A fresh object each time, so locating the same question again still
     // re-runs the scroll effect.
     setFocus({ passage, ranges, paragraph: Math.min(...found) });
@@ -53,5 +65,11 @@ export function useEvidenceReview(testId, enabled, passages, selectPassage) {
     return focus?.passage === passage ? focus.ranges[paragraph] : undefined;
   }
 
-  return { answerKey, locate, evidenceFor };
+  // transcriptFor(section) is a listening section's transcript, once the
+  // answer key has loaded (null before, or for reading).
+  function transcriptFor(unit) {
+    return transcripts?.[unit] || null;
+  }
+
+  return { answerKey, locate, evidenceFor, transcriptFor };
 }

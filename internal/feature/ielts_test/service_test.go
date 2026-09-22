@@ -647,7 +647,7 @@ func TestService_GetAnswerKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("admin: unexpected error: %v", err)
 	}
-	if got := key["1"]; got.Explanation == "" || len(got.Evidence) != 1 || len(got.AcceptedAnswers) == 0 {
+	if got := key.Questions["1"]; got.Explanation == "" || len(got.Evidence) != 1 || len(got.AcceptedAnswers) == 0 {
 		t.Errorf("admin: key[1] = %+v, want answer, explanation and evidence", got)
 	}
 
@@ -668,5 +668,21 @@ func TestService_GetAnswerKey(t *testing.T) {
 	}
 	if _, err := svc.GetAnswerKey(ctx, 1, true, 999); !errors.Is(err, ErrTestNotFound) {
 		t.Errorf("missing test: err = %v, want ErrTestNotFound", err)
+	}
+
+	listening, err := repo.CreateTest(ctx, &Test{
+		Skill:       "listening",
+		TaskType:    "test1",
+		ContentData: mustMarshal(t, listeningWithEvidence([]Paragraph{{Text: "My cat is called Tom."}}, Evidence{Paragraph: 0, Quote: "My cat"})),
+	})
+	if err != nil {
+		t.Fatalf("seed listening test: %v", err)
+	}
+	lk, err := svc.GetAnswerKey(ctx, 1, true, listening.ID)
+	if err != nil {
+		t.Fatalf("listening: unexpected error: %v", err)
+	}
+	if len(lk.Transcripts) != 1 || len(lk.Transcripts[0]) != 1 || len(lk.Questions["1"].Evidence) != 1 {
+		t.Errorf("listening key = %+v, want the section transcript and the cited evidence", lk)
 	}
 }

@@ -81,8 +81,9 @@ export function getTest(id) {
   return request(`/api/tests/${id}`);
 }
 
-// getAnswerKey returns a graded test's answers, explanations and evidence,
-// keyed by question_order. 403 until the user has a graded attempt at it.
+// getAnswerKey returns a graded test's {questions, transcripts}: answers,
+// explanations and evidence keyed by question_order, plus each listening
+// section's transcript. 403 until the user has a graded attempt at it.
 export function getAnswerKey(testId) {
   return request(`/api/tests/${testId}/answer-key`);
 }

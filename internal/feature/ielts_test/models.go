@@ -106,15 +106,25 @@ type ReadingPassage struct {
 }
 
 type ListeningContent struct {
-	AudioURL string             `json:"audio_url"`
+	// AudioURL is one recording of the whole test, each section a time
+	// range in it. It may be empty when every section has its own AudioURL.
+	AudioURL string             `json:"audio_url,omitempty"`
 	Sections []ListeningSection `json:"sections"`
 }
 
 type ListeningSection struct {
-	Title            string          `json:"title,omitempty"`
-	SectionStartTime float64         `json:"section_start_time"`
-	SectionEndTime   float64         `json:"section_end_time"`
-	QuestionGroups   []QuestionGroup `json:"question_groups"`
+	Title string `json:"title,omitempty"`
+	// AudioURL, when set, is this section's own recording: its start/end
+	// times and its questions' timestamp_hints are then seconds into this
+	// file instead of into ListeningContent.AudioURL.
+	AudioURL         string  `json:"audio_url,omitempty"`
+	SectionStartTime float64 `json:"section_start_time"`
+	SectionEndTime   float64 `json:"section_end_time"`
+	// Transcript is what's said in the section — the text a listening
+	// question's Evidence quotes. It gives the answers away, so it's
+	// stripped from public content and served with the answer key.
+	Transcript     []Paragraph     `json:"transcript,omitempty"`
+	QuestionGroups []QuestionGroup `json:"question_groups"`
 }
 
 type Paragraph struct {
@@ -142,8 +152,8 @@ type QuestionGroup struct {
 	// DiagramImageURLs are further diagrams, after DiagramImageURL, when one
 	// group labels several (Cambridge 16 Test 4, Questions 1-6).
 	DiagramImageURLs []string `json:"diagram_image_urls,omitempty"`
-	MapImageURL     string          `json:"map_image_url,omitempty"`     // map-plan-labelling (required)
-	LocationKey     []Option        `json:"location_key,omitempty"`      // map-plan-labelling
+	MapImageURL      string   `json:"map_image_url,omitempty"` // map-plan-labelling (required)
+	LocationKey      []Option `json:"location_key,omitempty"`  // map-plan-labelling
 }
 
 type Question struct {
@@ -159,25 +169,34 @@ type Question struct {
 	// Options are per-question multiple-choice/matching-sentence-endings
 	// options, used when the group doesn't provide SharedOptions instead.
 	Options []Option `json:"options,omitempty"`
-	// Explanation (why the answer is right) and Evidence (where the passage
-	// says so) give the answer away, so like Answer they're stripped from
-	// public content and only served by the answer key after grading.
-	// Evidence is reading-only.
+	// Explanation (why the answer is right) and Evidence (where the passage,
+	// or a listening section's transcript, says so) give the answer away, so
+	// like Answer they're stripped from public content and only served by
+	// the answer key after grading.
 	Explanation string     `json:"explanation,omitempty"`
 	Evidence    []Evidence `json:"evidence,omitempty"`
 }
 
 // Evidence points at where a question's answer is found: Paragraph indexes
-// the passage's Paragraphs and Quote is a verbatim excerpt of it, which the
-// review highlights. A quote rather than character offsets, so it survives
+// the passage's Paragraphs (reading) or the section's Transcript
+// (listening) and Quote is a verbatim excerpt of it, which the review
+// highlights. A quote rather than character offsets, so it survives
 // whitespace changes and is easy to author by hand or by an AI importer.
 type Evidence struct {
 	Paragraph int    `json:"paragraph"`
 	Quote     string `json:"quote"`
 }
 
-// AnswerKeyEntry is one question's answer and explanation, as served by
-// GET /tests/{id}/answer-key.
+// AnswerKey is what GET /tests/{id}/answer-key serves once unlocked.
+type AnswerKey struct {
+	// Questions is keyed by question_order, like score results.
+	Questions map[string]AnswerKeyEntry `json:"questions"`
+	// Transcripts holds each listening section's transcript, by section
+	// index — the text that section's Evidence points into.
+	Transcripts [][]Paragraph `json:"transcripts,omitempty"`
+}
+
+// AnswerKeyEntry is one question's answer and explanation.
 type AnswerKeyEntry struct {
 	Answer          AnswerValue `json:"answer"`
 	AcceptedAnswers []string    `json:"accepted_answers,omitempty"`
