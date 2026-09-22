@@ -25,3 +25,25 @@
   color: var(--ink-700);
   margin-top: var(--space-1);
 }
+
+.ui-score-card-inline {
+  flex-direction: row;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: 0 0 var(--space-3);
+  margin-bottom: 0;
+}
+
+.ui-score-card-inline .ui-score-card-value {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.ui-score-card-inline .ui-score-card-meter {
+  width: 140px;
+  margin-top: 0;
+}
+
+.ui-score-card-inline .ui-score-card-secondary {
+  margin-top: 0;
+}

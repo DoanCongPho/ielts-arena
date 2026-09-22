@@ -11,7 +11,8 @@ import './AutoGradeResult.css';
 // answers are always arrays. `onSeek(seconds)`, if provided, renders a
 // "listen again" button on wrong listening answers that have a
 // timestamp_hint, so the candidate can jump straight to the moment they
-// got it wrong. `compact`, if true, renders only the score summary — used
+// got it wrong. `compact`, if true, renders only the score summary, as a
+// single row — used
 // on the attempt pages, where QuestionList (in review mode, via its own
 // `results` prop) already shows each question inline against the original
 // passage, so a second flat list here would just repeat it.
@@ -30,6 +31,7 @@ export default function AutoGradeResult({ score, questions, onSeek, skill, compa
         skill={skill}
         band={score.overall_band}
         secondaryLabel={`${correctCount}/${totalCount} câu đúng`}
+        inline={compact}
       />
 
       {!compact && (
