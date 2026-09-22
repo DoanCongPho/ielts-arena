@@ -93,9 +93,6 @@ func (s *service) RegisterUser(ctx context.Context, req RegisterRequest) (*AuthR
 		Name:         req.Name,
 		Email:        req.Email,
 		PasswordHash: string(hashedPassword),
-		Level:        1,
-		XP:           0,
-		RankScore:    0,
 	})
 	if err != nil {
 		return nil, err
