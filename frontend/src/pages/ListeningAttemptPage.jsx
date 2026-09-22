@@ -146,7 +146,10 @@ export default function ListeningAttemptPage() {
         <span className={`attempt-timer ${inProgress && remaining <= 5 * 60 ? 'attempt-timer-low' : ''}`}>{formatTime(remaining)}</span>
       </header>
 
-      <div className="attempt-body" {...highlight.areaProps}>
+      {/* Taking the test: one full-width question column (tables and notes
+          need the room), with the player docked at the bottom. Review:
+          two columns, player + transcript beside the marked answers. */}
+      <div className={`attempt-body ${inProgress ? 'listening-exam-layout' : ''}`} {...highlight.areaProps}>
         <div className="attempt-prompt-panel">
           <h2>Listening — {SKILL_CONFIG.listening.taskTypeLabel(test.task_type)}</h2>
           {sections.length > 1 && (
@@ -164,22 +167,21 @@ export default function ListeningAttemptPage() {
             </nav>
           )}
           {inProgress ? (
-            <>
-              <ListeningExamPlayer content={content} started={started} onStart={() => setStarted(true)} />
-              <p className="reading-highlight-hint">Bôi đen câu hỏi để tô đậm — bấm vào phần đã tô để bỏ.</p>
-            </>
+            <p className="reading-highlight-hint listening-exam-hint">Bôi đen câu hỏi để tô đậm — bấm vào phần đã tô để bỏ.</p>
           ) : (
-            <div className="attempt-audio-panel">
-              <audio className="attempt-audio-player" controls {...audio.audioProps} />
-            </div>
+            <>
+              <div className="attempt-audio-panel">
+                <audio className="attempt-audio-player" controls {...audio.audioProps} />
+              </div>
+              <ListeningTranscript
+                section={activeIndex}
+                paragraphs={review.transcriptFor(activeIndex)}
+                evidenceFor={review.evidenceFor}
+                ranges={highlight.ranges}
+                onRemoveRange={highlight.remove}
+              />
+            </>
           )}
-          <ListeningTranscript
-            section={activeIndex}
-            paragraphs={review.transcriptFor(activeIndex)}
-            evidenceFor={review.evidenceFor}
-            ranges={highlight.ranges}
-            onRemoveRange={highlight.remove}
-          />
         </div>
 
         <div className="attempt-answer-panel">
@@ -221,14 +223,22 @@ export default function ListeningAttemptPage() {
         </div>
       </div>
 
-      {!gradeFailed && (
-        <QuestionNavBar
-          questions={allQuestions}
-          answers={answers}
-          results={scoreResults}
-          onJump={handleJumpToQuestion}
-        />
-      )}
+      <div className="listening-dock">
+        {/* Mounted for the whole attempt so playback never restarts. */}
+        {inProgress && (
+          <div className="listening-dock-player">
+            <ListeningExamPlayer content={content} started={started} onStart={() => setStarted(true)} />
+          </div>
+        )}
+        {!gradeFailed && (
+          <QuestionNavBar
+            questions={allQuestions}
+            answers={answers}
+            results={scoreResults}
+            onJump={handleJumpToQuestion}
+          />
+        )}
+      </div>
 
       <HighlightToolbar selection={highlight.selection} onApply={highlight.apply} toolbarRef={highlight.toolbarRef} />
     </div>
