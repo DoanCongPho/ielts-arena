@@ -19,9 +19,14 @@ const (
 )
 
 type Test struct {
-	ID           uint64
-	Skill        string
-	TaskType     string
+	ID       uint64
+	Skill    string
+	TaskType string
+	// Series/Volume/TestNumber place a test in a book ("cambridge", 20, 1 =
+	// Cambridge 20 Test 1). Series is "" for tests outside any series.
+	Series       string
+	Volume       int
+	TestNumber   int
 	ContentData  []byte
 	ThumbnailURL string
 	Source       string

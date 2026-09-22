@@ -89,6 +89,9 @@ func (h *Handler) createTestHandler(w http.ResponseWriter, r *http.Request) {
 	created, err := h.svc.PostTest(r.Context(), Test{
 		Skill:        body.Skill,
 		TaskType:     body.TaskType,
+		Series:       body.Series,
+		Volume:       body.Volume,
+		TestNumber:   body.TestNumber,
 		ContentData:  body.ContentData,
 		ThumbnailURL: body.ThumbnailURL,
 		Source:       body.Source,

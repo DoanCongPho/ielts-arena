@@ -51,6 +51,9 @@ func (r *SubmitRequest) Validate() error {
 type CreateTestRequest struct {
 	Skill        string          `json:"skill"`
 	TaskType     string          `json:"task_type"`
+	Series       string          `json:"series,omitempty"`
+	Volume       int             `json:"volume,omitempty"`
+	TestNumber   int             `json:"test_number,omitempty"`
 	ContentData  json.RawMessage `json:"content_data"`
 	ThumbnailURL string          `json:"thumbnail_url"`
 	Source       string          `json:"source"`
@@ -69,6 +72,9 @@ func (r *CreateTestRequest) Validate() error {
 	}
 	if len(r.ContentData) == 0 {
 		return errors.New("content_data is required")
+	}
+	if r.Series != "" && (r.Volume <= 0 || r.TestNumber <= 0) {
+		return errors.New("a test in a series needs a positive volume and test_number")
 	}
 	if r.XPGain < 0 {
 		return errors.New("xp_gain cannot be negative")

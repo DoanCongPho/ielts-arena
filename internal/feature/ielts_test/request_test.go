@@ -97,6 +97,21 @@ func TestCreateTestRequest_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name:    "series without volume",
+			req:     CreateTestRequest{Skill: "writing", TaskType: "test1", Series: "cambridge", TestNumber: 1, ContentData: validWriting},
+			wantErr: true,
+		},
+		{
+			name:    "series without test_number",
+			req:     CreateTestRequest{Skill: "writing", TaskType: "test1", Series: "cambridge", Volume: 20, ContentData: validWriting},
+			wantErr: true,
+		},
+		{
+			name:    "valid in a series",
+			req:     CreateTestRequest{Skill: "writing", TaskType: "test1", Series: "cambridge", Volume: 20, TestNumber: 1, ContentData: validWriting},
+			wantErr: false,
+		},
+		{
 			name:    "valid",
 			req:     CreateTestRequest{Skill: "writing", TaskType: "task2", ContentData: validWriting, XPGain: 10},
 			wantErr: false,

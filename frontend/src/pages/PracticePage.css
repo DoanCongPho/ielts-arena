@@ -102,6 +102,16 @@
   font-weight: 600;
 }
 
+/* === Test groups (one per book) === */
+.test-group + .test-group {
+  margin-top: var(--space-6);
+}
+
+.test-group-title {
+  margin: 0 0 var(--space-4);
+  color: var(--ink-900);
+}
+
 /* === Test grid === */
 .test-grid {
   display: grid;

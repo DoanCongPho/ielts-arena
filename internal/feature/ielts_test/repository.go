@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-const testColumns = `id, skill, task_type, content_data, thumbnail_url, source, is_current, xp_gain, created_at`
+const testColumns = `id, skill, task_type, series, volume, test_number, content_data, thumbnail_url, source, is_current, xp_gain, created_at`
 const submissionColumns = `id, user_id, test_id, payload, status, submitted_at, attempts, last_error, next_attempt_at, claimed_at`
 const scoreColumns = `id, submission_id, overall_band, details, graded_at`
 
@@ -46,13 +46,39 @@ func NewRepository(db *sql.DB) Repository {
 	return &repository{db: db}
 }
 
+// testSeries holds the nullable series columns while scanning.
+type testSeries struct {
+	series     sql.NullString
+	volume     sql.NullInt64
+	testNumber sql.NullInt64
+}
+
+func (s testSeries) apply(t *Test) {
+	t.Series = s.series.String
+	t.Volume = int(s.volume.Int64)
+	t.TestNumber = int(s.testNumber.Int64)
+}
+
+// nullIfZero stores "no series" as NULL rather than "" / 0.
+func nullIfZero[T comparable](v T) any {
+	var zero T
+	if v == zero {
+		return nil
+	}
+	return v
+}
+
 func scanTest(row *sql.Row) (*Test, error) {
 	var test Test
 	var thumbnailURL sql.NullString
+	var series testSeries
 	err := row.Scan(
 		&test.ID,
 		&test.Skill,
 		&test.TaskType,
+		&series.series,
+		&series.volume,
+		&series.testNumber,
 		&test.ContentData,
 		&thumbnailURL,
 		&test.Source,
@@ -67,6 +93,7 @@ func scanTest(row *sql.Row) (*Test, error) {
 		return nil, fmt.Errorf("scan test: %w", err)
 	}
 	test.ThumbnailURL = thumbnailURL.String
+	series.apply(&test)
 	return &test, nil
 }
 
@@ -79,8 +106,8 @@ func (r *repository) CreateTest(ctx context.Context, t *Test) (*Test, error) {
 	}
 
 	res, err := r.db.ExecContext(ctx,
-		"INSERT INTO tests (skill, task_type, content_data, thumbnail_url, source, is_current, xp_gain, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-		t.Skill, t.TaskType, t.ContentData, t.ThumbnailURL, t.Source, t.IsCurrent, t.XPGain, t.CreatedAt,
+		"INSERT INTO tests (skill, task_type, series, volume, test_number, content_data, thumbnail_url, source, is_current, xp_gain, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		t.Skill, t.TaskType, nullIfZero(t.Series), nullIfZero(t.Volume), nullIfZero(t.TestNumber), t.ContentData, t.ThumbnailURL, t.Source, t.IsCurrent, t.XPGain, t.CreatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("insert test: %w", err)
@@ -101,7 +128,10 @@ func (r *repository) GetTestByID(ctx context.Context, id uint64) (*Test, error) 
 
 func (r *repository) GetListTest(ctx context.Context, skill string, limit, offset int) ([]Test, int, error) {
 	rows, err := r.db.QueryContext(ctx,
-		"SELECT "+testColumns+", COUNT(*) OVER() FROM tests WHERE skill = ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
+		// Books first, newest volume first, tests in book order, so one
+		// book's tests stay contiguous across pages; then everything else.
+		"SELECT "+testColumns+", COUNT(*) OVER() FROM tests WHERE skill = ? "+
+			"ORDER BY series IS NULL, series, volume DESC, test_number, created_at DESC LIMIT ? OFFSET ?",
 		skill, limit, offset,
 	)
 	if err != nil {
@@ -116,10 +146,12 @@ func (r *repository) GetListTest(ctx context.Context, skill string, limit, offse
 	for rows.Next() {
 		var t Test
 		var thumbnailURL sql.NullString
-		if err := rows.Scan(&t.ID, &t.Skill, &t.TaskType, &t.ContentData, &thumbnailURL, &t.Source, &t.IsCurrent, &t.XPGain, &t.CreatedAt, &total); err != nil {
+		var series testSeries
+		if err := rows.Scan(&t.ID, &t.Skill, &t.TaskType, &series.series, &series.volume, &series.testNumber, &t.ContentData, &thumbnailURL, &t.Source, &t.IsCurrent, &t.XPGain, &t.CreatedAt, &total); err != nil {
 			return nil, 0, fmt.Errorf("scan test: %w", err)
 		}
 		t.ThumbnailURL = thumbnailURL.String
+		series.apply(&t)
 		tests = append(tests, t)
 	}
 	return tests, total, rows.Err()
