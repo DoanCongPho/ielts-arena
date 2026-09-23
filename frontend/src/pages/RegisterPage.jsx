@@ -76,13 +76,18 @@ export default function RegisterPage() {
             />
           </div>
 
+          {/* Sign-ups are Gmail-only (auth.validateGmail); catching the
+              wrong domain here saves a round trip, the server still
+              rejects it. */}
           <div className="auth-field">
             <label className="text-label" htmlFor="email">Email</label>
             <input
               id="email" name="email" type="email"
-              placeholder="you@example.com"
+              placeholder="you@gmail.com"
               value={form.email} onChange={handleChange}
               required autoComplete="email"
+              pattern="[^@\s]+@gmail\.com"
+              title="Chỉ hỗ trợ email @gmail.com"
             />
           </div>
 
