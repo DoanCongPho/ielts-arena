@@ -84,7 +84,7 @@ func (s *service) RegisterUser(ctx context.Context, req RegisterRequest) (*AuthR
 	// Hash password
 	hashedPassword, err := bcrypt.GenerateFromPassword(
 		[]byte(req.Password),
-		bcrypt.DefaultCost, // Cost factor (mặc định = 10)
+		bcrypt.DefaultCost, // cost factor (10 by default)
 	)
 	if err != nil {
 		return nil, err

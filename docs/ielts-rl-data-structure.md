@@ -1,85 +1,115 @@
-# IELTS Test Data Structure — Spec cho Dev
+# IELTS Test Data Structure — Developer Spec
 
-## Cấu trúc chung (áp dụng cho cả Reading & Listening)
+## Shared shape (Reading & Listening)
 
 ```
 Test
  └─ passages[] (Reading) / sections[] (Listening)
-     └─ question_groups[]        // 1 group = 1 "Questions X-Y" trong đề thật
+     └─ question_groups[]        // 1 group = one "Questions X-Y" block of the real test
          ├─ group_order
-         ├─ question_type        // xem bảng bên dưới
-         ├─ instructions         // text hiển thị đầu nhóm
-         ├─ shared_options[]?    // dùng khi cả nhóm share 1 danh sách lựa chọn
+         ├─ question_type        // see the tables below
+         ├─ instructions         // the text shown above the group
+         ├─ shared_options[]?    // when the whole group picks from one list
          └─ questions[]
-             ├─ question_order   // số thứ tự GLOBAL xuyên suốt toàn bài test
+             ├─ question_order   // GLOBAL numbering across the whole test
              ├─ text
              ├─ answer
-             ├─ accepted_answers[]?  // các biến thể được chấp nhận
-             ├─ explanation?     // giải thích vì sao đúng (tiếng Việt)
-             └─ evidence[]?      // Reading: {paragraph, quote} — vị trí đáp án trong bài
+             ├─ accepted_answers[]?  // the spellings that count as correct
+             ├─ explanation?     // why the answer is right (written in Vietnamese)
+             └─ evidence[]?      // {paragraph, quote} — where the answer is found
 ```
 
-**Giải thích & vị trí đáp án** (`explanation`, `evidence`) — bị ẩn khỏi `GET /api/tests` giống `answer`, chỉ trả về qua `GET /api/tests/{id}/answer-key` sau khi user đã có bài được chấm (admin xem được luôn):
-- `explanation`: text thuần, xuống dòng bằng `\n`. Nên theo 3 bước: hiểu câu hỏi → keyword được paraphrase trong bài → đối chiếu kết luận.
-- `evidence[]` (chỉ Reading): `paragraph` là **index 0-based** trong `paragraphs[]` của passage chứa câu hỏi, `quote` là đoạn **trích nguyên văn** từ paragraph đó (khoảng trắng và kiểu dấu nháy `'`/`'` không cần khớp). `POST /api/tests` từ chối quote không có trong paragraph.
+**Explanations & evidence** (`explanation`, `evidence`) are stripped from
+`GET /api/tests` like `answer` is, and only served by
+`GET /api/tests/{id}/answer-key` once the user has a graded attempt at that
+test (admins can always read it):
 
-**Nguyên tắc bắt buộc:**
-- `question_order` phải liên tục 1→40 (Reading) hoặc 1→40 (Listening) xuyên suốt TOÀN BỘ bài test, không reset theo từng passage/section.
-- Mỗi phần tử trong `questions[]` phải có ít nhất 1 ô trống/đáp án thật để chấm — không được có "câu hỏi" thuần hiển thị (header, label) lẫn vào mảng này.
-- Khi nhiều câu dùng chung 1 danh sách lựa chọn (matching, word bank) → đưa lên `shared_options` ở group, KHÔNG lặp lại trong từng câu.
-- `answer` của câu điền từ luôn là **mảng** các cách viết chấp nhận được, không phải 1 string cố định.
+- `explanation`: plain text, `\n` between lines. Follow three steps:
+  understand the question → the keywords paraphrased in the text → compare and
+  conclude.
+- `evidence[]`: `paragraph` is a **0-based index** into the `paragraphs[]` of
+  the passage holding the question, or into the listening section's
+  `transcript[]`; `quote` is a **verbatim excerpt** of that paragraph
+  (whitespace and quote style `'` / `'` don't have to match). `POST /api/tests`
+  rejects a quote that isn't in its paragraph.
+
+**Rules:**
+
+- `question_order` must run 1→40 across the WHOLE test, not restarting per
+  passage/section. A `multiple-choice-multi` question covers `select_count`
+  consecutive numbers.
+- Every entry in `questions[]` must be a real blank / answer to grade — no
+  display-only "questions" (headers, labels) mixed into the array.
+- When several questions share one list of choices (matching, word bank), put
+  it in the group's `shared_options` and do NOT repeat it per question.
+- A fill-in-the-blank `answer` always comes with `accepted_answers[]`, the
+  **array** of spellings that count, not a single fixed string.
 
 ---
 
-## 📖 READING — 11 dạng
+## 📖 READING — 11 types
 
-| # | question_type | Field đặc thù | Ghi chú chấm điểm |
+| # | question_type | Type-specific fields | Grading notes |
 |---|---|---|---|
-| 1 | `true-false-not-given` | — | answer ∈ {TRUE, FALSE, NOT GIVEN}, so sánh không phân biệt hoa/thường |
+| 1 | `true-false-not-given` | — | answer ∈ {TRUE, FALSE, NOT GIVEN}, compared case-insensitively |
 | 2 | `yes-no-not-given` | — | answer ∈ {YES, NO, NOT GIVEN} |
-| 3 | `multiple-choice` | `questions[].options[]` ({id, text}) | 1 đáp án đúng |
-| 4 | `multiple-choice-multi` | `select_count`, `options[]` | answer là **mảng 2+ key**, không phân biệt thứ tự. 1 câu **chiếm `select_count` số thứ tự** (`question_order: 23` + `select_count: 2` = câu 23-24, câu kế tiếp là 25) và chấm **1 điểm / key đúng** |
-| 5 | `matching-headings` | `shared_options[]` (danh sách heading), mỗi câu = 1 đoạn văn | answer là key trỏ vào `shared_options` |
-| 6 | `matching-information` | `shared_options[]` (các đoạn A-F, load 1 lần) | 1 đoạn có thể là đáp án cho >1 câu (`allow_reuse: true`) |
-| 7 | `matching-features` | `shared_options[]` (tên người/địa điểm) | mỗi lựa chọn thường chỉ dùng 1 lần (`allow_reuse: false`) |
-| 8 | `matching-sentence-endings` | `options[]` per câu hoặc `shared_options[]` | nối nửa đầu câu — nửa sau |
-| 9 | `sentence-completion` | — | điền input tự do, không word bank, giới hạn số từ (`word_limit`) |
-| 10 | `summary-completion` | `has_word_bank`, `word_bank[]?`, `summary_text` (chứa `{{gap}}`) | nếu `word_bank` null → input tự do; nếu có → chọn từ box |
-| 11 | `table-completion` | `column_headers[]` (metadata, KHÔNG phải question), `questions[]` = từng hàng | chỉ ô có `{{gap}}` mới là câu hỏi thật |
-| — | `short-answer` | `word_limit` | giống sentence-completion nhưng dạng câu hỏi Wh- |
-| — | `diagram-label-completion` | `diagram_image_url`, `diagram_image_urls[]?` (ảnh thêm khi 1 nhóm có nhiều sơ đồ) | answer là từ/cụm từ lấy từ bài đọc; `text` có thể trống khi số câu đã in trên ảnh |
-| — | `flow-chart-completion` | `flow_structure.steps[]` (chứa `{{gap}}`) | tương tự table nhưng dạng chuỗi bước |
+| 3 | `multiple-choice` | `questions[].options[]` ({id, text}) | one correct answer |
+| 4 | `multiple-choice-multi` | `select_count`, `options[]` | answer is an **array of 2+ keys**, order-independent. One question **covers `select_count` numbers** (`question_order: 23` + `select_count: 2` = questions 23-24, the next question is 25) and scores **one mark per correct key** |
+| 5 | `matching-headings` | `shared_options[]` (the list of headings), one question per paragraph | answer is a key into `shared_options` |
+| 6 | `matching-information` | `shared_options[]` (paragraphs A-F, declared once) | one paragraph may answer more than one question (`allow_reuse: true`) |
+| 7 | `matching-features` | `shared_options[]` (people / places) | each choice is usually used once (`allow_reuse: false`) |
+| 8 | `matching-sentence-endings` | `options[]` per question, or `shared_options[]` | join the first half of a sentence to its ending |
+| 9 | `sentence-completion` | `word_limit` | free-text blank, no word bank, with a word limit |
+| 10 | `summary-completion` | `has_word_bank`, `word_bank[]?`, `summary_text` (holds `{{gap}}`) | without a word bank → free text; with one → pick from the box |
+| 11 | `table-completion` | `table_structure` (`columns[]` as metadata, NOT questions; `rows[][]`) | only a cell holding `{{gap}}` is a real question |
+| — | `short-answer` | `word_limit` | like sentence completion, but phrased as a Wh- question |
+| — | `diagram-label-completion` | `diagram_image_url`, `diagram_image_urls[]?` (further images when one group labels several diagrams) | the answer is a word/phrase from the passage; `text` may be empty when the numbers are printed on the image |
+| — | `flow-chart-completion` | `flow_structure.steps[]` (holds `{{gap}}`) | like a table, but as a chain of steps |
 
 ---
 
-## 🎧 LISTENING — 10 dạng (thêm phần riêng cho audio)
+## 🎧 LISTENING — 10 types (plus the audio-specific fields)
 
-**Bổ sung ở cấp Test:**
+**Extra fields:**
+
 ```
-test.audio_url            // 1 file DUY NHẤT cho toàn bài
-section.section_start_time / section_end_time   // mốc giây trong file chung
-question.timestamp_hint   // mốc giây tuyệt đối, chỉ để UI tua gần đúng, KHÔNG dùng để chấm
+test.audio_url            // one recording for the whole test; optional when
+                          // every section brings its own
+section.audio_url         // this section's own recording; its times and its
+                          // questions' timestamp_hints are then seconds into
+                          // this file
+section.section_start_time / section_end_time   // seconds within the recording
+section.transcript[]      // what is said, as paragraphs — what evidence quotes;
+                          // hidden until the attempt is graded
+question.timestamp_hint   // seconds into the section's recording, for the
+                          // review UI only — NEVER used for grading
 ```
 
-| # | question_type | Field đặc thù | Ghi chú |
+| # | question_type | Type-specific fields | Notes |
 |---|---|---|---|
-| 1 | `form-completion` | `form_structure.fields[]` | điền form (tên, ngày, sđt...) |
-| 2 | `note-completion` | `note_structure.items[]` (chứa `{{gap}}`) | tương tự table nhưng dạng bullet notes |
-| 3 | `table-completion` | `table_structure.rows[]` | giống Reading |
-| 4 | `flow-chart-completion` | `flow_structure.steps[]` | giống Reading |
-| 5 | `summary-completion` | `summary_text`, `word_bank[]?` | giống Reading |
-| 6 | `sentence-completion` | — | điền câu đơn |
-| 7 | `multiple-choice` | `options[]` | 1 đáp án |
-| 8 | `multiple-choice-multi` | `select_count` | chọn 2+ đáp án |
-| 9 | `matching` | `shared_options[]` (ý kiến/đặc điểm) | thường dùng ở Part 3 — nối người nói với ý kiến |
-| 10 | `map-plan-labelling` | `map_image_url` (**bắt buộc**), `location_key[]` mô tả từng chữ cái/vị trí | KHÔNG được để trống — nếu thiếu ảnh/mô tả, câu hỏi không dùng được (lỗi đã gặp ở bản trước) |
+| 1 | `form-completion` | `form_structure.fields[]` | filling in a form (name, date, phone…) |
+| 2 | `note-completion` | `note_structure.items[]` (holds `{{gap}}`) | like a table, but as bulleted notes |
+| 3 | `table-completion` | `table_structure.rows[]` | as in Reading |
+| 4 | `flow-chart-completion` | `flow_structure.steps[]` | as in Reading |
+| 5 | `summary-completion` | `summary_text`, `word_bank[]?` | as in Reading |
+| 6 | `sentence-completion` | — | a single-sentence blank |
+| 7 | `multiple-choice` | `options[]` | one answer |
+| 8 | `multiple-choice-multi` | `select_count` | pick 2+ answers |
+| 9 | `matching` | `shared_options[]` (opinions / features) | common in Part 3 — match each speaker to an opinion |
+| 10 | `map-plan-labelling` | `map_image_url` (**required**), `location_key[]` describing each letter / place | must not be empty — without the image or the key the question is unusable (a bug hit in an earlier version) |
+
+Note structures (`note_structure.items`, `form_structure.fields`, and each
+`table_structure` cell, which may hold several `\n`-separated lines) carry
+light markup that the frontend renders: `## text` is a subheading, `- text` a
+bullet, one level deeper per leading tab (`\t- text`); anything else is a
+plain line.
 
 ---
 
-## Checklist khi tạo 1 đề test mới (để đảm bảo cover đủ dạng)
+## Checklist for authoring a new test (so every type is covered)
 
-- [ ] Reading: có ít nhất 1 group mỗi dạng trong 11 dạng ở trên, trải đều 3 passage
-- [ ] Listening: có ít nhất 1 group mỗi dạng trong 10 dạng ở trên, trải đều 4 section — đặc biệt `map-plan-labelling` phải có `map_image_url` thật
-- [ ] Tổng `question_order` = đúng 40 cho mỗi kỹ năng, không trùng, không nhảy số
-- [ ] Mọi phần tử `shared_options`/`word_bank` chỉ khai báo 1 lần ở cấp group, không copy lặp trong từng câu
-- [ ] Mọi `answer` dạng điền từ là mảng (kể cả khi chỉ có 1 cách viết đúng)
+- [ ] Reading: at least one group of each of the 11 types above, spread across the 3 passages
+- [ ] Listening: at least one group of each of the 10 types above, spread across the 4 sections — `map-plan-labelling` especially needs a real `map_image_url`
+- [ ] `question_order` totals exactly 40 marks per skill, with no duplicates and no gaps
+- [ ] Every `shared_options` / `word_bank` is declared once at group level, never copied into each question
+- [ ] Every fill-in-the-blank answer carries `accepted_answers` (even when only one spelling is correct)
