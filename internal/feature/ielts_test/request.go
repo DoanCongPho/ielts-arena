@@ -38,16 +38,6 @@ type SubmitRequest struct {
 	Payload json.RawMessage `json:"payload"`
 }
 
-func (r *SubmitRequest) Validate() error {
-	if r.TestID == 0 {
-		return errors.New("test_id is required")
-	}
-	if len(r.Payload) == 0 {
-		return errors.New("payload cannot be empty")
-	}
-	return nil
-}
-
 type CreateTestRequest struct {
 	Skill        string          `json:"skill"`
 	TaskType     string          `json:"task_type"`
@@ -75,6 +65,16 @@ func (r *CreateTestRequest) Test() Test {
 		IsCurrent:    r.IsCurrent,
 		XPGain:       r.XPGain,
 	}
+}
+
+func (r *SubmitRequest) Validate() error {
+	if r.TestID == 0 {
+		return errors.New("test_id is required")
+	}
+	if len(r.Payload) == 0 {
+		return errors.New("payload cannot be empty")
+	}
+	return nil
 }
 
 func (r *CreateTestRequest) Validate() error {

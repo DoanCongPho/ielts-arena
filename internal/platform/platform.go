@@ -9,15 +9,7 @@ import (
 
 type Platform struct {
 	Cfg *config.Config
-	// Log *logrus.Logger
-	DB *sql.DB
-	// Audit       audit.Recorder
-	// Settings    settings.Service
-	// Auth        auth.Service
-	// Users       auth.Repository
-	// LoginEvents auth.LoginEventRepository
-	// I18n        *i18n.Bundle
-	// Mailer      mailer.Mailer
+	DB  *sql.DB
 }
 
 func Build(cfg *config.Config) (*Platform, error) {
