@@ -11,7 +11,7 @@ import (
 func TestPresignQuery_AWSExample(t *testing.T) {
 	now := time.Date(2013, 5, 24, 0, 0, 0, 0, time.UTC)
 	got := presignQuery(
-		"examplebucket.s3.amazonaws.com", "/test.txt", "us-east-1",
+		"GET", "examplebucket.s3.amazonaws.com", "/test.txt", "us-east-1",
 		"AKIAIOSFODNN7EXAMPLE", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
 		24*time.Hour, now,
 	)
