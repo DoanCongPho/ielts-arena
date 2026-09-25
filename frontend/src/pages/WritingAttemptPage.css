@@ -222,3 +222,70 @@
   flex-direction: column;
   gap: var(--space-3);
 }
+
+.submission-mode-tag {
+  display: inline-block;
+  margin: 0 0 var(--space-3);
+  padding: 2px var(--space-2);
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--ink-700);
+  background: var(--paper-50);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+}
+
+/* Mode picker shown before a writing attempt starts. */
+.attempt-mode-card {
+  max-width: 560px;
+  margin: var(--space-7) auto 0;
+  background: var(--surface-0);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-6);
+}
+
+.attempt-mode-card h2 {
+  font-family: var(--font-ui);
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 var(--space-2);
+}
+
+.attempt-mode-lead {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  color: var(--ink-700);
+  margin: 0 0 var(--space-4);
+}
+
+.attempt-mode-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+@media (max-width: 600px) {
+  .attempt-mode-options {
+    grid-template-columns: 1fr;
+  }
+}
+
+.attempt-mode-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  height: auto;
+  padding: var(--space-4);
+  text-align: left;
+  white-space: normal;
+}
+
+.attempt-mode-option span {
+  font-size: 13px;
+  font-weight: 400;
+  opacity: 0.85;
+}

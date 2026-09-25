@@ -28,6 +28,11 @@ func validateContentData(skill string, raw []byte) error {
 		if c.Prompt == "" {
 			return errors.New("content_data.prompt is required for writing")
 		}
+		// The grader can only show the model an app asset or a public link.
+		if u := c.ImageURL; u != "" && !strings.HasPrefix(u, "/assets/") &&
+			!strings.HasPrefix(u, "https://") && !strings.HasPrefix(u, "http://") {
+			return errors.New("content_data.image_url must be an /assets/ path or an http(s) URL")
+		}
 	case "speaking":
 		var c SpeakingContent
 		if err := json.Unmarshal(raw, &c); err != nil {

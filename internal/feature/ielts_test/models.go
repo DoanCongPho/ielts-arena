@@ -72,6 +72,9 @@ type Score struct {
 type WritingContent struct {
 	Prompt   string `json:"prompt"`
 	ImageURL string `json:"image_url,omitempty"`
+	// SampleAnswer is a model answer printed with the task (e.g. a
+	// Cambridge examiner's). When empty the grader writes one.
+	SampleAnswer string `json:"sample_answer,omitempty"`
 }
 
 type WritingPayload struct {
@@ -82,6 +85,10 @@ type ScoreDetails struct {
 	Criteria    map[string]CriterionScore `json:"criteria"`
 	Corrections []Correction              `json:"corrections"`
 	ModelAnswer string                    `json:"model_answer"`
+	// ModelAnswerSource is "sample" for the test's stored sample answer,
+	// "llm" for one the grader wrote.
+	ModelAnswerSource string `json:"model_answer_source,omitempty"`
+	WordCount         int    `json:"word_count"`
 }
 
 // --- speaking test ---

@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-// Reading and writing attempts get a fixed time allowance.
+// Reading attempts get a fixed time allowance, as does a writing task of
+// unknown type.
 export const ATTEMPT_SECONDS = 60 * 60;
+
+// A timed writing attempt gets the time the real exam suggests per task.
+export const WRITING_SECONDS = { task1: 20 * 60, task2: 40 * 60 };
 
 // A listening attempt lasts as long as its recording plus this, to check
 // answers once the last part has played.
@@ -46,6 +50,28 @@ export function useCountdown(totalSeconds, running, onExpire) {
   }, [running, totalSeconds]);
 
   return remaining;
+}
+
+// useElapsed counts seconds up from the first time `running` is true and
+// freezes when it turns false — the untimed counterpart of useCountdown,
+// measured against the wall clock for the same reason.
+export function useElapsed(running) {
+  const [elapsed, setElapsed] = useState(0);
+  const startedAt = useRef(null);
+
+  useEffect(() => {
+    if (!running) return;
+    if (startedAt.current == null) startedAt.current = Date.now();
+
+    function tick() {
+      setElapsed(Math.floor((Date.now() - startedAt.current) / 1000));
+    }
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [running]);
+
+  return elapsed;
 }
 
 // useLeaveGuard stops an in-progress attempt from being left by accident —

@@ -104,6 +104,11 @@ export default function SubmissionDetailPage() {
 
           <div className="attempt-answer-panel">
             <h2 className="submission-answer-heading">Bài làm của bạn</h2>
+            {payload?.mode && (
+              <p className="submission-mode-tag">
+                {payload.mode === 'practice' ? 'Luyện tập' : 'Thi thử'} · {formatSeconds(payload.elapsed_seconds)}
+              </p>
+            )}
             <p className="submission-answer-text">{payload?.text}</p>
             {notGradedMessage}
             {score && <ScoreResult score={score} />}
