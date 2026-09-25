@@ -1,0 +1,3056 @@
+model=judge-model temperature=0.1 max_tokens=3500
+--- system
+You are a certified IELTS Speaking examiner. You are rating a full three-part IELTS Speaking test on one criterion only: Pronunciation.
+
+How an IELTS examiner rates:
+- Rate the performance across the whole test, not answer by answer. Use every part you are given.
+- Use best fit: award the band whose descriptor as a whole fits the performance better than the bands either side. A band's key features must be present to award it.
+- Award whole bands only (1-9).
+- Never penalise accent itself, or the opinions and ideas expressed. Rate language only.
+- Rehearsed or memorised answers, and answers that don't address the question, are not evidence of ability: leave them out when rating and report their question ids.
+- The transcript comes from speech recognition. It may drop fillers or quietly fix small slips, so don't reward accuracy the measurements contradict, and don't penalise a word that is clearly a recognition error.
+
+Band descriptors for Pronunciation:
+Band 9: Uses the full range of pronunciation features to express precise and subtle meaning. Connected speech is flexible and sustained throughout. Understood effortlessly throughout; accent has no effect on intelligibility.
+Band 8: Uses a wide range of pronunciation features to express precise and subtle meaning. Keeps an appropriate rhythm. Uses stress and intonation flexibly over long utterances, with occasional lapses. Easily understood throughout; accent has minimal effect on intelligibility.
+Band 7: Has every positive feature of band 6 and some, but not all, of the positive features of band 8.
+Band 6: Uses a range of pronunciation features with uneven control. Chunking is generally appropriate, but rhythm may suffer from a lack of stress-timing or from speaking too fast. Some effective use of intonation and stress, not sustained. Some words or sounds are mispronounced, causing only occasional unclarity. Can generally be understood throughout without much effort.
+Band 5: Has every positive feature of band 4 and some, but not all, of the positive features of band 6.
+Band 4: Uses some acceptable pronunciation features, but the range is limited. Some acceptable chunking, with frequent lapses in overall rhythm. Attempts intonation and stress with limited control. Words and sounds are often mispronounced, causing unclarity. The listener needs some effort to understand, and there may be stretches that cannot be understood.
+Band 3: Has some, but not all, of the positive features of band 4.
+Band 2: Few acceptable pronunciation features, perhaps because the sample is too small. Delivery problems undermine connected speech. Most words and sounds are mispronounced and little meaning comes across. Often unintelligible.
+Band 1: Speech cannot be understood.
+
+Work in this order:
+1. For each band from 9 down to 4 (and lower if needed), check the descriptor's key features against the candidate's speech: "met", "partly" or "not_met", each with a short quote or measurement as evidence.
+2. Pick the best-fit band.
+3. Write feedback an examiner would give: two to four sentences, specific to this candidate, quoting their own words. Then two or three concrete improvements.
+
+Respond with ONLY valid JSON:
+{
+  "checks": [ { "band": <int>, "feature": "<descriptor feature>", "verdict": "met|partly|not_met", "evidence": "<quote or measurement>" } ],
+  "band": <whole number 1-9>,
+  "feedback": "<string>",
+  "improvements": ["<string>"],
+  "rehearsed_question_ids": ["<id of an answer that sounds memorised>"],
+  "off_topic_question_ids": ["<id of an answer that doesn't address its question>"]
+}
+--- user
+Transcript (verbatim speech recognition, by question):
+
+=== Part 1 ===
+[p1.t1.q1] Examiner: Where is your hometown?
+Candidate (5 s): My hometown is Da Nang, a coastal city in the centre of Vietnam.
+[p1.t1.q2] Examiner: Do you like living there?
+Candidate (7 s): Yes I like it very much, because the beaches is beautiful and the people are friendly.
+[p1.t2.q1] Examiner: What music do you like?
+Candidate (5 s): I like pop music and, um, sometimes classical music when I study.
+
+=== Part 2 ===
+[p2] Examiner: Describe a book you enjoyed reading. / You should say: / - what the book was / - when you read it / - what it was about / and explain why you enjoyed it.
+Candidate (29 s): I want to talk about a book called The Little Prince. I read it when I am young, maybe ten years old. It is about a little prince who travel between planets and meet many strange adults. I I really enjoyed it because it teach me that, uh, the most important things are invisible to the eyes. On top of that, the drawings are lovely. All in all, it is a book I would recommend to anyone.
+[p2.f1] Examiner: Do you often read?
+Candidate (4 s): Not very often these days, maybe one book a month.
+
+=== Part 3 ===
+[p3.q1] Examiner: Why do people read less today?
+Candidate (8 s): I think people read less because smartphones compete for our attention and short videos is more fun.
+[p3.q2] Examiner: Should schools make reading compulsory?
+Candidate (7 s): Personally, I am not sure. If children are forced to read, they may end up hating it.
+[p3.q3] Examiner: Will printed books disappear?
+Candidate (7 s): No, I don't think so. Printed books will always have a place, although e-books are growing.
+
+
+Measurements from the recordings:
+{
+  "mid_clause_pause_share": 1,
+  "pronunciation": {
+    "estimated": false,
+    "intelligibility": 0.82,
+    "gop_mean": 78.5,
+    "per": 0.21,
+    "prosody": {
+      "pitch_range_st": 5.4,
+      "pitch_std_st": 2.2,
+      "stress_match_rate": 0.7,
+      "npvi_vowel": 52.3
+    },
+    "sampled_seconds": 71.4,
+    "mispronounced": [
+      {
+        "word": "read",
+        "score": 41.5,
+        "expected": "θ",
+        "heard": "t",
+        "count": 3
+      },
+      {
+        "word": "book",
+        "score": 41.5,
+        "expected": "θ",
+        "heard": "t",
+        "count": 2
+      },
+      {
+        "word": "like",
+        "score": 41.5,
+        "expected": "θ",
+        "heard": "t",
+        "count": 2
+      },
+      {
+        "word": "that",
+        "score": 41.5,
+        "expected": "θ",
+        "heard": "t",
+        "count": 2
+      },
+      {
+        "word": "very",
+        "score": 41.5,
+        "expected": "θ",
+        "heard": "t",
+        "count": 2
+      },
+      {
+        "word": "when",
+        "score": 41.5,
+        "expected": "θ",
+        "heard": "t",
+        "count": 2
+      },
+      {
+        "word": "although",
+        "score": 41.5,
+        "expected": "θ",
+        "heard": "t",
+        "count": 1
+      },
+      {
+        "word": "children",
+        "score": 41.5,
+        "expected": "θ",
+        "heard": "t",
+        "count": 1
+      },
+      {
+        "word": "days",
+        "score": 41.5,
+        "expected": "θ",
+        "heard": "t",
+        "count": 1
+      },
+      {
+        "word": "eyes",
+        "score": 41.5,
+        "expected": "θ",
+        "heard": "t",
+        "count": 1
+      },
+      {
+        "word": "friendly",
+        "score": 41.5,
+        "expected": "θ",
+        "heard": "t",
+        "count": 1
+      },
+      {
+        "word": "have",
+        "score": 41.5,
+        "expected": "θ",
+        "heard": "t",
+        "count": 1
+      },
+      {
+        "word": "hometown",
+        "score": 41.5,
+        "expected": "θ",
+        "heard": "t",
+        "count": 1
+      },
+      {
+        "word": "less",
+        "score": 41.5,
+        "expected": "θ",
+        "heard": "t",
+        "count": 1
+      },
+      {
+        "word": "many",
+        "score": 41.5,
+        "expected": "θ",
+        "heard": "t",
+        "count": 1
+      },
+      {
+        "word": "meet",
+        "score": 41.5,
+        "expected": "θ",
+        "heard": "t",
+        "count": 1
+      },
+      {
+        "word": "more",
+        "score": 41.5,
+        "expected": "θ",
+        "heard": "t",
+        "count": 1
+      },
+      {
+        "word": "most",
+        "score": 41.5,
+        "expected": "θ",
+        "heard": "t",
+        "count": 1
+      },
+      {
+        "word": "much",
+        "score": 41.5,
+        "expected": "θ",
+        "heard": "t",
+        "count": 1
+      },
+      {
+        "word": "nang",
+        "score": 41.5,
+        "expected": "θ",
+        "heard": "t",
+        "count": 1
+      },
+      {
+        "word": "sure",
+        "score": 41.5,
+        "expected": "θ",
+        "heard": "t",
+        "count": 1
+      },
+      {
+        "word": "talk",
+        "score": 41.5,
+        "expected": "θ",
+        "heard": "t",
+        "count": 1
+      },
+      {
+        "word": "they",
+        "score": 41.5,
+        "expected": "θ",
+        "heard": "t",
+        "count": 1
+      },
+      {
+        "word": "want",
+        "score": 41.5,
+        "expected": "θ",
+        "heard": "t",
+        "count": 1
+      }
+    ],
+    "words": {
+      "p1.t1.q1": [
+        {
+          "index": 0,
+          "word": "My",
+          "score": 92,
+          "start": 0,
+          "end": 0.3,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "word": "hometown",
+          "score": 41.5,
+          "start": 0.35,
+          "end": 0.6499999999999999,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "word": "is",
+          "score": 92,
+          "start": 0.7,
+          "end": 1,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "word": "Da",
+          "score": 92,
+          "start": 1.0499999999999998,
+          "end": 1.3499999999999999,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "word": "Nang",
+          "score": 41.5,
+          "start": 1.4,
+          "end": 1.7,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 5,
+          "word": "a",
+          "score": 92,
+          "start": 1.75,
+          "end": 2.05,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 6,
+          "word": "coastal",
+          "score": 92,
+          "start": 2.1,
+          "end": 2.4,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 8,
+          "word": "in",
+          "score": 92,
+          "start": 2.8000000000000003,
+          "end": 3.1,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 9,
+          "word": "the",
+          "score": 92,
+          "start": 3.1500000000000004,
+          "end": 3.45,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 10,
+          "word": "centre",
+          "score": 92,
+          "start": 3.5000000000000004,
+          "end": 3.8000000000000003,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 11,
+          "word": "of",
+          "score": 92,
+          "start": 3.8500000000000005,
+          "end": 4.15,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 12,
+          "word": "Vietnam",
+          "score": 92,
+          "start": 4.2,
+          "end": 4.5,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        }
+      ],
+      "p1.t1.q2": [
+        {
+          "index": 0,
+          "word": "Yes",
+          "score": 92,
+          "start": 0,
+          "end": 0.3,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "word": "I",
+          "score": 92,
+          "start": 0.35,
+          "end": 0.6499999999999999,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "word": "like",
+          "score": 41.5,
+          "start": 0.7,
+          "end": 1,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "word": "it",
+          "score": 92,
+          "start": 1.0499999999999998,
+          "end": 1.3499999999999999,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "word": "very",
+          "score": 41.5,
+          "start": 1.4,
+          "end": 1.7,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 5,
+          "word": "much",
+          "score": 41.5,
+          "start": 1.75,
+          "end": 2.05,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 6,
+          "word": "because",
+          "score": 92,
+          "start": 2.1,
+          "end": 2.4,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 8,
+          "word": "beaches",
+          "score": 92,
+          "start": 2.8000000000000003,
+          "end": 3.1,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 9,
+          "word": "is",
+          "score": 92,
+          "start": 3.1500000000000004,
+          "end": 3.45,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 10,
+          "word": "beautiful",
+          "score": 92,
+          "start": 3.5000000000000004,
+          "end": 3.8000000000000003,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 11,
+          "word": "and",
+          "score": 92,
+          "start": 5.050000000000001,
+          "end": 5.3500000000000005,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 12,
+          "word": "the",
+          "score": 92,
+          "start": 5.4,
+          "end": 5.7,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 13,
+          "word": "people",
+          "score": 92,
+          "start": 5.75,
+          "end": 6.05,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 14,
+          "word": "are",
+          "score": 92,
+          "start": 6.1,
+          "end": 6.3999999999999995,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 15,
+          "word": "friendly",
+          "score": 41.5,
+          "start": 6.449999999999999,
+          "end": 6.749999999999999,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        }
+      ],
+      "p1.t2.q1": [
+        {
+          "index": 0,
+          "word": "I",
+          "score": 92,
+          "start": 0,
+          "end": 0.3,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "word": "like",
+          "score": 41.5,
+          "start": 0.35,
+          "end": 0.6499999999999999,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "word": "pop",
+          "score": 92,
+          "start": 0.7,
+          "end": 1,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "word": "music",
+          "score": 92,
+          "start": 1.0499999999999998,
+          "end": 1.3499999999999999,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "word": "and",
+          "score": 92,
+          "start": 1.4,
+          "end": 1.7,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 5,
+          "word": "um",
+          "score": 92,
+          "start": 1.75,
+          "end": 2.05,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 6,
+          "word": "sometimes",
+          "score": 92,
+          "start": 2.1,
+          "end": 2.4,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 8,
+          "word": "music",
+          "score": 92,
+          "start": 2.8000000000000003,
+          "end": 3.1,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 9,
+          "word": "when",
+          "score": 41.5,
+          "start": 3.1500000000000004,
+          "end": 3.45,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 10,
+          "word": "I",
+          "score": 92,
+          "start": 3.5000000000000004,
+          "end": 3.8000000000000003,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 11,
+          "word": "study",
+          "score": 92,
+          "start": 3.8500000000000005,
+          "end": 4.15,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        }
+      ],
+      "p2": [
+        {
+          "index": 0,
+          "word": "I",
+          "score": 92,
+          "start": 0,
+          "end": 0.3,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "word": "want",
+          "score": 41.5,
+          "start": 0.35,
+          "end": 0.6499999999999999,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "word": "to",
+          "score": 92,
+          "start": 0.7,
+          "end": 1,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "word": "talk",
+          "score": 41.5,
+          "start": 1.0499999999999998,
+          "end": 1.3499999999999999,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "word": "about",
+          "score": 92,
+          "start": 1.4,
+          "end": 1.7,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 5,
+          "word": "a",
+          "score": 92,
+          "start": 1.75,
+          "end": 2.05,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 6,
+          "word": "book",
+          "score": 41.5,
+          "start": 2.1,
+          "end": 2.4,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 8,
+          "word": "The",
+          "score": 92,
+          "start": 2.8000000000000003,
+          "end": 3.1,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 9,
+          "word": "Little",
+          "score": 92,
+          "start": 3.1500000000000004,
+          "end": 3.45,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 10,
+          "word": "Prince",
+          "score": 92,
+          "start": 3.5000000000000004,
+          "end": 3.8000000000000003,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 11,
+          "word": "I",
+          "score": 92,
+          "start": 3.8500000000000005,
+          "end": 4.15,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 12,
+          "word": "read",
+          "score": 41.5,
+          "start": 4.2,
+          "end": 4.5,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 13,
+          "word": "it",
+          "score": 92,
+          "start": 4.55,
+          "end": 4.85,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 14,
+          "word": "when",
+          "score": 41.5,
+          "start": 4.8999999999999995,
+          "end": 5.199999999999999,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 15,
+          "word": "I",
+          "score": 92,
+          "start": 5.249999999999999,
+          "end": 5.549999999999999,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 16,
+          "word": "am",
+          "score": 92,
+          "start": 5.599999999999999,
+          "end": 5.899999999999999,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 17,
+          "word": "young",
+          "score": 92,
+          "start": 5.949999999999998,
+          "end": 6.249999999999998,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 19,
+          "word": "ten",
+          "score": 92,
+          "start": 7.149999999999998,
+          "end": 7.4499999999999975,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 20,
+          "word": "years",
+          "score": 92,
+          "start": 7.499999999999997,
+          "end": 7.799999999999997,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 21,
+          "word": "old",
+          "score": 92,
+          "start": 7.849999999999997,
+          "end": 8.149999999999997,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 22,
+          "word": "It",
+          "score": 92,
+          "start": 8.199999999999998,
+          "end": 8.499999999999998,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 23,
+          "word": "is",
+          "score": 92,
+          "start": 8.549999999999997,
+          "end": 8.849999999999998,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 24,
+          "word": "about",
+          "score": 92,
+          "start": 8.899999999999997,
+          "end": 9.199999999999998,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 25,
+          "word": "a",
+          "score": 92,
+          "start": 9.249999999999996,
+          "end": 9.549999999999997,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 26,
+          "word": "little",
+          "score": 92,
+          "start": 9.599999999999996,
+          "end": 9.899999999999997,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 27,
+          "word": "prince",
+          "score": 92,
+          "start": 9.949999999999996,
+          "end": 10.249999999999996,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 28,
+          "word": "who",
+          "score": 92,
+          "start": 10.299999999999995,
+          "end": 10.599999999999996,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 30,
+          "word": "between",
+          "score": 92,
+          "start": 10.999999999999995,
+          "end": 11.299999999999995,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 31,
+          "word": "planets",
+          "score": 92,
+          "start": 11.349999999999994,
+          "end": 11.649999999999995,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 32,
+          "word": "and",
+          "score": 92,
+          "start": 12.899999999999993,
+          "end": 13.199999999999994,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 33,
+          "word": "meet",
+          "score": 41.5,
+          "start": 13.249999999999993,
+          "end": 13.549999999999994,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 34,
+          "word": "many",
+          "score": 41.5,
+          "start": 13.599999999999993,
+          "end": 13.899999999999993,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 35,
+          "word": "strange",
+          "score": 92,
+          "start": 13.949999999999992,
+          "end": 14.249999999999993,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 36,
+          "word": "adults",
+          "score": 92,
+          "start": 14.299999999999992,
+          "end": 14.599999999999993,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 37,
+          "word": "I",
+          "score": 92,
+          "start": 14.649999999999991,
+          "end": 14.949999999999992,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 38,
+          "word": "I",
+          "score": 92,
+          "start": 14.999999999999991,
+          "end": 15.299999999999992,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 39,
+          "word": "really",
+          "score": 92,
+          "start": 15.34999999999999,
+          "end": 15.649999999999991,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 41,
+          "word": "it",
+          "score": 92,
+          "start": 16.04999999999999,
+          "end": 16.34999999999999,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 42,
+          "word": "because",
+          "score": 92,
+          "start": 16.39999999999999,
+          "end": 16.699999999999992,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 43,
+          "word": "it",
+          "score": 92,
+          "start": 16.749999999999993,
+          "end": 17.049999999999994,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 44,
+          "word": "teach",
+          "score": 92,
+          "start": 17.099999999999994,
+          "end": 17.399999999999995,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 45,
+          "word": "me",
+          "score": 92,
+          "start": 17.449999999999996,
+          "end": 17.749999999999996,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 46,
+          "word": "that",
+          "score": 41.5,
+          "start": 17.799999999999997,
+          "end": 18.099999999999998,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 47,
+          "word": "uh",
+          "score": 92,
+          "start": 18.15,
+          "end": 18.45,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 48,
+          "word": "the",
+          "score": 92,
+          "start": 18.5,
+          "end": 18.8,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 49,
+          "word": "most",
+          "score": 41.5,
+          "start": 18.85,
+          "end": 19.150000000000002,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 50,
+          "word": "important",
+          "score": 92,
+          "start": 19.200000000000003,
+          "end": 19.500000000000004,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 52,
+          "word": "are",
+          "score": 92,
+          "start": 19.900000000000006,
+          "end": 20.200000000000006,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 53,
+          "word": "invisible",
+          "score": 92,
+          "start": 20.250000000000007,
+          "end": 20.550000000000008,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 54,
+          "word": "to",
+          "score": 92,
+          "start": 20.60000000000001,
+          "end": 20.90000000000001,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 55,
+          "word": "the",
+          "score": 92,
+          "start": 20.95000000000001,
+          "end": 21.25000000000001,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 56,
+          "word": "eyes",
+          "score": 41.5,
+          "start": 21.30000000000001,
+          "end": 21.600000000000012,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 57,
+          "word": "On",
+          "score": 92,
+          "start": 21.650000000000013,
+          "end": 21.950000000000014,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 58,
+          "word": "top",
+          "score": 92,
+          "start": 22.000000000000014,
+          "end": 22.300000000000015,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 59,
+          "word": "of",
+          "score": 92,
+          "start": 22.350000000000016,
+          "end": 22.650000000000016,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 60,
+          "word": "that",
+          "score": 41.5,
+          "start": 22.700000000000017,
+          "end": 23.000000000000018,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 61,
+          "word": "the",
+          "score": 92,
+          "start": 23.05000000000002,
+          "end": 23.35000000000002,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 63,
+          "word": "are",
+          "score": 92,
+          "start": 23.75000000000002,
+          "end": 24.050000000000022,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 64,
+          "word": "lovely",
+          "score": 92,
+          "start": 24.100000000000023,
+          "end": 24.400000000000023,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 65,
+          "word": "All",
+          "score": 92,
+          "start": 24.450000000000024,
+          "end": 24.750000000000025,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 66,
+          "word": "in",
+          "score": 92,
+          "start": 24.800000000000026,
+          "end": 25.100000000000026,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 67,
+          "word": "all",
+          "score": 92,
+          "start": 25.150000000000027,
+          "end": 25.450000000000028,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 68,
+          "word": "it",
+          "score": 92,
+          "start": 25.50000000000003,
+          "end": 25.80000000000003,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 69,
+          "word": "is",
+          "score": 92,
+          "start": 25.85000000000003,
+          "end": 26.15000000000003,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 70,
+          "word": "a",
+          "score": 92,
+          "start": 26.20000000000003,
+          "end": 26.500000000000032,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 71,
+          "word": "book",
+          "score": 41.5,
+          "start": 26.550000000000033,
+          "end": 26.850000000000033,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 72,
+          "word": "I",
+          "score": 92,
+          "start": 26.900000000000034,
+          "end": 27.200000000000035,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 74,
+          "word": "recommend",
+          "score": 92,
+          "start": 27.600000000000037,
+          "end": 27.900000000000038,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 75,
+          "word": "to",
+          "score": 92,
+          "start": 27.95000000000004,
+          "end": 28.25000000000004,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 76,
+          "word": "anyone",
+          "score": 92,
+          "start": 28.30000000000004,
+          "end": 28.60000000000004,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        }
+      ],
+      "p2.f1": [
+        {
+          "index": 0,
+          "word": "Not",
+          "score": 92,
+          "start": 0,
+          "end": 0.3,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "word": "very",
+          "score": 41.5,
+          "start": 0.35,
+          "end": 0.6499999999999999,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "word": "often",
+          "score": 92,
+          "start": 0.7,
+          "end": 1,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "word": "these",
+          "score": 92,
+          "start": 1.0499999999999998,
+          "end": 1.3499999999999999,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "word": "days",
+          "score": 41.5,
+          "start": 1.4,
+          "end": 1.7,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 5,
+          "word": "maybe",
+          "score": 92,
+          "start": 1.75,
+          "end": 2.05,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 6,
+          "word": "one",
+          "score": 92,
+          "start": 2.1,
+          "end": 2.4,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 8,
+          "word": "a",
+          "score": 92,
+          "start": 2.8000000000000003,
+          "end": 3.1,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 9,
+          "word": "month",
+          "score": 92,
+          "start": 3.1500000000000004,
+          "end": 3.45,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        }
+      ],
+      "p3.q1": [
+        {
+          "index": 0,
+          "word": "I",
+          "score": 92,
+          "start": 0,
+          "end": 0.3,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "word": "think",
+          "score": 92,
+          "start": 0.35,
+          "end": 0.6499999999999999,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "word": "people",
+          "score": 92,
+          "start": 0.7,
+          "end": 1,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "word": "read",
+          "score": 41.5,
+          "start": 1.0499999999999998,
+          "end": 1.3499999999999999,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "word": "less",
+          "score": 41.5,
+          "start": 1.4,
+          "end": 1.7,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 5,
+          "word": "because",
+          "score": 92,
+          "start": 1.75,
+          "end": 2.05,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 6,
+          "word": "smartphones",
+          "score": 92,
+          "start": 2.1,
+          "end": 2.4,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 8,
+          "word": "for",
+          "score": 92,
+          "start": 2.8000000000000003,
+          "end": 3.1,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 9,
+          "word": "our",
+          "score": 92,
+          "start": 3.1500000000000004,
+          "end": 3.45,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 10,
+          "word": "attention",
+          "score": 92,
+          "start": 3.5000000000000004,
+          "end": 3.8000000000000003,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 11,
+          "word": "and",
+          "score": 92,
+          "start": 5.050000000000001,
+          "end": 5.3500000000000005,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 12,
+          "word": "short",
+          "score": 92,
+          "start": 5.4,
+          "end": 5.7,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 13,
+          "word": "videos",
+          "score": 92,
+          "start": 5.75,
+          "end": 6.05,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 14,
+          "word": "is",
+          "score": 92,
+          "start": 6.1,
+          "end": 6.3999999999999995,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 15,
+          "word": "more",
+          "score": 41.5,
+          "start": 6.449999999999999,
+          "end": 6.749999999999999,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 16,
+          "word": "fun",
+          "score": 92,
+          "start": 6.799999999999999,
+          "end": 7.099999999999999,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        }
+      ],
+      "p3.q2": [
+        {
+          "index": 0,
+          "word": "Personally",
+          "score": 92,
+          "start": 0,
+          "end": 0.3,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "word": "I",
+          "score": 92,
+          "start": 0.35,
+          "end": 0.6499999999999999,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "word": "am",
+          "score": 92,
+          "start": 0.7,
+          "end": 1,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "word": "not",
+          "score": 92,
+          "start": 1.0499999999999998,
+          "end": 1.3499999999999999,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "word": "sure",
+          "score": 41.5,
+          "start": 1.4,
+          "end": 1.7,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 5,
+          "word": "If",
+          "score": 92,
+          "start": 1.75,
+          "end": 2.05,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 6,
+          "word": "children",
+          "score": 41.5,
+          "start": 2.1,
+          "end": 2.4,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 8,
+          "word": "forced",
+          "score": 92,
+          "start": 2.8000000000000003,
+          "end": 3.1,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 9,
+          "word": "to",
+          "score": 92,
+          "start": 3.1500000000000004,
+          "end": 3.45,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 10,
+          "word": "read",
+          "score": 41.5,
+          "start": 3.5000000000000004,
+          "end": 3.8000000000000003,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 11,
+          "word": "they",
+          "score": 41.5,
+          "start": 4.3500000000000005,
+          "end": 4.65,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 12,
+          "word": "may",
+          "score": 92,
+          "start": 4.7,
+          "end": 5,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 13,
+          "word": "end",
+          "score": 92,
+          "start": 5.05,
+          "end": 5.35,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 14,
+          "word": "up",
+          "score": 92,
+          "start": 5.3999999999999995,
+          "end": 5.699999999999999,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 15,
+          "word": "hating",
+          "score": 92,
+          "start": 5.749999999999999,
+          "end": 6.049999999999999,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 16,
+          "word": "it",
+          "score": 92,
+          "start": 6.099999999999999,
+          "end": 6.399999999999999,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        }
+      ],
+      "p3.q3": [
+        {
+          "index": 0,
+          "word": "No",
+          "score": 92,
+          "start": 0,
+          "end": 0.3,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "word": "I",
+          "score": 92,
+          "start": 0.35,
+          "end": 0.6499999999999999,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "word": "don't",
+          "score": 92,
+          "start": 0.7,
+          "end": 1,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "word": "think",
+          "score": 92,
+          "start": 1.0499999999999998,
+          "end": 1.3499999999999999,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "word": "so",
+          "score": 92,
+          "start": 1.4,
+          "end": 1.7,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 5,
+          "word": "Printed",
+          "score": 92,
+          "start": 1.75,
+          "end": 2.05,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 6,
+          "word": "books",
+          "score": 92,
+          "start": 2.1,
+          "end": 2.4,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 8,
+          "word": "always",
+          "score": 92,
+          "start": 2.8000000000000003,
+          "end": 3.1,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 9,
+          "word": "have",
+          "score": 41.5,
+          "start": 3.1500000000000004,
+          "end": 3.45,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 10,
+          "word": "a",
+          "score": 92,
+          "start": 3.5000000000000004,
+          "end": 3.8000000000000003,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 11,
+          "word": "place",
+          "score": 92,
+          "start": 3.8500000000000005,
+          "end": 4.15,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 12,
+          "word": "although",
+          "score": 41.5,
+          "start": 4.7,
+          "end": 5,
+          "expected": "θ ɪ",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "θ",
+              "heard": "t",
+              "score": 20
+            },
+            {
+              "expected": "ɪ",
+              "heard": "ɪ",
+              "score": 63
+            }
+          ]
+        },
+        {
+          "index": 13,
+          "word": "e-books",
+          "score": 92,
+          "start": 5.05,
+          "end": 5.35,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 14,
+          "word": "are",
+          "score": 92,
+          "start": 5.3999999999999995,
+          "end": 5.699999999999999,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        },
+        {
+          "index": 15,
+          "word": "growing",
+          "score": 92,
+          "start": 5.749999999999999,
+          "end": 6.049999999999999,
+          "expected": "ə",
+          "heard": "t ɪ",
+          "phonemes": [
+            {
+              "expected": "ə",
+              "heard": "ə",
+              "score": 92
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "speech_rate_wpm": 157.6
+}
+You cannot hear the audio. Rate from these measurements and the transcript:
+- intelligibility: share of words heard as intended (0-1). Low values mean the listener needs effort (bands 4-5).
+- per and gop_mean: phoneme accuracy. Scores are against both British and American references, so accent alone doesn't lower them.
+- prosody.pitch_std_st and pitch_range_st: intonation. Under about 1.5 semitones of variation is flat.
+- prosody.stress_match_rate: how often word stress is on the right syllable.
+- prosody.npvi_vowel: rhythm. Higher values mean English stress-timing; under about 40 is syllable-timed.
+- mid_clause_pause_share: chunking. Pauses inside clauses break meaningful chunks.
+- mispronounced: the recurring problem words, with the expected and heard sound.

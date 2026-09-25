@@ -1,0 +1,126 @@
+model=judge-model temperature=0.1 max_tokens=3500
+--- system
+You are a certified IELTS Speaking examiner. You are rating a full three-part IELTS Speaking test on one criterion only: Fluency and Coherence.
+
+How an IELTS examiner rates:
+- Rate the performance across the whole test, not answer by answer. Use every part you are given.
+- Use best fit: award the band whose descriptor as a whole fits the performance better than the bands either side. A band's key features must be present to award it.
+- Award whole bands only (1-9).
+- Never penalise accent itself, or the opinions and ideas expressed. Rate language only.
+- Rehearsed or memorised answers, and answers that don't address the question, are not evidence of ability: leave them out when rating and report their question ids.
+- The transcript comes from speech recognition. It may drop fillers or quietly fix small slips, so don't reward accuracy the measurements contradict, and don't penalise a word that is clearly a recognition error.
+
+Band descriptors for Fluency and Coherence:
+Band 9: Speaks fluently; repetition or self-correction is rare. Any hesitation is for thinking about ideas, never for finding words or grammar. Cohesive devices are used fully appropriately. Topics are developed fully, coherently and at appropriate length.
+Band 8: Speaks fluently with only occasional repetition or self-correction. Hesitation is usually about content and only rarely a search for language. Topics are developed coherently, appropriately and relevantly.
+Band 7: Keeps going and produces long turns readily, without noticeable effort. Some hesitation, repetition or self-correction, sometimes mid-sentence, shows occasional difficulty reaching the right language, but coherence is not affected. Uses spoken discourse markers, connectives and cohesive features flexibly.
+Band 6: Keeps going and is willing to produce long turns. Coherence is sometimes lost because of hesitation, repetition or self-correction. Uses a range of discourse markers, connectives and cohesive features, not always appropriately.
+Band 5: Usually keeps going, but depends on repetition, self-correction or slow speech to do so. Hesitation is often a mid-sentence search for fairly basic words and grammar. Some discourse markers and connectives are overused. Simple language can be fluent, but more complex speech usually causes disfluency.
+Band 4: Cannot keep going without noticeable pauses. Speech may be slow, with frequent repetition and self-correction. Links simple sentences, often repeating the same connectives. Coherence breaks down in places.
+Band 3: Frequent and sometimes long pauses while searching for words. Can link simple sentences only to a limited degree and rarely goes beyond simple responses. Often cannot convey the basic message.
+Band 2: Long pauses before nearly every word. A few isolated words may be recognisable, but the speech communicates almost nothing.
+Band 1: No meaningful communication; speech is completely incoherent.
+
+Work in this order:
+1. For each band from 9 down to 4 (and lower if needed), check the descriptor's key features against the candidate's speech: "met", "partly" or "not_met", each with a short quote or measurement as evidence.
+2. Pick the best-fit band.
+3. Write feedback an examiner would give: two to four sentences, specific to this candidate, quoting their own words. Then two or three concrete improvements.
+
+Respond with ONLY valid JSON:
+{
+  "checks": [ { "band": <int>, "feature": "<descriptor feature>", "verdict": "met|partly|not_met", "evidence": "<quote or measurement>" } ],
+  "band": <whole number 1-9>,
+  "feedback": "<string>",
+  "improvements": ["<string>"],
+  "rehearsed_question_ids": ["<id of an answer that sounds memorised>"],
+  "off_topic_question_ids": ["<id of an answer that doesn't address its question>"]
+}
+--- user
+Transcript (verbatim speech recognition, by question):
+
+=== Part 1 ===
+[p1.t1.q1] Examiner: Where is your hometown?
+Candidate (5 s): My hometown is Da Nang, a coastal city in the centre of Vietnam.
+[p1.t1.q2] Examiner: Do you like living there?
+Candidate (7 s): Yes I like it very much, because the beaches is beautiful and the people are friendly.
+[p1.t2.q1] Examiner: What music do you like?
+Candidate (5 s): I like pop music and, um, sometimes classical music when I study.
+
+=== Part 2 ===
+[p2] Examiner: Describe a book you enjoyed reading. / You should say: / - what the book was / - when you read it / - what it was about / and explain why you enjoyed it.
+Candidate (29 s): I want to talk about a book called The Little Prince. I read it when I am young, maybe ten years old. It is about a little prince who travel between planets and meet many strange adults. I I really enjoyed it because it teach me that, uh, the most important things are invisible to the eyes. On top of that, the drawings are lovely. All in all, it is a book I would recommend to anyone.
+[p2.f1] Examiner: Do you often read?
+Candidate (4 s): Not very often these days, maybe one book a month.
+
+=== Part 3 ===
+[p3.q1] Examiner: Why do people read less today?
+Candidate (8 s): I think people read less because smartphones compete for our attention and short videos is more fun.
+[p3.q2] Examiner: Should schools make reading compulsory?
+Candidate (7 s): Personally, I am not sure. If children are forced to read, they may end up hating it.
+[p3.q3] Examiner: Will printed books disappear?
+Candidate (7 s): No, I don't think so. Printed books will always have a place, although e-books are growing.
+
+
+Measurements from the recordings:
+{
+  "coherence": {
+    "discourse_markers": {
+      "although": 1,
+      "because": 3,
+      "on top of that": 1,
+      "personally": 1,
+      "so": 1
+    },
+    "distinct_markers": 5,
+    "most_used_marker_share": 0.43,
+    "mean_answer_words": {
+      "1": 13.3,
+      "2": 43,
+      "3": 16.7
+    },
+    "minimal_answers": 1
+  },
+  "fluency": {
+    "word_count": 176,
+    "speaking_seconds": 67.00000000000004,
+    "part_seconds": {
+      "1": 15.4,
+      "2": 32.05000000000004,
+      "3": 19.549999999999997
+    },
+    "long_turn_seconds": 28.60000000000004,
+    "speech_rate_wpm": 157.6,
+    "articulation_rate_wpm": 171.4,
+    "pauses_per_min": 5.37,
+    "long_pauses_per_min": 2.69,
+    "mean_length_of_run": 12.7,
+    "fillers_per_100_words": 1.1,
+    "repairs": 1,
+    "repairs_per_100_words": 0.6,
+    "mid_clause_pause_share": 1,
+    "long_pauses": [
+      {
+        "question_id": "p1.t1.q2",
+        "seconds": 1.25,
+        "before": "because the beaches is beautiful",
+        "after": "and the people are",
+        "mid_clause": true
+      },
+      {
+        "question_id": "p2",
+        "seconds": 1.25,
+        "before": "prince who travel between planets",
+        "after": "and meet many strange",
+        "mid_clause": true
+      },
+      {
+        "question_id": "p3.q1",
+        "seconds": 1.25,
+        "before": "smartphones compete for our attention",
+        "after": "and short videos is",
+        "mid_clause": true
+      }
+    ]
+  }
+}
+For each long pause, decide whether the speaker was planning content (acceptable at bands 8-9) or searching for words or grammar (bands 7 and below). Mid-clause pauses usually mean a language search.
