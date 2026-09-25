@@ -152,6 +152,10 @@ func main() {
 	)
 	ielts_test.NewHandler(testSvc).MountRoutes(api)
 
+	examiner := ielts_test.NewExaminerAudio(media, llmClient, ielts_test.NewExaminerVoice(sp.TTSModel, sp.ExaminerVoice))
+	speakingSvc := ielts_test.NewSpeakingService(testRepo, media, examiner, llmClient, llmClient)
+	ielts_test.NewSpeakingHandler(speakingSvc).MountRoutes(api)
+
 	// Grading runs here, not in the request that submitted the answer:
 	// writing/speaking need a slow paid API call, and a fixed-size pool
 	// caps how many of those can be in flight at once no matter how many
@@ -162,6 +166,7 @@ func main() {
 		Count:        cfg.App.Grading.Workers,
 		PollInterval: cfg.App.Grading.PollInterval,
 	})
+	examiner.Start(workerCtx)
 
 	// --profile--
 	profileSvc := profile.NewService(authRepo, progSvc)
