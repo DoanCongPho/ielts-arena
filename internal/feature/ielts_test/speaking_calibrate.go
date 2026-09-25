@@ -67,7 +67,7 @@ func sampleContent(s CalibrationSample, dir string) (SpeakingContent, SpeakingPa
 			c.Part3.Questions = append(c.Part3.Questions, SpeakingQuestion{Text: a.Question})
 		}
 	}
-	normalizeSpeakingContent(&c)
+	NormalizeSpeakingContent(&c)
 
 	// Questions come back in exam order; pair them with the answers in
 	// the same order.
@@ -76,7 +76,7 @@ func sampleContent(s CalibrationSample, dir string) (SpeakingContent, SpeakingPa
 		byPart[a.Part] = append(byPart[a.Part], a)
 	}
 	var p SpeakingPayload
-	for _, q := range c.questions() {
+	for _, q := range c.Questions() {
 		a := byPart[q.Part][0]
 		byPart[q.Part] = byPart[q.Part][1:]
 		p.Answers = append(p.Answers, SpeakingAnswer{QuestionID: q.ID, AudioKey: filepath.Join(dir, a.Audio)})

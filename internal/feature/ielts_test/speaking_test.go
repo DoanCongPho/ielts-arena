@@ -28,7 +28,7 @@ func TestIeltsOverall(t *testing.T) {
 		{[]float64{5, 5, 5, 6}, 5.5}, // 5.25
 	}
 	for _, c := range cases {
-		if got := ieltsOverall(c.bands); got != c.want {
+		if got := IELTSOverall(c.bands); got != c.want {
 			t.Errorf("ieltsOverall(%v) = %v, want %v", c.bands, got, c.want)
 		}
 	}
@@ -50,13 +50,13 @@ func fullSpeakingContent() SpeakingContent {
 			{Text: "Why do people read less today?"}, {Text: "Should schools make reading compulsory?"}, {Text: "Will printed books disappear?"},
 		}},
 	}
-	normalizeSpeakingContent(&c)
+	NormalizeSpeakingContent(&c)
 	return c
 }
 
 func TestSpeakingContent_ModesAndValidation(t *testing.T) {
 	c := fullSpeakingContent()
-	if err := validateSpeakingContent(c); err != nil {
+	if err := ValidateSpeakingContent(c); err != nil {
 		t.Fatalf("full test rejected: %v", err)
 	}
 	if c.Mode() != SpeakingModeFull {
@@ -67,22 +67,22 @@ func TestSpeakingContent_ModesAndValidation(t *testing.T) {
 	}
 
 	twoParts := SpeakingContent{Part1: c.Part1, Part2: c.Part2}
-	if err := validateSpeakingContent(twoParts); err == nil {
+	if err := ValidateSpeakingContent(twoParts); err == nil {
 		t.Error("two-part content accepted; the real test has one or three")
 	}
 
 	part3Only := SpeakingContent{Part3: &SpeakingPart3{Questions: c.Part3.Questions}}
-	if err := validateSpeakingContent(part3Only); err == nil {
+	if err := ValidateSpeakingContent(part3Only); err == nil {
 		t.Error("Part 3 on its own without a theme accepted")
 	}
 	part3Only.Part3.Theme = "reading"
-	if err := validateSpeakingContent(part3Only); err != nil {
+	if err := ValidateSpeakingContent(part3Only); err != nil {
 		t.Errorf("Part 3 with a theme rejected: %v", err)
 	}
 
 	bad := fullSpeakingContent()
 	bad.Part2.Bullets = bad.Part2.Bullets[:2]
-	if err := validateSpeakingContent(bad); err == nil {
+	if err := ValidateSpeakingContent(bad); err == nil {
 		t.Error("cue card with two bullet points accepted")
 	}
 }
@@ -289,7 +289,7 @@ func speakingFixture(t *testing.T, pron *fakePron, judge *fakeJudge) (Service, *
 
 	sentence := "I think it is a really good question and I would say that it depends on the situation because people differ"
 	audio := fakeAudio{}
-	for _, q := range content.questions() {
+	for _, q := range content.Questions() {
 		audio["speaking/1/"+q.ID+".webm"] = []byte(sentence + " " + sentence)
 	}
 	var assessor pronunciationAssessor
@@ -306,7 +306,7 @@ func speakingSubmission(t *testing.T, test *Test, userID uint64) SubmitRequest {
 	var c SpeakingContent
 	_ = json.Unmarshal(test.ContentData, &c)
 	var p SpeakingPayload
-	for _, q := range c.questions() {
+	for _, q := range c.Questions() {
 		p.Answers = append(p.Answers, SpeakingAnswer{QuestionID: q.ID, AudioKey: fmt.Sprintf("speaking/%d/%s.webm", userID, q.ID), DurationSec: 20})
 	}
 	return SubmitRequest{TestID: test.ID, Payload: mustMarshal(t, p)}

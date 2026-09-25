@@ -122,8 +122,8 @@ type SpeakingFlags struct {
 // the job is retried; on the last attempt the caller sets it and
 // Pronunciation is estimated instead.
 func (g *SpeakingGrader) Grade(ctx context.Context, content SpeakingContent, payload SpeakingPayload, estimateOnFailure bool) (*SpeakingDetails, float64, error) {
-	questions := map[string]speakingQuestion{}
-	for _, q := range content.questions() {
+	questions := map[string]SpeakingQuestionRef{}
+	for _, q := range content.Questions() {
 		questions[q.ID] = q
 	}
 
@@ -174,7 +174,7 @@ func (g *SpeakingGrader) Grade(ctx context.Context, content SpeakingContent, pay
 	details.Corrections = anchoredCorrections(answers,
 		verdicts[CriterionGRA].Corrections, "grammar",
 		verdicts[CriterionLR].Corrections, "vocabulary")
-	return details, ieltsOverall(bands), nil
+	return details, IELTSOverall(bands), nil
 }
 
 // anchoredCorrections keeps only corrections whose original text really
@@ -213,7 +213,7 @@ func anchoredCorrections(answers []answerTranscript, grammar []SpeakingCorrectio
 }
 
 // transcribeAll fetches and transcribes every answer, a few at a time.
-func (g *SpeakingGrader) transcribeAll(ctx context.Context, payload SpeakingPayload, questions map[string]speakingQuestion, audio [][]byte, answers []answerTranscript) error {
+func (g *SpeakingGrader) transcribeAll(ctx context.Context, payload SpeakingPayload, questions map[string]SpeakingQuestionRef, audio [][]byte, answers []answerTranscript) error {
 	var (
 		wg       sync.WaitGroup
 		mu       sync.Mutex

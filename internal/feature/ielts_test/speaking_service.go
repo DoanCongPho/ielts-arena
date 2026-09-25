@@ -7,10 +7,10 @@ import (
 	"strings"
 )
 
-// speakingAudioPrefix is where a user's recordings live. A submission may
+// SpeakingAudioPrefix is where a user's recordings live. A submission may
 // only reference keys under the submitter's own prefix, so nobody can have
 // someone else's recording graded (or read back) as theirs.
-func speakingAudioPrefix(userID uint64) string {
+func SpeakingAudioPrefix(userID uint64) string {
 	return fmt.Sprintf("speaking/%d/", userID)
 }
 
@@ -32,10 +32,10 @@ func validateSpeakingSubmission(userID uint64, test *Test, raw json.RawMessage) 
 		return fmt.Errorf("%w: no answers recorded", ErrInvalidSubmission)
 	}
 	known := map[string]bool{}
-	for _, q := range content.questions() {
+	for _, q := range content.Questions() {
 		known[q.ID] = true
 	}
-	prefix := speakingAudioPrefix(userID)
+	prefix := SpeakingAudioPrefix(userID)
 	seen := map[string]bool{}
 	for _, a := range payload.Answers {
 		switch {

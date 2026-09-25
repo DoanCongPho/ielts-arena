@@ -28,10 +28,10 @@ type TestResponse struct {
 	IsCustom bool `json:"is_custom,omitempty"`
 }
 
-// newTestResponse builds the public wire shape for a Test — content is
+// NewTestResponse builds the public wire shape for a Test — content is
 // pre-sanitized by the caller (publicContentData strips answer keys for
 // reading/listening before it gets here).
-func newTestResponse(t *Test, content json.RawMessage) TestResponse {
+func NewTestResponse(t *Test, content json.RawMessage) TestResponse {
 	return TestResponse{
 		ID:           t.ID,
 		Skill:        t.Skill,

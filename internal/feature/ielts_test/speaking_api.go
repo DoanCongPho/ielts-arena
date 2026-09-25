@@ -80,7 +80,7 @@ func (s *SpeakingService) UploadSlots(userID uint64, count int, ext string) ([]U
 		if _, err := rand.Read(id[:]); err != nil {
 			return nil, err
 		}
-		key := speakingAudioPrefix(userID) + hex.EncodeToString(id[:]) + "." + ext
+		key := SpeakingAudioPrefix(userID) + hex.EncodeToString(id[:]) + "." + ext
 		link, err := s.store.UploadURL(key, uploadLinkTTL)
 		if err != nil {
 			return nil, err
@@ -131,7 +131,7 @@ func (s *SpeakingService) ListCustom(ctx context.Context, userID uint64, page in
 	}
 	resp := &ListTestResponse{Data: []TestResponse{}, Pagination: httpx.NewPagination(total, req.Page, req.Limit())}
 	for i := range tests {
-		resp.Data = append(resp.Data, newTestResponse(&tests[i], tests[i].ContentData))
+		resp.Data = append(resp.Data, NewTestResponse(&tests[i], tests[i].ContentData))
 	}
 	return resp, nil
 }
@@ -183,7 +183,7 @@ func (s *SpeakingService) CreateCustom(ctx context.Context, userID uint64, req C
 		return nil, err
 	}
 	s.examiner.Prepare(buildSpeakingScript(*content, s.examiner.Voice()))
-	return &ComposeResult{Test: newTestResponse(t, t.ContentData), Warnings: s.styleWarnings(ctx, custom)}, nil
+	return &ComposeResult{Test: NewTestResponse(t, t.ContentData), Warnings: s.styleWarnings(ctx, custom)}, nil
 }
 
 func (s *SpeakingService) UpdateCustom(ctx context.Context, userID, testID uint64, req ComposeSpeakingRequest) (*ComposeResult, error) {
@@ -211,7 +211,7 @@ func (s *SpeakingService) UpdateCustom(ctx context.Context, userID, testID uint6
 		return nil, err
 	}
 	s.examiner.Prepare(buildSpeakingScript(*content, s.examiner.Voice()))
-	return &ComposeResult{Test: newTestResponse(t, t.ContentData), Warnings: s.styleWarnings(ctx, custom)}, nil
+	return &ComposeResult{Test: NewTestResponse(t, t.ContentData), Warnings: s.styleWarnings(ctx, custom)}, nil
 }
 
 func (s *SpeakingService) DeleteCustom(ctx context.Context, userID, testID uint64) error {
@@ -321,12 +321,12 @@ func (s *SpeakingService) compose(ctx context.Context, req ComposeSpeakingReques
 		return nil, custom, err
 	}
 
-	normalizeSpeakingContent(c)
-	if err := validateSpeakingContent(*c); err != nil {
+	NormalizeSpeakingContent(c)
+	if err := ValidateSpeakingContent(*c); err != nil {
 		return nil, custom, fmt.Errorf("%w: %v", ErrInvalidSpeakingContent, err)
 	}
 	if s.moderator != nil {
-		texts := custom.allTexts()
+		texts := custom.AllTexts()
 		if c.Title != "" {
 			texts = append(texts, c.Title)
 		}
@@ -387,15 +387,15 @@ func (s *SpeakingService) GenerateParts(ctx context.Context, req GeneratePartsRe
 		return nil, errors.New("content generation is not configured")
 	}
 	card := SpeakingContent{Part2: &req.Part2}
-	normalizeSpeakingContent(&card)
-	if err := validateSpeakingContent(card); err != nil {
+	NormalizeSpeakingContent(&card)
+	if err := ValidateSpeakingContent(card); err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrInvalidSpeakingContent, err)
 	}
 	if !req.Part1 && !req.Part3 {
 		return nil, fmt.Errorf("%w: ask for part1, part3 or both", ErrInvalidSpeakingContent)
 	}
 	if s.moderator != nil {
-		if flagged, err := s.moderator.Flagged(ctx, card.allTexts()); err != nil {
+		if flagged, err := s.moderator.Flagged(ctx, card.AllTexts()); err != nil {
 			log.Printf("speaking: moderation unavailable, generating unchecked: %v", err)
 		} else if flagged {
 			return nil, ErrContentFlagged
@@ -420,7 +420,7 @@ func (s *SpeakingService) GenerateParts(ctx context.Context, req GeneratePartsRe
 		return nil, fmt.Errorf("generate: parse: %w", err)
 	}
 	out.Part2 = card.Part2
-	normalizeSpeakingContent(&out)
+	NormalizeSpeakingContent(&out)
 	return &out, nil
 }
 
@@ -440,7 +440,7 @@ func (s *SpeakingService) Recordings(ctx context.Context, userID, submissionID u
 	}
 	out := map[string]string{}
 	for _, a := range p.Answers {
-		if !strings.HasPrefix(a.AudioKey, speakingAudioPrefix(userID)) {
+		if !strings.HasPrefix(a.AudioKey, SpeakingAudioPrefix(userID)) {
 			continue
 		}
 		if u, err := s.store.DownloadURL(a.AudioKey, time.Hour); err == nil {

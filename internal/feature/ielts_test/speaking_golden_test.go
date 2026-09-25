@@ -162,7 +162,7 @@ func goldenGradeInputs() (SpeakingContent, SpeakingPayload, fakeAudio) {
 	content := fullSpeakingContent()
 	audio := fakeAudio{}
 	var payload SpeakingPayload
-	for _, q := range content.questions() {
+	for _, q := range content.Questions() {
 		key := "speaking/1/" + q.ID + ".webm"
 		audio[key] = []byte(goldenAnswers[q.ID])
 		payload.Answers = append(payload.Answers, SpeakingAnswer{QuestionID: q.ID, AudioKey: key, DurationSec: 20})
@@ -214,8 +214,8 @@ func TestGolden_SpeakingGradeWithoutPronunciationService(t *testing.T) {
 
 func TestGolden_SpeakingEvidence(t *testing.T) {
 	content, payload, audio := goldenGradeInputs()
-	qs := map[string]speakingQuestion{}
-	for _, q := range content.questions() {
+	qs := map[string]SpeakingQuestionRef{}
+	for _, q := range content.Questions() {
 		qs[q.ID] = q
 	}
 	var answers []answerTranscript

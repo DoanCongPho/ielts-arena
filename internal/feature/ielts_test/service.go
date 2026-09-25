@@ -152,7 +152,7 @@ func (s *service) GetTest(ctx context.Context, userID, id uint64) (*TestResponse
 	if err != nil {
 		return nil, fmt.Errorf("prepare test content: %w", err)
 	}
-	resp := newTestResponse(t, content)
+	resp := NewTestResponse(t, content)
 	return &resp, nil
 }
 
@@ -167,7 +167,7 @@ func (s *service) GetListTest(ctx context.Context, skill string, req ListTestReq
 		if err != nil {
 			return nil, fmt.Errorf("prepare test content: %w", err)
 		}
-		resp.Data = append(resp.Data, newTestResponse(&t, content))
+		resp.Data = append(resp.Data, NewTestResponse(&t, content))
 	}
 	return resp, nil
 }

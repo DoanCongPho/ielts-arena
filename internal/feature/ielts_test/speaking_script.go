@@ -106,7 +106,7 @@ func buildSpeakingScript(c SpeakingContent, v ExaminerVoice) []ScriptLine {
 		say(2, "Now, I'm going to give you a topic, and I'd like you to talk about it for one to two minutes. "+
 			"Before you talk, you'll have one minute to think about what you're going to say. "+
 			"You can make some notes if you wish. Do you understand? Here is your topic.")
-		lines = append(lines, ScriptLine{Kind: LineCueCard, Part: 2, Text: p.cueCardText(), Seconds: part2PrepSeconds})
+		lines = append(lines, ScriptLine{Kind: LineCueCard, Part: 2, Text: p.CueCardText(), Seconds: part2PrepSeconds})
 		lines = append(lines, ScriptLine{
 			Kind: LineLongTurn, Part: 2, QuestionID: p.ID, Seconds: part2TalkSeconds,
 			Text: "All right? Remember, you have one to two minutes for this, so don't worry if I stop you. " +
