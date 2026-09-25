@@ -37,6 +37,14 @@ production, so application code never knows the API's host.
   `GET /api/submissions/{id}`. Transient failures are retried with increasing
   backoff; if a worker dies mid-grade its lease expires and another worker
   picks the job up.
+- **Speaking** — graded the way an IELTS examiner rates: the whole 3-part
+  test, four criteria in whole bands by best fit to the band descriptors, and
+  IELTS rounding for the overall. OpenAI transcribes (Whisper, with word
+  timings), judges each criterion and voices the examiner; a self-hosted
+  wav2vec2 service on an Oracle Cloud Always Free VM (`services/pronunciation`)
+  measures phonemes, intonation, stress and rhythm. Users can also write their
+  own cue cards and practise a full test or a single part. See
+  [docs/speaking.md](docs/speaking.md).
 - **Frontend** — React + Vite, with no state manager: `lib/api.js` is the only
   API layer and pages fetch for themselves.
 
@@ -47,6 +55,12 @@ skills with Reading/Listening auto-graded over 18 question types, Writing
 graded by an LLM against the four IELTS criteria with corrections and a model
 answer, server-side answer redaction, submission history, a level/XP system
 with 100 avatar frames, and an admin page for authoring tests.
+
+**Built, needs calibration:** Speaking — a spoken exam with an examiner voice,
+graded against the band descriptors, plus user-written cue cards and part
+practice. Until the pipeline agrees with examiner-rated samples
+(`api calibrate-speaking`, see [docs/speaking.md](docs/speaking.md)), its bands
+should be read as estimates.
 
 **Planned:** real-time Dual Match over WebSocket, 4v4 team mode, ELO-style
 ranking, badges and titles, and a worker that collects tests from external
