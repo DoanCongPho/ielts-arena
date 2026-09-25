@@ -8,6 +8,7 @@ const SKILL_NAV = [
   { skill: 'reading', title: 'Luyện tập Reading', subtitle: 'Đọc hiểu & trả lời câu hỏi', path: '/practice/reading' },
   { skill: 'listening', title: 'Luyện tập Listening', subtitle: 'Nghe & trả lời câu hỏi', path: '/practice/listening' },
   { skill: 'writing', title: 'Luyện tập Writing', subtitle: 'Viết bài & nhận chấm điểm', path: '/practice/writing' },
+  { skill: 'speaking', title: 'Luyện tập Speaking', subtitle: 'Thi nói với giám khảo & chấm phát âm', path: '/practice/speaking' },
 ];
 
 export default function DashboardPage() {

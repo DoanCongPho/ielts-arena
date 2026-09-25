@@ -40,14 +40,22 @@ func (r *MockTestRepository) GetTestByID(ctx context.Context, id uint64) (*Test,
 	return test, nil
 }
 
-func (r *MockTestRepository) GetListTest(ctx context.Context, skill string, limit, offset int) ([]Test, int, error) {
+func (r *MockTestRepository) GetListTest(ctx context.Context, skill string, f TestFilter, limit, offset int) ([]Test, int, error) {
 	var filtered []Test
 
 	for _, t := range r.tests {
-		if skill == "" || t.Skill == skill {
-			filtered = append(filtered, *t)
+		if (skill != "" && t.Skill != skill) || t.OwnerID != 0 {
+			continue
 		}
+		if f.TaskType != "" && t.TaskType != f.TaskType {
+			continue
+		}
+		if (f.Series == SeriesNone && t.Series != "") || (f.Series != "" && f.Series != SeriesNone && t.Series != f.Series) {
+			continue
+		}
+		filtered = append(filtered, *t)
 	}
+	sort.Slice(filtered, func(i, j int) bool { return filtered[i].ID < filtered[j].ID })
 
 	total := len(filtered)
 
@@ -236,4 +244,36 @@ func (r *MockTestRepository) ReplaceTest(ctx context.Context, t *Test) error {
 	t.CreatedAt = existing.CreatedAt
 	r.tests[int(t.ID)] = t
 	return nil
+}
+
+func (r *MockTestRepository) ListOwnedTests(ctx context.Context, ownerID uint64, skill string, limit, offset int) ([]Test, int, error) {
+	var owned []Test
+	for _, t := range r.tests {
+		if t.OwnerID == ownerID && t.Skill == skill {
+			owned = append(owned, *t)
+		}
+	}
+	sort.Slice(owned, func(i, j int) bool { return owned[i].ID > owned[j].ID })
+	total := len(owned)
+	if offset >= total {
+		return []Test{}, total, nil
+	}
+	return owned[offset:min(offset+limit, total)], total, nil
+}
+
+func (r *MockTestRepository) DeleteTest(ctx context.Context, id uint64) error {
+	if _, ok := r.tests[int(id)]; !ok {
+		return ErrTestNotFound
+	}
+	delete(r.tests, int(id))
+	return nil
+}
+
+func (r *MockTestRepository) HasSubmissions(ctx context.Context, testID uint64) (bool, error) {
+	for _, s := range r.submissions {
+		if s.TestID == testID {
+			return true, nil
+		}
+	}
+	return false, nil
 }

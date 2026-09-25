@@ -8,6 +8,7 @@ import { useSectionAudio } from '../lib/useSectionAudio';
 import { safeParse } from '../lib/safeParse';
 import { SKILL_CONFIG } from '../lib/skillConfig';
 import ScoreResult from '../components/ScoreResult/ScoreResult';
+import SpeakingResult from '../components/SpeakingResult/SpeakingResult';
 import QuestionList from '../components/QuestionList/QuestionList';
 import { ReviewContext } from '../components/AnswerExplanation/ReviewContext';
 import HighlightableText from '../components/HighlightableText/HighlightableText';
@@ -81,7 +82,12 @@ export default function SubmissionDetailPage() {
         <span className="attempt-timer">{formatDate(submission?.submitted_at)}</span>
       </header>
 
-      {isAutoGraded ? (
+      {skill === 'speaking' ? (
+        <>
+          {notGradedMessage}
+          {score && <SpeakingResult score={score} submissionId={submission.id} />}
+        </>
+      ) : isAutoGraded ? (
         <MultiUnitReview
           skill={skill}
           test={test}

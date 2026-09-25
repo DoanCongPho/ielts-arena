@@ -73,8 +73,14 @@ async function request(path, options = {}, retry = true) {
   return body?.data;
 }
 
-export function listTests(skill, page = 1) {
-  return request(`/api/tests?skill=${encodeURIComponent(skill)}&page=${page}`);
+// listTests fetches one page of official tests. filter narrows them on the
+// server ({task_type, series}), so pagination counts only matching tests.
+export function listTests(skill, page = 1, filter = {}) {
+  const params = new URLSearchParams({ skill, page: String(page) });
+  for (const [k, v] of Object.entries(filter)) {
+    if (v) params.set(k, v);
+  }
+  return request(`/api/tests?${params}`);
 }
 
 export function getTest(id) {
@@ -155,4 +161,75 @@ export function getSubmission(id) {
 
 export function getProfile() {
   return request('/api/profile');
+}
+
+// --- Speaking ---
+
+// getSpeakingScript returns the examiner's script for a speaking test:
+// {test_id, mode, lines: [{kind, part, text, question_id, seconds, audio_url}]}.
+// audio_url is missing while a line's examiner recording is still being
+// made; the runner reads that line with browser speech instead.
+export function getSpeakingScript(testId) {
+  return request(`/api/speaking/tests/${testId}/script`);
+}
+
+// requestUploadSlots returns `count` {key, upload_url} pairs to PUT
+// recordings to. ext is the recording's container (webm, ogg, mp4, m4a).
+export function requestUploadSlots(count, ext) {
+  return request('/api/speaking/uploads', {
+    method: 'POST',
+    body: JSON.stringify({ count, ext }),
+  });
+}
+
+// uploadRecording PUTs a recording to its upload link. The link is either
+// straight to the storage bucket or a signed path on this server, so it
+// carries its own authorisation and gets no bearer token.
+export async function uploadRecording(uploadUrl, blob) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const res = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: blob,
+        headers: { 'Content-Type': blob.type || 'application/octet-stream' },
+      });
+      if (res.ok) return;
+      if (attempt >= 3) throw new Error(`Tải bản ghi âm lên thất bại (${res.status})`);
+    } catch (err) {
+      if (attempt >= 3) throw err;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+  }
+}
+
+export function getRecordings(submissionId) {
+  return request(`/api/speaking/submissions/${submissionId}/recordings`);
+}
+
+export function listCustomSpeaking(page = 1) {
+  return request(`/api/speaking/custom?page=${page}`);
+}
+
+// createCustomSpeaking saves a custom test: {title, part1?, part2?, part3?},
+// each part {bank_test_id} or {custom: <part content>}. Resolves to
+// {test, warnings}.
+export function createCustomSpeaking(body) {
+  return request('/api/speaking/custom', { method: 'POST', body: JSON.stringify(body) });
+}
+
+export function updateCustomSpeaking(id, body) {
+  return request(`/api/speaking/custom/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+}
+
+export function deleteCustomSpeaking(id) {
+  return request(`/api/speaking/custom/${id}`, { method: 'DELETE' });
+}
+
+// generateSpeakingParts drafts Part 1 and/or Part 3 around a Part 2 cue
+// card, for the user to edit. Nothing is saved.
+export function generateSpeakingParts(part2, { part1 = false, part3 = true } = {}) {
+  return request('/api/speaking/custom/generate', {
+    method: 'POST',
+    body: JSON.stringify({ part2, part1, part3 }),
+  });
 }

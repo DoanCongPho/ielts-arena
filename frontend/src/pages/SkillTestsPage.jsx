@@ -6,6 +6,7 @@ import { SKILLS, SKILL_CONFIG, seriesLabel } from '../lib/skillConfig';
 import Button from '../components/ui/Button/Button';
 import SkillTag from '../components/ui/SkillTag/SkillTag';
 import Card from '../components/ui/Card/Card';
+import CustomSpeakingList from '../components/CustomSpeakingList/CustomSpeakingList';
 import './PracticePage.css';
 
 export default function SkillTestsPage() {
@@ -28,12 +29,15 @@ export default function SkillTestsPage() {
     setPage(1);
   }, [skill]);
 
+  const activeFilter = config?.taskFilters?.find((f) => f.key === taskFilter);
+  const filterQuery = JSON.stringify(activeFilter?.query || {});
+
   useEffect(() => {
     if (!config?.enabled) return;
     let cancelled = false;
     setLoading(true);
     setError('');
-    listTests(skill, page)
+    listTests(skill, page, JSON.parse(filterQuery))
       .then((data) => {
         if (cancelled) return;
         setTests(data.data || []);
@@ -48,21 +52,14 @@ export default function SkillTestsPage() {
     return () => {
       cancelled = true;
     };
-  }, [skill, page, config?.enabled]);
+  }, [skill, page, filterQuery, config?.enabled]);
 
   if (!config || !config.enabled) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // A filter either carries its own predicate (series filters) or is a
-  // task_type prefix — for Writing the keys are the exact task_type values
-  // (task1/task2), and a string always starts with itself.
-  const activeFilter = config.taskFilters.find((f) => f.key === taskFilter);
-  const visibleTests = tests.filter((t) => {
-    if (!activeFilter || activeFilter.key === 'all') return true;
-    return activeFilter.match ? activeFilter.match(t) : t.task_type.startsWith(activeFilter.key);
-  });
-  const groups = groupBySeries(visibleTests);
+  // The API already applied the filter; this page shows what it returned.
+  const groups = groupBySeries(tests);
 
   // Inside a book the test number is what tells cards apart ("Test 3").
   function cardLabel(t) {
@@ -104,17 +101,22 @@ export default function SkillTestsPage() {
           <button
             key={f.key}
             className={`task-filter-pill ${taskFilter === f.key ? 'active' : ''}`}
-            onClick={() => setTaskFilter(f.key)}
+            onClick={() => {
+              setTaskFilter(f.key);
+              setPage(1);
+            }}
           >
             {f.label}
           </button>
         ))}
       </div>
 
+      {skill === 'speaking' && <CustomSpeakingList />}
+
       {loading && <p className="practice-status">Đang tải đề...</p>}
       {error && <p className="practice-status practice-error">{error}</p>}
 
-      {!loading && !error && visibleTests.length === 0 && (
+      {!loading && !error && tests.length === 0 && (
         <p className="practice-status">Chưa có đề nào cho bộ lọc này.</p>
       )}
 

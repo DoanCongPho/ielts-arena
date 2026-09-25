@@ -24,6 +24,8 @@ type TestResponse struct {
 	ContentData  json.RawMessage `json:"content_data"`
 	ThumbnailURL string          `json:"thumbnail_url,omitempty"`
 	XPGain       int             `json:"xp_gain"`
+	// IsCustom marks the caller's own practice content.
+	IsCustom bool `json:"is_custom,omitempty"`
 }
 
 // newTestResponse builds the public wire shape for a Test — content is
@@ -40,6 +42,7 @@ func newTestResponse(t *Test, content json.RawMessage) TestResponse {
 		ContentData:  content,
 		ThumbnailURL: t.ThumbnailURL,
 		XPGain:       t.XPGain,
+		IsCustom:     t.OwnerID != 0,
 	}
 }
 

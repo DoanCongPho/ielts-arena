@@ -47,9 +47,13 @@ func (h *Handler) listTestsHandler(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusBadRequest, "ielts_test.invalid_input", "skill is required")
 		return
 	}
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	q := r.URL.Query()
+	page, _ := strconv.Atoi(q.Get("page"))
 
-	resp, err := h.svc.GetListTest(r.Context(), skill, ListTestRequest{Page: page})
+	resp, err := h.svc.GetListTest(r.Context(), skill, ListTestRequest{
+		Page:       page,
+		TestFilter: TestFilter{TaskType: q.Get("task_type"), Series: q.Get("series")},
+	})
 	if err != nil {
 		httpx.WriteInternalError(w, "ielts_test.list_tests", err)
 		return
@@ -64,7 +68,12 @@ func (h *Handler) getTestHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	test, err := h.svc.GetTest(r.Context(), id)
+	userID, ok := auth.CurrentUserID(r)
+	if !ok {
+		httpx.WriteError(w, http.StatusUnauthorized, "auth.invalid_credentials", "missing authenticated user")
+		return
+	}
+	test, err := h.svc.GetTest(r.Context(), userID, id)
 	if err != nil {
 		if errors.Is(err, ErrTestNotFound) {
 			httpx.WriteError(w, http.StatusNotFound, "ielts_test.test_not_found", err.Error())
@@ -149,6 +158,10 @@ func (h *Handler) submitAnswerHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, ErrTestNotFound) {
 			httpx.WriteError(w, http.StatusNotFound, "ielts_test.test_not_found", err.Error())
+			return
+		}
+		if errors.Is(err, ErrInvalidSubmission) {
+			httpx.WriteError(w, http.StatusBadRequest, "ielts_test.invalid_input", err.Error())
 			return
 		}
 		httpx.WriteInternalError(w, "ielts_test.submit_answer", err)

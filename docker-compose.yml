@@ -29,6 +29,8 @@ services:
     # from the host and served at /assets/audio/ like the other assets.
     volumes:
       - ./media/audio:/app/internal/assets/audio:ro
+      # Speaking recordings and examiner audio when S3_BUCKET is empty.
+      - speaking_media:/app/data/media
     depends_on:
       mysql:
         condition: service_healthy
@@ -44,3 +46,4 @@ services:
       - api
 volumes:
   mysql_data:
+  speaking_media:

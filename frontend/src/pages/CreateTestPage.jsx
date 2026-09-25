@@ -5,6 +5,16 @@ import { buildTestPayload } from '../lib/buildTestPayload';
 import WritingBuilder from '../components/TestBuilder/WritingBuilder';
 import PassagesEditor from '../components/TestBuilder/PassagesEditor';
 import SectionsEditor from '../components/TestBuilder/SectionsEditor';
+import { Part1Editor, Part2Editor, Part3Editor } from '../components/TestBuilder/SpeakingPartEditors';
+import {
+  EMPTY_PART1,
+  EMPTY_PART2,
+  EMPTY_PART3,
+  MODES,
+  part1ToApi,
+  part2ToApi,
+  part3ToApi,
+} from '../lib/speakingContent';
 import Button from '../components/ui/Button/Button';
 import Card from '../components/ui/Card/Card';
 import './CreateTestPage.css';
@@ -24,6 +34,11 @@ export default function CreateTestPage() {
   const [listeningAudioUrl, setListeningAudioUrl] = useState('');
   const [sections, setSections] = useState([{ title: '', section_start_time: 0, section_end_time: 0, question_groups: [] }]);
 
+  const [speakingMode, setSpeakingMode] = useState('full');
+  const [part1, setPart1] = useState(EMPTY_PART1);
+  const [part2, setPart2] = useState(EMPTY_PART2);
+  const [part3, setPart3] = useState(EMPTY_PART3);
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(null);
@@ -33,7 +48,8 @@ export default function CreateTestPage() {
     setError('');
     setSuccess(null);
 
-    if (!taskType.trim()) {
+    // A speaking test's task type is derived from its parts on the server.
+    if (skill !== 'speaking' && !taskType.trim()) {
       setError('task_type là bắt buộc.');
       return;
     }
@@ -49,6 +65,7 @@ export default function CreateTestPage() {
       passages,
       listeningAudioUrl,
       sections,
+      speakingContent: speakingContentFor(speakingMode, { part1, part2, part3 }),
     });
 
     setSubmitting(true);
@@ -79,12 +96,19 @@ export default function CreateTestPage() {
               <option value="reading">Reading</option>
               <option value="listening">Listening</option>
               <option value="writing">Writing</option>
+              <option value="speaking">Speaking</option>
             </select>
           </label>
 
           <label className="tb-field tb-field-inline">
             <span>Task type (vd: test1, task1, section2...)</span>
-            <input className="tb-input" value={taskType} onChange={(e) => setTaskType(e.target.value)} required />
+            <input
+              className="tb-input"
+              value={skill === 'speaking' ? speakingMode : taskType}
+              onChange={(e) => setTaskType(e.target.value)}
+              disabled={skill === 'speaking'}
+              required={skill !== 'speaking'}
+            />
           </label>
 
           <label className="tb-field tb-field-inline">
@@ -118,6 +142,29 @@ export default function CreateTestPage() {
 
         {skill === 'reading' && <PassagesEditor passages={passages} onChange={setPassages} />}
 
+        {skill === 'speaking' && (
+          <>
+            <label className="tb-field tb-field-inline">
+              <span>Dạng đề</span>
+              <select className="tb-select" value={speakingMode} onChange={(e) => setSpeakingMode(e.target.value)}>
+                {MODES.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
+              </select>
+            </label>
+            {speakingMode === 'full' || speakingMode === 'part1' ? (
+              <Card className="tb-group-card"><p className="tb-card-eyebrow">Part 1</p><Part1Editor value={part1} onChange={setPart1} /></Card>
+            ) : null}
+            {speakingMode === 'full' || speakingMode === 'part2' ? (
+              <Card className="tb-group-card"><p className="tb-card-eyebrow">Part 2</p><Part2Editor value={part2} onChange={setPart2} /></Card>
+            ) : null}
+            {speakingMode === 'full' || speakingMode === 'part3' ? (
+              <Card className="tb-group-card">
+                <p className="tb-card-eyebrow">Part 3</p>
+                <Part3Editor value={part3} onChange={setPart3} needsTheme={speakingMode === 'part3'} />
+              </Card>
+            ) : null}
+          </>
+        )}
+
         {skill === 'listening' && (
           <>
             <label className="tb-field">
@@ -144,4 +191,13 @@ export default function CreateTestPage() {
       </form>
     </div>
   );
+}
+
+function speakingContentFor(mode, { part1, part2, part3 }) {
+  const parts = MODES.find((m) => m.key === mode).parts;
+  const out = {};
+  if (parts.includes('part1')) out.part1 = part1ToApi(part1);
+  if (parts.includes('part2')) out.part2 = part2ToApi(part2);
+  if (parts.includes('part3')) out.part3 = part3ToApi(part3);
+  return out;
 }

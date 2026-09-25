@@ -1,9 +1,9 @@
 // Package storage hands out time-limited links to objects in a private
 // S3-compatible bucket (Backblaze B2, Cloudflare R2, AWS S3).
 //
-// Only GET presigning is needed — uploads happen out of band with
-// scripts/upload_assets.sh — so this signs AWS SigV4 query strings by hand
-// rather than pulling in an SDK.
+// It signs AWS SigV4 query strings by hand rather than pulling in an SDK:
+// GET links serve assets and recordings, PUT links let a browser (or the
+// server itself) upload one object without holding bucket credentials.
 package storage
 
 import (
@@ -27,18 +27,28 @@ type Bucket struct {
 // PresignGet returns a URL that fetches key from the bucket until expires
 // has passed. It uses path-style addressing: <endpoint>/<bucket>/<key>.
 func (b *Bucket) PresignGet(key string, expires time.Duration, now time.Time) (string, error) {
+	return b.presign("GET", key, expires, now)
+}
+
+// PresignPut returns a URL that uploads key until expires has passed.
+// Content-Type is not signed, so the uploader may send any.
+func (b *Bucket) PresignPut(key string, expires time.Duration, now time.Time) (string, error) {
+	return b.presign("PUT", key, expires, now)
+}
+
+func (b *Bucket) presign(method, key string, expires time.Duration, now time.Time) (string, error) {
 	u, err := url.Parse(b.Endpoint)
 	if err != nil {
 		return "", fmt.Errorf("storage endpoint: %w", err)
 	}
 	path := "/" + b.Name + "/" + strings.TrimPrefix(key, "/")
-	query := presignQuery(u.Host, path, b.Region, b.AccessKeyID, b.SecretAccessKey, expires, now)
+	query := presignQuery(method, u.Host, path, b.Region, b.AccessKeyID, b.SecretAccessKey, expires, now)
 	return u.Scheme + "://" + u.Host + encodePath(path) + "?" + query, nil
 }
 
 // presignQuery computes the SigV4 query string (including X-Amz-Signature)
-// for an unsigned-payload GET of path on host.
-func presignQuery(host, path, region, accessKeyID, secret string, expires time.Duration, now time.Time) string {
+// for an unsigned-payload request of path on host.
+func presignQuery(method, host, path, region, accessKeyID, secret string, expires time.Duration, now time.Time) string {
 	now = now.UTC()
 	amzDate := now.Format("20060102T150405Z")
 	day := now.Format("20060102")
@@ -54,7 +64,7 @@ func presignQuery(host, path, region, accessKeyID, secret string, expires time.D
 	canonicalQuery := strings.ReplaceAll(q.Encode(), "+", "%20")
 
 	canonicalRequest := strings.Join([]string{
-		"GET",
+		method,
 		encodePath(path),
 		canonicalQuery,
 		"host:" + host + "\n",

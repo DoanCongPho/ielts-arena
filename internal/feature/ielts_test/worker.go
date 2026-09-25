@@ -18,10 +18,9 @@ type WorkerConfig struct {
 	// queue. After doing work it re-polls immediately, so a busy queue
 	// drains at full speed and an idle one stays cheap.
 	PollInterval time.Duration
-	// JobTimeout bounds a single grade, so one hung LLM call can't occupy
-	// a worker forever. On timeout the submission is rescheduled and
-	// picked up again later.
-	JobTimeout time.Duration
+	// Each job's timeout is the service's, per skill: a speaking grade
+	// waits on transcription and the pronunciation service and runs far
+	// longer than a writing one (see WithJobTimeout, WithSpeakingGrader).
 }
 
 func (c WorkerConfig) withDefaults() WorkerConfig {
@@ -30,9 +29,6 @@ func (c WorkerConfig) withDefaults() WorkerConfig {
 	}
 	if c.PollInterval <= 0 {
 		c.PollInterval = 3 * time.Second
-	}
-	if c.JobTimeout <= 0 {
-		c.JobTimeout = 90 * time.Second
 	}
 	return c
 }
@@ -54,8 +50,7 @@ func StartGradingWorkers(ctx context.Context, svc Service, cfg WorkerConfig) *sy
 			runGradingWorker(ctx, svc, cfg, id)
 		}(i + 1)
 	}
-	log.Printf("ielts_test: %d grading worker(s) started (poll=%s, job timeout=%s)",
-		cfg.Count, cfg.PollInterval, cfg.JobTimeout)
+	log.Printf("ielts_test: %d grading worker(s) started (poll=%s)", cfg.Count, cfg.PollInterval)
 	return &wg
 }
 
@@ -66,7 +61,7 @@ func runGradingWorker(ctx context.Context, svc Service, cfg WorkerConfig, id int
 			return
 		}
 
-		worked, err := gradeOne(ctx, svc, cfg.JobTimeout)
+		worked, err := svc.GradeNextPending(ctx)
 		if err != nil {
 			// Already recorded on the submission (rescheduled or failed);
 			// logged here so the failure is visible in the process output.
@@ -83,13 +78,4 @@ func runGradingWorker(ctx context.Context, svc Service, cfg WorkerConfig, id int
 		case <-time.After(cfg.PollInterval):
 		}
 	}
-}
-
-// gradeOne wraps a single unit of work in its own timeout, in a function
-// so the cancel is released as soon as the job ends rather than on the
-// next loop iteration.
-func gradeOne(ctx context.Context, svc Service, timeout time.Duration) (bool, error) {
-	jobCtx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-	return svc.GradeNextPending(jobCtx)
 }
