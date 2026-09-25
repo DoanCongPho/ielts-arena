@@ -395,7 +395,7 @@ func TestService_GradeNextPending_ReclaimsSubmissionAbandonedByDeadWorker(t *tes
 
 	// A worker claimed this submission and then died: it is stuck in
 	// "grading" with a claim older than the lease.
-	staleClaim := time.Now().Add(-2 * gradingLease)
+	staleClaim := time.Now().Add(-2 * (defaultJobTimeout + gradingLeaseSlack))
 	stuck, err := repo.CreateSubmission(ctx, &Submission{
 		UserID:    1,
 		TestID:    test.ID,

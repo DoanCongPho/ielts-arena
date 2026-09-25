@@ -20,6 +20,7 @@ import (
 	"github/DoanCongPho/game-arena/internal/platform/database"
 	"github/DoanCongPho/game-arena/internal/platform/llm"
 	"github/DoanCongPho/game-arena/internal/platform/middleware"
+	"github/DoanCongPho/game-arena/internal/platform/pronunciation"
 	"github/DoanCongPho/game-arena/internal/platform/storage"
 	"github/DoanCongPho/game-arena/migrations"
 
@@ -38,6 +39,12 @@ func main() {
 		os.Exit(ielts_test.RunValidateCmd(os.Args[2:]))
 	}
 	cfg := config.MustLoad()
+	if len(os.Args) > 1 && os.Args[1] == "calibrate-speaking" {
+		// Grades examiner-rated samples from disk; needs the model and
+		// pronunciation settings but no database.
+		g := newSpeakingGrader(cfg, llm.NewClient(cfg.App.OpenAIAPIKey, cfg.App.OpenAIModel), nil)
+		os.Exit(ielts_test.RunCalibrateCmd(g, os.Args[2:], os.Stdout))
+	}
 	if len(os.Args) > 1 && os.Args[1] == "migrate" {
 		os.Exit(database.RunMigrateCmd(cfg, migrations.FS, os.Args[2:]))
 	}
@@ -68,6 +75,23 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/", helloWorld)
 	r.HandleFunc("/health", checkhealth)
+
+	// Speaking recordings and examiner audio. With a bucket they're read
+	// and written through presigned links straight to the bucket (which
+	// needs a CORS rule allowing PUT from the frontend's origin); without
+	// one, they live on disk behind signed /assets/media/ links. That route
+	// must be registered before the /assets/ catch-all below.
+	var media storage.ObjectStore
+	if a := cfg.App.Assets; a.Bucket != "" {
+		media = storage.NewBucketStore(&storage.Bucket{
+			Endpoint: a.Endpoint, Region: a.Region, Name: a.Bucket,
+			AccessKeyID: a.AccessKeyID, SecretAccessKey: a.SecretAccessKey,
+		})
+	} else {
+		disk := storage.NewDiskStore(cfg.App.MediaDir, "/assets/media/", cfg.App.SecretKey)
+		r.PathPrefix("/assets/media/").Handler(http.StripPrefix("/assets/media", disk.Handler()))
+		media = disk
+	}
 
 	// Static assets (e.g. Writing Task 1 chart images) — public, no auth.
 	// With S3_BUCKET set (production), the files live in a private bucket and
@@ -116,10 +140,16 @@ func main() {
 	llmClient := llm.NewClient(cfg.App.OpenAIAPIKey, cfg.App.OpenAIModel)
 	grader := ielts_test.NewOpenAIGrader(llmClient, ielts_test.NewAssetImageResolver("internal/assets", presignAsset))
 
+	sp := cfg.App.Speaking
+	speakingGrader := newSpeakingGrader(cfg, llmClient, media)
+
 	testRepo := ielts_test.NewRepository(plat.DB)
 	// progRepo satisfies ielts_test.XPGranter structurally — grading knows
 	// only "something that can award XP", not the progression package.
-	testSvc := ielts_test.NewService(testRepo, grader, progRepo)
+	testSvc := ielts_test.NewService(testRepo, grader, progRepo,
+		ielts_test.WithJobTimeout(cfg.App.Grading.JobTimeout),
+		ielts_test.WithSpeakingGrader(speakingGrader, sp.JobTimeout),
+	)
 	ielts_test.NewHandler(testSvc).MountRoutes(api)
 
 	// Grading runs here, not in the request that submitted the answer:
@@ -131,7 +161,6 @@ func main() {
 	workers := ielts_test.StartGradingWorkers(workerCtx, testSvc, ielts_test.WorkerConfig{
 		Count:        cfg.App.Grading.Workers,
 		PollInterval: cfg.App.Grading.PollInterval,
-		JobTimeout:   cfg.App.Grading.JobTimeout,
 	})
 
 	// --profile--
@@ -179,4 +208,18 @@ func main() {
 	stopWorkers()
 	workers.Wait()
 	log.Println("shutdown complete")
+}
+
+// newSpeakingGrader wires speaking grading: OpenAI transcribes and judges,
+// and the self-hosted pronunciation service measures phonemes and prosody.
+// Without that service, pronunciation is estimated from recognition
+// confidence.
+func newSpeakingGrader(cfg *config.Config, llmClient *llm.Client, media storage.ObjectStore) *ielts_test.SpeakingGrader {
+	sp := cfg.App.Speaking
+	speakingCfg := ielts_test.SpeakingGraderConfig{WhisperModel: sp.WhisperModel, JudgeModel: sp.JudgeModel}
+	if pron := pronunciation.NewClient(sp.PronURL, sp.PronToken, sp.PronTimeout); pron != nil {
+		return ielts_test.NewSpeakingGrader(media, llmClient, pron, llmClient, speakingCfg)
+	}
+	log.Println("speaking: PRON_SERVICE_URL is not set — pronunciation will be estimated")
+	return ielts_test.NewSpeakingGrader(media, llmClient, nil, llmClient, speakingCfg)
 }

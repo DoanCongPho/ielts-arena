@@ -160,6 +160,10 @@ func (h *Handler) submitAnswerHandler(w http.ResponseWriter, r *http.Request) {
 			httpx.WriteError(w, http.StatusNotFound, "ielts_test.test_not_found", err.Error())
 			return
 		}
+		if errors.Is(err, ErrInvalidSubmission) {
+			httpx.WriteError(w, http.StatusBadRequest, "ielts_test.invalid_input", err.Error())
+			return
+		}
 		httpx.WriteInternalError(w, "ielts_test.submit_answer", err)
 		return
 	}
