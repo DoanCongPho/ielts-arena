@@ -128,10 +128,12 @@ export function isSettled(status) {
  * the first or second poll. onTick is called with each intermediate
  * submission so the UI can show progress.
  */
-export async function waitForGrading(submissionId, { intervalMs = 1500, timeoutMs = 180000, onTick } = {}) {
+export async function waitForGrading(submissionId, { intervalMs = 1500, timeoutMs = 180000, onTick, signal } = {}) {
   const deadline = Date.now() + timeoutMs;
 
   for (;;) {
+    // signal lets a page stop waiting when the learner leaves it.
+    if (signal?.aborted) throw new DOMException('aborted', 'AbortError');
     const sub = await getSubmission(submissionId);
     if (isSettled(sub.status)) {
       // Grading just finished, which may have granted XP server-side —

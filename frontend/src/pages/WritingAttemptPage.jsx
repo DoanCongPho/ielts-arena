@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
-import { getScore, getTest, submitAnswer, waitForGrading } from '../lib/api';
+import { getTest, submitAnswer } from '../lib/api';
+import { watchGrading } from '../lib/gradingWatch';
 import { safeParse } from '../lib/safeParse';
 import { ATTEMPT_SECONDS, WRITING_SECONDS, useCountdown, useElapsed, useLeaveGuard } from '../lib/useAttemptSession';
-import ScoreResult from '../components/ScoreResult/ScoreResult';
 import Button from '../components/ui/Button/Button';
 import './WritingAttemptPage.css';
 
@@ -41,8 +41,6 @@ export default function WritingAttemptPage() {
   const [mode, setMode] = useState(null);
   const [text, setText] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [score, setScore] = useState(null);
-  const [gradeFailed, setGradeFailed] = useState(false);
 
   useEffect(() => {
     getTest(testId)
@@ -53,7 +51,7 @@ export default function WritingAttemptPage() {
 
   const timed = mode === 'timed';
   const allowance = WRITING_SECONDS[test?.task_type] ?? ATTEMPT_SECONDS;
-  const inProgress = !!test && !!mode && !score && !gradeFailed;
+  const inProgress = !!test && !!mode && !submitting;
   const remaining = useCountdown(allowance, inProgress && timed, handleTimeUp);
   const elapsed = useElapsed(inProgress);
   const confirmLeave = useLeaveGuard(inProgress);
@@ -75,18 +73,15 @@ export default function WritingAttemptPage() {
     setSubmitting(true);
     setError('');
     try {
-      // The API only queues the answer; a background worker grades it, so
-      // poll the submission until its status settles.
+      // The API only queues the answer; a background worker grades it, which
+      // can take a minute. Rather than keep the learner waiting here, send
+      // them to their history and let GradingNotifier say when it's ready.
       const queued = await submitAnswer(Number(testId), { text, mode, elapsed_seconds: elapsed });
-      const settled = await waitForGrading(queued.id);
-      if (settled.status === 'graded') {
-        setScore(await getScore(settled.id));
-      } else {
-        setGradeFailed(true);
-      }
+      const label = test.task_type === 'task1' ? 'Writing Task 1' : 'Writing Task 2';
+      watchGrading(queued.id, label);
+      navigate('/submissions', { replace: true, state: { justSubmitted: { id: queued.id, label } } });
     } catch (err) {
       setError(err.message);
-    } finally {
       setSubmitting(false);
     }
   }
@@ -154,34 +149,21 @@ export default function WritingAttemptPage() {
         </div>
 
         <div className="attempt-answer-panel">
-          {!score && !gradeFailed && (
-            <>
-              <div className="attempt-answer-meta">
-                <span>Word count: {wordCount}</span>
-              </div>
-              <textarea
-                className="attempt-textarea"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder="Viết bài của bạn ở đây..."
-                disabled={submitting}
-              />
-              {error && <p className="practice-status practice-error">{error}</p>}
-              <Button variant="primary" className="attempt-submit-btn" onClick={handleSubmit} disabled={submitting || !text.trim()}>
-                {submitting ? 'Đang chấm điểm...' : 'Nộp bài'}
-              </Button>
-            </>
-          )}
-
-          {gradeFailed && (
-            <div className="attempt-result">
-              <p className="practice-status practice-error">
-                Bài đã được lưu nhưng chấm điểm thất bại. Xem lại trong mục Lịch sử làm bài.
-              </p>
-            </div>
-          )}
-
-          {score && <ScoreResult score={score} />}
+          <div className="attempt-answer-meta">
+            <span>Word count: {wordCount}</span>
+          </div>
+          <textarea
+            className="attempt-textarea"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Viết bài của bạn ở đây..."
+            disabled={submitting}
+          />
+          {error && <p className="practice-status practice-error">{error}</p>}
+          <Button variant="primary" className="attempt-submit-btn" onClick={handleSubmit} disabled={submitting || !text.trim()}>
+            {submitting ? 'Đang nộp bài...' : 'Nộp bài'}
+          </Button>
+          <p className="attempt-submit-hint">Nộp xong bạn không cần chờ: bài được chấm ngầm và bạn sẽ được báo khi có kết quả.</p>
         </div>
       </div>
     </div>

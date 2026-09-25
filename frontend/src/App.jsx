@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import ProfileHud from './components/ProfileHud/ProfileHud';
+import GradingNotifier from './components/GradingNotifier/GradingNotifier';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
@@ -107,6 +108,7 @@ export default function App() {
         } />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
+      <GradingNotifier />
     </BrowserRouter>
   );
 }

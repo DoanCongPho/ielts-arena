@@ -39,3 +39,36 @@
 .submission-row-status {
   flex-shrink: 0;
 }
+
+.submission-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  background: var(--gold-100);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  color: var(--ink-900);
+}
+
+.submission-notice-done {
+  background: var(--paper-50);
+  border-left: 4px solid var(--success-600);
+}
+
+.submission-notice-text {
+  flex: 1;
+  line-height: 1.5;
+}
+
+.submission-notice-close {
+  border: none;
+  background: none;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--ink-400);
+  cursor: pointer;
+}
