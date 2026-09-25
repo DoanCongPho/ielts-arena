@@ -1,4 +1,4 @@
-package ielts_test
+package examiner
 
 import (
 	"context"
@@ -11,43 +11,43 @@ type (
 	speechSynth interface {
 		Speak(ctx context.Context, model, voice, instructions, text string) ([]byte, error)
 	}
-	examinerStore interface {
+	objectStore interface {
 		DownloadURL(key string, expires time.Duration) (string, error)
 		Put(ctx context.Context, key, contentType string, body []byte) error
 		Exists(ctx context.Context, key string) (bool, error)
 	}
 )
 
-// ExaminerAudio gives script lines a recorded examiner voice. Recordings
+// Audio gives script lines a recorded examiner voice. Recordings
 // are made on demand: the first time a line is served and has none, it is
 // queued for text-to-speech and the runner falls back to browser speech
 // until the recording exists. Every line's key is a hash of its text and
 // voice, so each distinct line is synthesised once, ever, and shared by
 // every test that uses it — the standard examiner wording costs nothing
 // after its first use.
-type ExaminerAudio struct {
-	store examinerStore
+type Audio struct {
+	store objectStore
 	tts   speechSynth // nil: never synthesise; browser speech only
-	voice ExaminerVoice
+	voice Voice
 
 	known   sync.Map // audio key -> struct{}: recording exists
 	pending sync.Map // audio key -> struct{}: queued or being made
-	queue   chan ScriptLine
+	queue   chan Line
 }
 
-// examinerQueueSize bounds lines waiting for synthesis; beyond it new
+// queueSize bounds lines waiting for synthesis; beyond it new
 // lines are dropped and retried the next time they're served.
-const examinerQueueSize = 256
+const queueSize = 256
 
-func NewExaminerAudio(store examinerStore, tts speechSynth, voice ExaminerVoice) *ExaminerAudio {
-	return &ExaminerAudio{store: store, tts: tts, voice: voice, queue: make(chan ScriptLine, examinerQueueSize)}
+func NewAudio(store objectStore, tts speechSynth, voice Voice) *Audio {
+	return &Audio{store: store, tts: tts, voice: voice, queue: make(chan Line, queueSize)}
 }
 
-func (e *ExaminerAudio) Voice() ExaminerVoice { return e.voice }
+func (e *Audio) Voice() Voice { return e.voice }
 
 // Start runs the synthesis worker until ctx is cancelled. One worker is
 // enough: lines are short and only ever made once.
-func (e *ExaminerAudio) Start(ctx context.Context) {
+func (e *Audio) Start(ctx context.Context) {
 	if e.tts == nil {
 		return
 	}
@@ -63,7 +63,7 @@ func (e *ExaminerAudio) Start(ctx context.Context) {
 	}()
 }
 
-func (e *ExaminerAudio) synthesise(ctx context.Context, line ScriptLine) {
+func (e *Audio) synthesise(ctx context.Context, line Line) {
 	defer e.pending.Delete(line.AudioKey)
 	jobCtx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
@@ -86,7 +86,7 @@ func (e *ExaminerAudio) synthesise(ctx context.Context, line ScriptLine) {
 
 // Resolve fills in AudioURL for lines whose recording exists and queues
 // the rest for synthesis.
-func (e *ExaminerAudio) Resolve(ctx context.Context, lines []ScriptLine) []ScriptLine {
+func (e *Audio) Resolve(ctx context.Context, lines []Line) []Line {
 	checkCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
@@ -124,11 +124,11 @@ func (e *ExaminerAudio) Resolve(ctx context.Context, lines []ScriptLine) []Scrip
 // Prepare queues synthesis for every line not yet recorded, without
 // waiting — called when a test is created so its audio is usually ready
 // before anyone takes it.
-func (e *ExaminerAudio) Prepare(lines []ScriptLine) {
+func (e *Audio) Prepare(lines []Line) {
 	go e.Resolve(context.Background(), lines)
 }
 
-func (e *ExaminerAudio) enqueue(line ScriptLine) {
+func (e *Audio) enqueue(line Line) {
 	if e.tts == nil {
 		return
 	}

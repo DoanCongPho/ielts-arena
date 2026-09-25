@@ -94,10 +94,10 @@ func (c SpeakingContent) Mode() string {
 	return ""
 }
 
-// normalizeSpeakingContent trims every text and (re)assigns question IDs
+// NormalizeSpeakingContent trims every text and (re)assigns question IDs
 // from their positions. It runs before validation and before storing, so
 // IDs are always consistent with the stored order.
-func normalizeSpeakingContent(c *SpeakingContent) {
+func NormalizeSpeakingContent(c *SpeakingContent) {
 	c.Title = strings.TrimSpace(c.Title)
 	if p := c.Part1; p != nil {
 		for ti := range p.Topics {
@@ -140,7 +140,7 @@ func canonicalContentData(skill string, raw []byte) ([]byte, error) {
 	if err := json.Unmarshal(raw, &c); err != nil {
 		return nil, fmt.Errorf("invalid content_data for speaking: %w", err)
 	}
-	normalizeSpeakingContent(&c)
+	NormalizeSpeakingContent(&c)
 	return json.Marshal(c)
 }
 
@@ -151,9 +151,9 @@ func speakingModeOf(raw []byte) string {
 	return c.Mode()
 }
 
-// validateSpeakingContent checks normalized content against the test's
+// ValidateSpeakingContent checks normalized content against the test's
 // shape and the authoring limits.
-func validateSpeakingContent(c SpeakingContent) error {
+func ValidateSpeakingContent(c SpeakingContent) error {
 	if c.Mode() == "" {
 		return errors.New("a speaking test has either all three parts or exactly one")
 	}
@@ -235,41 +235,41 @@ func checkSpeakingText(field, s string) error {
 	return nil
 }
 
-// speakingQuestion is one prompt the candidate answers, flattened in exam
+// SpeakingQuestionRef is one prompt the candidate answers, flattened in exam
 // order with the part it belongs to.
-type speakingQuestion struct {
+type SpeakingQuestionRef struct {
 	ID   string
 	Part int
 	Text string
 }
 
-// questions lists every answerable prompt in exam order. The Part 2 long
+// Questions lists every answerable prompt in exam order. The Part 2 long
 // turn is one question whose text is the whole cue card.
-func (c SpeakingContent) questions() []speakingQuestion {
-	var qs []speakingQuestion
+func (c SpeakingContent) Questions() []SpeakingQuestionRef {
+	var qs []SpeakingQuestionRef
 	if p := c.Part1; p != nil {
 		for _, t := range p.Topics {
 			for _, q := range t.Questions {
-				qs = append(qs, speakingQuestion{ID: q.ID, Part: 1, Text: q.Text})
+				qs = append(qs, SpeakingQuestionRef{ID: q.ID, Part: 1, Text: q.Text})
 			}
 		}
 	}
 	if p := c.Part2; p != nil {
-		qs = append(qs, speakingQuestion{ID: p.ID, Part: 2, Text: p.cueCardText()})
+		qs = append(qs, SpeakingQuestionRef{ID: p.ID, Part: 2, Text: p.CueCardText()})
 		for _, q := range p.FollowUps {
-			qs = append(qs, speakingQuestion{ID: q.ID, Part: 2, Text: q.Text})
+			qs = append(qs, SpeakingQuestionRef{ID: q.ID, Part: 2, Text: q.Text})
 		}
 	}
 	if p := c.Part3; p != nil {
 		for _, q := range p.Questions {
-			qs = append(qs, speakingQuestion{ID: q.ID, Part: 3, Text: q.Text})
+			qs = append(qs, SpeakingQuestionRef{ID: q.ID, Part: 3, Text: q.Text})
 		}
 	}
 	return qs
 }
 
-// cueCardText is the card as a candidate reads it.
-func (p SpeakingPart2) cueCardText() string {
+// CueCardText is the card as a candidate reads it.
+func (p SpeakingPart2) CueCardText() string {
 	var b strings.Builder
 	b.WriteString(p.Topic)
 	b.WriteString("\nYou should say:")
@@ -282,8 +282,8 @@ func (p SpeakingPart2) cueCardText() string {
 	return b.String()
 }
 
-// allTexts is every author-written string, for moderation.
-func (c SpeakingContent) allTexts() []string {
+// AllTexts is every author-written string, for moderation.
+func (c SpeakingContent) AllTexts() []string {
 	var out []string
 	if c.Title != "" {
 		out = append(out, c.Title)
@@ -300,7 +300,7 @@ func (c SpeakingContent) allTexts() []string {
 	if p := c.Part3; p != nil && p.Theme != "" {
 		out = append(out, p.Theme)
 	}
-	for _, q := range c.questions() {
+	for _, q := range c.Questions() {
 		if q.ID != "p2" {
 			out = append(out, q.Text)
 		}

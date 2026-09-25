@@ -107,7 +107,7 @@ func (h *Handler) createTestHandler(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteInternalError(w, "ielts_test.create_test", err)
 		return
 	}
-	httpx.WriteSuccess(w, newTestResponse(created, content))
+	httpx.WriteSuccess(w, NewTestResponse(created, content))
 }
 
 func (h *Handler) getAnswerKeyHandler(w http.ResponseWriter, r *http.Request) {

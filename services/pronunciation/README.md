@@ -20,6 +20,17 @@ Oracle Cloud Always Free VM.
 Thresholds are starting points. Calibrate them on examiner-rated samples
 before trusting bands built on them.
 
+## Code
+
+| Module | What it does |
+|---|---|
+| `app.py` | HTTP only: auth, `/health`, `/assess` |
+| `assess.py` | Scores one recording: every word against its references, then prosody and the summary |
+| `phonemes.py` | Reference pronunciations: en-us and en-gb, in context and on their own, plus the weak forms of function words |
+| `model.py` | Loads the wav2vec2 recogniser and runs it over the audio in chunks |
+| `audio.py` | Decodes any browser recording to 16 kHz mono |
+| `scoring.py` | The maths (alignment, GOP, pitch, rhythm), tested on its own in `test_scoring.py` |
+
 ## API
 
 `POST /assess` (multipart), with `Authorization: Bearer $PRON_TOKEN` when

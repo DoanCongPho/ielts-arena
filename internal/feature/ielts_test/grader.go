@@ -171,7 +171,7 @@ func normalizeResult(r *GradingResult, taskType, answer string) error {
 		bands = append(bands, c.Score)
 	}
 	r.Criteria = criteria
-	r.OverallBand = ieltsOverall(bands)
+	r.OverallBand = IELTSOverall(bands)
 
 	haystack := collapseSpace(answer)
 	kept := r.Corrections[:0]

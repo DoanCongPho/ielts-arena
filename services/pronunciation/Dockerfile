@@ -22,7 +22,7 @@ ARG MODEL_ID=facebook/wav2vec2-xlsr-53-espeak-cv-ft
 ENV MODEL_ID=$MODEL_ID
 RUN python -c "import os; from transformers import AutoModelForCTC, AutoProcessor; m=os.environ['MODEL_ID']; AutoProcessor.from_pretrained(m); AutoModelForCTC.from_pretrained(m)"
 
-COPY --chown=app scoring.py app.py ./
+COPY --chown=app *.py ./
 
 EXPOSE 7860
 # One worker: the model takes about 1.3 GB and requests are CPU-bound, so a
