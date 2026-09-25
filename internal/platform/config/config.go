@@ -35,6 +35,30 @@ type AppConfig struct {
 	OpenAIAPIKey string
 	OpenAIModel  string
 	Grading      GradingConfig
+	Speaking     SpeakingConfig
+	// MediaDir holds recordings and examiner audio when no bucket is
+	// configured (local development).
+	MediaDir string
+}
+
+// SpeakingConfig tunes speaking grading and the examiner voice.
+type SpeakingConfig struct {
+	WhisperModel string
+	// JudgeModel rates the band descriptors; empty means OPENAI_MODEL.
+	// Rating is a judgement task, so a stronger model than the writing
+	// default is worth its cost at four calls per test.
+	JudgeModel    string
+	TTSModel      string
+	ExaminerVoice string
+	// PronURL is the pronunciation service (services/pronunciation);
+	// empty means pronunciation is always estimated.
+	PronURL     string
+	PronToken   string
+	PronTimeout time.Duration
+	// JobTimeout bounds one speaking grade: every answer is transcribed
+	// and a sample waits on the pronunciation service, which runs on a
+	// small free CPU VM.
+	JobTimeout time.Duration
 }
 
 // AssetsBucketConfig points at a private S3-compatible bucket (Backblaze
@@ -167,6 +191,25 @@ func loadFromMap(env map[string]string) (*Config, error) {
 		return nil, fmt.Errorf("GRADING_JOB_TIMEOUT_SECONDS: %w", err)
 	}
 	cfg.App.Grading.JobTimeout = time.Duration(jobTimeoutSeconds) * time.Second
+
+	// Speaking
+	cfg.App.Speaking.WhisperModel = get("WHISPER_MODEL", "whisper-1")
+	cfg.App.Speaking.JudgeModel = get("SPEAKING_MODEL", cfg.App.OpenAIModel)
+	cfg.App.Speaking.TTSModel = get("EXAMINER_TTS_MODEL", "gpt-4o-mini-tts")
+	cfg.App.Speaking.ExaminerVoice = get("EXAMINER_VOICE", "sage")
+	cfg.App.Speaking.PronURL = strings.TrimRight(get("PRON_SERVICE_URL", ""), "/")
+	cfg.App.Speaking.PronToken = get("PRON_SERVICE_TOKEN", "")
+	pronTimeout, err := getInt("PRON_SERVICE_TIMEOUT_SECONDS", 180)
+	if err != nil {
+		return nil, fmt.Errorf("PRON_SERVICE_TIMEOUT_SECONDS: %w", err)
+	}
+	cfg.App.Speaking.PronTimeout = time.Duration(pronTimeout) * time.Second
+	speakingTimeout, err := getInt("SPEAKING_JOB_TIMEOUT_SECONDS", 720)
+	if err != nil {
+		return nil, fmt.Errorf("SPEAKING_JOB_TIMEOUT_SECONDS: %w", err)
+	}
+	cfg.App.Speaking.JobTimeout = time.Duration(speakingTimeout) * time.Second
+	cfg.App.MediaDir = get("MEDIA_DIR", "data/media")
 
 	// DB
 	cfg.DB.Host = get("DB_HOST", "localhost")

@@ -6,3 +6,14 @@ tests_bank/
 internal/assets/diagrams/
 media/
 internal/assets/audio/
+
+# Local speaking recordings and examiner audio (MEDIA_DIR)
+/data/
+# Examiner-rated speaking samples for calibration (copyrighted)
+/samples/
+
+# SSH keys — never commit
+key_pair/
+*.key
+
+__pycache__/

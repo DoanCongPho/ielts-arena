@@ -38,8 +38,9 @@ func validateContentData(skill string, raw []byte) error {
 		if err := json.Unmarshal(raw, &c); err != nil {
 			return fmt.Errorf("invalid content_data for speaking: %w", err)
 		}
-		if c.Prompt == "" {
-			return errors.New("content_data.prompt is required for speaking")
+		NormalizeSpeakingContent(&c)
+		if err := ValidateSpeakingContent(c); err != nil {
+			return fmt.Errorf("invalid content_data for speaking: %w", err)
 		}
 	case "reading":
 		var c ReadingContent

@@ -1,0 +1,74 @@
+{
+  "fluency": {
+    "word_count": 176,
+    "speaking_seconds": 67.00000000000004,
+    "part_seconds": {
+      "1": 15.4,
+      "2": 32.05000000000004,
+      "3": 19.549999999999997
+    },
+    "long_turn_seconds": 28.60000000000004,
+    "speech_rate_wpm": 157.6,
+    "articulation_rate_wpm": 171.4,
+    "pauses_per_min": 5.37,
+    "long_pauses_per_min": 2.69,
+    "mean_length_of_run": 12.7,
+    "fillers_per_100_words": 1.1,
+    "repairs": 1,
+    "repairs_per_100_words": 0.6,
+    "mid_clause_pause_share": 1,
+    "long_pauses": [
+      {
+        "question_id": "p1.t1.q2",
+        "seconds": 1.25,
+        "before": "because the beaches is beautiful",
+        "after": "and the people are",
+        "mid_clause": true
+      },
+      {
+        "question_id": "p2",
+        "seconds": 1.25,
+        "before": "prince who travel between planets",
+        "after": "and meet many strange",
+        "mid_clause": true
+      },
+      {
+        "question_id": "p3.q1",
+        "seconds": 1.25,
+        "before": "smartphones compete for our attention",
+        "after": "and short videos is",
+        "mid_clause": true
+      }
+    ]
+  },
+  "coherence": {
+    "discourse_markers": {
+      "although": 1,
+      "because": 3,
+      "on top of that": 1,
+      "personally": 1,
+      "so": 1
+    },
+    "distinct_markers": 5,
+    "most_used_marker_share": 0.43,
+    "mean_answer_words": {
+      "1": 13.3,
+      "2": 43,
+      "3": 16.7
+    },
+    "minimal_answers": 1
+  },
+  "lexis": {
+    "mattr": 0.8,
+    "distinct_words": 112
+  },
+  "grammar": {
+    "sentences": 15,
+    "mean_sentence_words": 11.9,
+    "complex_sentence_share": 0.53
+  },
+  "recognition": {
+    "mean_logprob": -0.35,
+    "low_confidence_share": 0
+  }
+}

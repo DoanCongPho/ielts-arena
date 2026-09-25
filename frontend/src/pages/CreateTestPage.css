@@ -343,3 +343,10 @@
   gap: var(--space-3);
   align-items: center;
 }
+
+.tb-hint {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--ink-700);
+  margin: 0;
+}

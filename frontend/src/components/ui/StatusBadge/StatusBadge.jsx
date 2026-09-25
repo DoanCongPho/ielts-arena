@@ -8,9 +8,12 @@ const DEFAULT_LABEL = {
   failed: 'Lỗi',
 };
 
-export default function StatusBadge({ status, label, className = '' }) {
+// busy adds a pulsing dot for work still in progress (a submission being
+// graded in the background).
+export default function StatusBadge({ status, label, className = '', busy = false }) {
   return (
     <span className={`ui-status-badge ui-status-badge-${status}${className ? ` ${className}` : ''}`}>
+      {busy && <span className="ui-status-badge-dot" aria-hidden />}
       {label || DEFAULT_LABEL[status] || status}
     </span>
   );

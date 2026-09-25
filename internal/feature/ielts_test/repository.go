@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-const testColumns = `id, skill, task_type, series, volume, test_number, content_data, thumbnail_url, source, is_current, xp_gain, created_at`
+const testColumns = `id, owner_id, skill, task_type, series, volume, test_number, content_data, thumbnail_url, source, is_current, xp_gain, created_at`
 const submissionColumns = `id, user_id, test_id, payload, status, submitted_at, attempts, last_error, next_attempt_at, claimed_at`
 const scoreColumns = `id, submission_id, overall_band, details, graded_at`
 
@@ -16,7 +16,14 @@ type Repository interface {
 	// ---test---
 	CreateTest(ctx context.Context, t *Test) (*Test, error)
 	GetTestByID(ctx context.Context, id uint64) (*Test, error)
-	GetListTest(ctx context.Context, skill string, limit, offset int) ([]Test, int, error)
+	// GetListTest lists official tests only — never a user's own.
+	GetListTest(ctx context.Context, skill string, f TestFilter, limit, offset int) ([]Test, int, error)
+	// ListOwnedTests lists ownerID's own tests of skill, newest first.
+	ListOwnedTests(ctx context.Context, ownerID uint64, skill string, limit, offset int) ([]Test, int, error)
+	// DeleteTest removes a test. It fails for a test with submissions.
+	DeleteTest(ctx context.Context, id uint64) error
+	// HasSubmissions reports whether anyone has submitted to testID.
+	HasSubmissions(ctx context.Context, testID uint64) (bool, error)
 	// ReplaceTest overwrites everything but the skill and creation time of
 	// test t.ID — used to re-import a test with corrected content.
 	ReplaceTest(ctx context.Context, t *Test) error
@@ -52,14 +59,16 @@ func NewRepository(db *sql.DB) Repository {
 	return &repository{db: db}
 }
 
-// testSeries holds the nullable series columns while scanning.
+// testSeries holds the nullable owner and series columns while scanning.
 type testSeries struct {
+	owner      sql.NullInt64
 	series     sql.NullString
 	volume     sql.NullInt64
 	testNumber sql.NullInt64
 }
 
 func (s testSeries) apply(t *Test) {
+	t.OwnerID = uint64(s.owner.Int64)
 	t.Series = s.series.String
 	t.Volume = int(s.volume.Int64)
 	t.TestNumber = int(s.testNumber.Int64)
@@ -80,6 +89,7 @@ func scanTest(row *sql.Row) (*Test, error) {
 	var series testSeries
 	err := row.Scan(
 		&test.ID,
+		&series.owner,
 		&test.Skill,
 		&test.TaskType,
 		&series.series,
@@ -112,8 +122,8 @@ func (r *repository) CreateTest(ctx context.Context, t *Test) (*Test, error) {
 	}
 
 	res, err := r.db.ExecContext(ctx,
-		"INSERT INTO tests (skill, task_type, series, volume, test_number, content_data, thumbnail_url, source, is_current, xp_gain, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-		t.Skill, t.TaskType, nullIfZero(t.Series), nullIfZero(t.Volume), nullIfZero(t.TestNumber), t.ContentData, t.ThumbnailURL, t.Source, t.IsCurrent, t.XPGain, t.CreatedAt,
+		"INSERT INTO tests (owner_id, skill, task_type, series, volume, test_number, content_data, thumbnail_url, source, is_current, xp_gain, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		nullIfZero(t.OwnerID), t.Skill, t.TaskType, nullIfZero(t.Series), nullIfZero(t.Volume), nullIfZero(t.TestNumber), t.ContentData, t.ThumbnailURL, t.Source, t.IsCurrent, t.XPGain, t.CreatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("insert test: %w", err)
@@ -143,19 +153,50 @@ func (r *repository) GetTestByID(ctx context.Context, id uint64) (*Test, error) 
 	return scanTest(r.db.QueryRowContext(ctx, query, id))
 }
 
-func (r *repository) GetListTest(ctx context.Context, skill string, limit, offset int) ([]Test, int, error) {
+func (r *repository) GetListTest(ctx context.Context, skill string, f TestFilter, limit, offset int) ([]Test, int, error) {
+	where := "skill = ? AND owner_id IS NULL"
+	args := []any{skill}
+	if f.TaskType != "" {
+		where += " AND task_type = ?"
+		args = append(args, f.TaskType)
+	}
+	switch f.Series {
+	case "":
+	case SeriesNone:
+		where += " AND series IS NULL"
+	default:
+		where += " AND series = ?"
+		args = append(args, f.Series)
+	}
+	args = append(args, limit, offset)
 	rows, err := r.db.QueryContext(ctx,
 		// Books first, newest volume first, tests in book order, so one
 		// book's tests stay contiguous across pages; then everything else.
-		"SELECT "+testColumns+", COUNT(*) OVER() FROM tests WHERE skill = ? "+
+		"SELECT "+testColumns+", COUNT(*) OVER() FROM tests WHERE "+where+" "+
 			"ORDER BY series IS NULL, series, volume DESC, test_number, created_at DESC LIMIT ? OFFSET ?",
-		skill, limit, offset,
+		args...,
 	)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list tests: %w", err)
 	}
-	defer rows.Close()
+	return scanTestRows(rows)
+}
 
+func (r *repository) ListOwnedTests(ctx context.Context, ownerID uint64, skill string, limit, offset int) ([]Test, int, error) {
+	rows, err := r.db.QueryContext(ctx,
+		"SELECT "+testColumns+", COUNT(*) OVER() FROM tests WHERE owner_id = ? AND skill = ? "+
+			"ORDER BY created_at DESC LIMIT ? OFFSET ?",
+		ownerID, skill, limit, offset,
+	)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list owned tests: %w", err)
+	}
+	return scanTestRows(rows)
+}
+
+// scanTestRows reads testColumns plus a trailing COUNT(*) OVER() total.
+func scanTestRows(rows *sql.Rows) ([]Test, int, error) {
+	defer rows.Close()
 	var (
 		tests []Test
 		total int
@@ -164,7 +205,7 @@ func (r *repository) GetListTest(ctx context.Context, skill string, limit, offse
 		var t Test
 		var thumbnailURL sql.NullString
 		var series testSeries
-		if err := rows.Scan(&t.ID, &t.Skill, &t.TaskType, &series.series, &series.volume, &series.testNumber, &t.ContentData, &thumbnailURL, &t.Source, &t.IsCurrent, &t.XPGain, &t.CreatedAt, &total); err != nil {
+		if err := rows.Scan(&t.ID, &series.owner, &t.Skill, &t.TaskType, &series.series, &series.volume, &series.testNumber, &t.ContentData, &thumbnailURL, &t.Source, &t.IsCurrent, &t.XPGain, &t.CreatedAt, &total); err != nil {
 			return nil, 0, fmt.Errorf("scan test: %w", err)
 		}
 		t.ThumbnailURL = thumbnailURL.String
@@ -172,6 +213,26 @@ func (r *repository) GetListTest(ctx context.Context, skill string, limit, offse
 		tests = append(tests, t)
 	}
 	return tests, total, rows.Err()
+}
+
+func (r *repository) DeleteTest(ctx context.Context, id uint64) error {
+	res, err := r.db.ExecContext(ctx, "DELETE FROM tests WHERE id = ?", id)
+	if err != nil {
+		return fmt.Errorf("delete test: %w", err)
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrTestNotFound
+	}
+	return nil
+}
+
+func (r *repository) HasSubmissions(ctx context.Context, testID uint64) (bool, error) {
+	var exists bool
+	err := r.db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM submissions WHERE test_id = ?)", testID).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("check submissions: %w", err)
+	}
+	return exists, nil
 }
 
 func (r *repository) GetListSubmission(ctx context.Context, userID uint64, limit, offset int) ([]SubmissionSummary, int, error) {

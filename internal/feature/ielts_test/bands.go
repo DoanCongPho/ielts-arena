@@ -2,10 +2,10 @@ package ielts_test
 
 import "math"
 
-// ieltsOverall averages criterion bands the way IELTS reports an overall
+// IELTSOverall averages criterion bands the way IELTS reports an overall
 // band: a mean ending in .25 rounds up to .5, one ending in .75 rounds up
 // to the next whole band, anything else rounds down to the nearest half.
-func ieltsOverall(bands []float64) float64 {
+func IELTSOverall(bands []float64) float64 {
 	if len(bands) == 0 {
 		return 0
 	}

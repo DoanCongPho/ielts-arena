@@ -1,0 +1,248 @@
+{
+  "full": [
+    {
+      "Kind": "say",
+      "Text": "Good afternoon. My name is Alex, and I'll be your examiner today.",
+      "QuestionID": "",
+      "AudioKey": "examiner/fe13da3c4f8d3785d925a59e9458ccba.mp3",
+      "Part": 1,
+      "Seconds": 0
+    },
+    {
+      "Kind": "say",
+      "Text": "In this first part, I'd like to ask you some questions about yourself.",
+      "QuestionID": "",
+      "AudioKey": "examiner/ed28fa7ea0997b87468c61e7fa6f0d6f.mp3",
+      "Part": 1,
+      "Seconds": 0
+    },
+    {
+      "Kind": "say",
+      "Text": "Let's talk about your hometown.",
+      "QuestionID": "",
+      "AudioKey": "examiner/4c91fddf95e93b6b8cc7fbfad4dc0916.mp3",
+      "Part": 1,
+      "Seconds": 0
+    },
+    {
+      "Kind": "ask",
+      "Text": "Where is your hometown?",
+      "QuestionID": "p1.t1.q1",
+      "AudioKey": "examiner/d93103a927f71f97b7eb9e2cf7726326.mp3",
+      "Part": 1,
+      "Seconds": 30
+    },
+    {
+      "Kind": "ask",
+      "Text": "Do you like living there?",
+      "QuestionID": "p1.t1.q2",
+      "AudioKey": "examiner/2e0d8105ca9c0b30d0fbb401c8241b58.mp3",
+      "Part": 1,
+      "Seconds": 30
+    },
+    {
+      "Kind": "say",
+      "Text": "Let's talk about music.",
+      "QuestionID": "",
+      "AudioKey": "examiner/a0d80746ea6e39f4aa39ae3e9996a708.mp3",
+      "Part": 1,
+      "Seconds": 0
+    },
+    {
+      "Kind": "ask",
+      "Text": "What music do you like?",
+      "QuestionID": "p1.t2.q1",
+      "AudioKey": "examiner/f8ea052bd01b894e22a85892a18d6cfb.mp3",
+      "Part": 1,
+      "Seconds": 30
+    },
+    {
+      "Kind": "say",
+      "Text": "Now, I'm going to give you a topic, and I'd like you to talk about it for one to two minutes. Before you talk, you'll have one minute to think about what you're going to say. You can make some notes if you wish. Do you understand? Here is your topic.",
+      "QuestionID": "",
+      "AudioKey": "examiner/ebf1a1f2632cf0d18384abc6af9dc839.mp3",
+      "Part": 2,
+      "Seconds": 0
+    },
+    {
+      "Kind": "cue_card",
+      "Text": "Describe a book you enjoyed reading.\nYou should say:\n- what the book was\n- when you read it\n- what it was about\nand explain why you enjoyed it.",
+      "QuestionID": "",
+      "AudioKey": "examiner/eb6e23418088b69bec37fba39f1705e6.mp3",
+      "Part": 2,
+      "Seconds": 60
+    },
+    {
+      "Kind": "long_turn",
+      "Text": "All right? Remember, you have one to two minutes for this, so don't worry if I stop you. I'll tell you when the time is up. Can you start speaking now, please?",
+      "QuestionID": "p2",
+      "AudioKey": "examiner/e889d04541f4f5da6345f23b20d82cb2.mp3",
+      "Part": 2,
+      "Seconds": 120
+    },
+    {
+      "Kind": "say",
+      "Text": "Thank you.",
+      "QuestionID": "",
+      "AudioKey": "examiner/f46389bccb41554bd2ff9352e0fd8838.mp3",
+      "Part": 2,
+      "Seconds": 0
+    },
+    {
+      "Kind": "ask",
+      "Text": "Do you often read?",
+      "QuestionID": "p2.f1",
+      "AudioKey": "examiner/b15ba7a477f62903d0c1afdfd8534f4e.mp3",
+      "Part": 2,
+      "Seconds": 30
+    },
+    {
+      "Kind": "say",
+      "Text": "We've been talking about a book you enjoyed reading, and I'd like to discuss with you one or two more general questions related to this.",
+      "QuestionID": "",
+      "AudioKey": "examiner/652a2c8dca136857ba90efd69798400e.mp3",
+      "Part": 3,
+      "Seconds": 0
+    },
+    {
+      "Kind": "ask",
+      "Text": "Why do people read less today?",
+      "QuestionID": "p3.q1",
+      "AudioKey": "examiner/f9d757ba9042470e80699357dc69f350.mp3",
+      "Part": 3,
+      "Seconds": 60
+    },
+    {
+      "Kind": "ask",
+      "Text": "Should schools make reading compulsory?",
+      "QuestionID": "p3.q2",
+      "AudioKey": "examiner/756361bbf11387cb8288c2d0405ab0e3.mp3",
+      "Part": 3,
+      "Seconds": 60
+    },
+    {
+      "Kind": "ask",
+      "Text": "Will printed books disappear?",
+      "QuestionID": "p3.q3",
+      "AudioKey": "examiner/b869f262180ded606d135a2a4357a3ca.mp3",
+      "Part": 3,
+      "Seconds": 60
+    },
+    {
+      "Kind": "say",
+      "Text": "Thank you. That is the end of the speaking test.",
+      "QuestionID": "",
+      "AudioKey": "examiner/389fb658d471cdb77137643cc5be79c5.mp3",
+      "Part": 3,
+      "Seconds": 0
+    }
+  ],
+  "part2": [
+    {
+      "Kind": "say",
+      "Text": "Good afternoon. My name is Alex, and I'll be your examiner today.",
+      "QuestionID": "",
+      "AudioKey": "examiner/fe13da3c4f8d3785d925a59e9458ccba.mp3",
+      "Part": 2,
+      "Seconds": 0
+    },
+    {
+      "Kind": "say",
+      "Text": "Now, I'm going to give you a topic, and I'd like you to talk about it for one to two minutes. Before you talk, you'll have one minute to think about what you're going to say. You can make some notes if you wish. Do you understand? Here is your topic.",
+      "QuestionID": "",
+      "AudioKey": "examiner/ebf1a1f2632cf0d18384abc6af9dc839.mp3",
+      "Part": 2,
+      "Seconds": 0
+    },
+    {
+      "Kind": "cue_card",
+      "Text": "Describe a book you enjoyed reading.\nYou should say:\n- what the book was\n- when you read it\n- what it was about\nand explain why you enjoyed it.",
+      "QuestionID": "",
+      "AudioKey": "examiner/eb6e23418088b69bec37fba39f1705e6.mp3",
+      "Part": 2,
+      "Seconds": 60
+    },
+    {
+      "Kind": "long_turn",
+      "Text": "All right? Remember, you have one to two minutes for this, so don't worry if I stop you. I'll tell you when the time is up. Can you start speaking now, please?",
+      "QuestionID": "p2",
+      "AudioKey": "examiner/e889d04541f4f5da6345f23b20d82cb2.mp3",
+      "Part": 2,
+      "Seconds": 120
+    },
+    {
+      "Kind": "say",
+      "Text": "Thank you.",
+      "QuestionID": "",
+      "AudioKey": "examiner/f46389bccb41554bd2ff9352e0fd8838.mp3",
+      "Part": 2,
+      "Seconds": 0
+    },
+    {
+      "Kind": "ask",
+      "Text": "Do you often read?",
+      "QuestionID": "p2.f1",
+      "AudioKey": "examiner/b15ba7a477f62903d0c1afdfd8534f4e.mp3",
+      "Part": 2,
+      "Seconds": 30
+    },
+    {
+      "Kind": "say",
+      "Text": "Thank you. That is the end of this part.",
+      "QuestionID": "",
+      "AudioKey": "examiner/b38892e362afba187c81a9757f0de544.mp3",
+      "Part": 2,
+      "Seconds": 0
+    }
+  ],
+  "part3": [
+    {
+      "Kind": "say",
+      "Text": "Good afternoon. My name is Alex, and I'll be your examiner today.",
+      "QuestionID": "",
+      "AudioKey": "examiner/93cccabe23b151d8f428d4d82267aa68.mp3",
+      "Part": 3,
+      "Seconds": 0
+    },
+    {
+      "Kind": "say",
+      "Text": "In this part, I'd like to discuss with you some general questions about reading habits.",
+      "QuestionID": "",
+      "AudioKey": "examiner/db63d8734765727dc32f2ede3827458a.mp3",
+      "Part": 3,
+      "Seconds": 0
+    },
+    {
+      "Kind": "ask",
+      "Text": "Why do people read less today?",
+      "QuestionID": "p3.q1",
+      "AudioKey": "examiner/9c9a63d6f874fbe3c46a55a6c3be7108.mp3",
+      "Part": 3,
+      "Seconds": 60
+    },
+    {
+      "Kind": "ask",
+      "Text": "Should schools make reading compulsory?",
+      "QuestionID": "p3.q2",
+      "AudioKey": "examiner/adf2add8dbb491749688adf9c16237ba.mp3",
+      "Part": 3,
+      "Seconds": 60
+    },
+    {
+      "Kind": "ask",
+      "Text": "Will printed books disappear?",
+      "QuestionID": "p3.q3",
+      "AudioKey": "examiner/d69d822cf1858e6deb308c72c716a36d.mp3",
+      "Part": 3,
+      "Seconds": 60
+    },
+    {
+      "Kind": "say",
+      "Text": "Thank you. That is the end of this part.",
+      "QuestionID": "",
+      "AudioKey": "examiner/648388f8a7ffb19b6f131bbede2ee8ff.mp3",
+      "Part": 3,
+      "Seconds": 0
+    }
+  ]
+}

@@ -30,6 +30,8 @@ func NewClient(apiKey, model string) *Client {
 // Temperature for consistent scores, while a creative feature might want
 // higher. Zero-value fields are left unset and fall back to the API default.
 type CompletionParams struct {
+	// Model overrides the client's default model for this call.
+	Model       string
 	Temperature float64
 	MaxTokens   int64
 	TopP        float64
@@ -38,8 +40,12 @@ type CompletionParams struct {
 // Complete sends system + user messages and returns the raw text response.
 // It knows nothing about domain types — callers handle prompt building and parsing.
 func (c *Client) Complete(ctx context.Context, system, user, imageURL string, params CompletionParams) (string, error) {
+	model := c.model
+	if params.Model != "" {
+		model = params.Model
+	}
 	req := openai.ChatCompletionNewParams{
-		Model: c.model,
+		Model: model,
 		Messages: []openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage(system),
 			c.userMessage(user, imageURL),

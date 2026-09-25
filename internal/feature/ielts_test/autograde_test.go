@@ -101,11 +101,12 @@ func TestValidateContentData_Writing(t *testing.T) {
 }
 
 func TestValidateContentData_Speaking(t *testing.T) {
-	if err := validateContentData("speaking", []byte(`{"prompt":"Talk about your hometown.","part":1}`)); err != nil {
+	part2 := `{"part2":{"topic":"Describe a book you enjoyed.","bullets":["what it was","when you read it","what it was about"],"explain":"and explain why you enjoyed it."}}`
+	if err := validateContentData("speaking", []byte(part2)); err != nil {
 		t.Errorf("valid speaking content rejected: %v", err)
 	}
-	if err := validateContentData("speaking", []byte(`{"prompt":""}`)); err == nil {
-		t.Error("expected error for missing prompt")
+	if err := validateContentData("speaking", []byte(`{"prompt":"Talk about your hometown.","part":1}`)); err == nil {
+		t.Error("expected error for content with no parts")
 	}
 }
 

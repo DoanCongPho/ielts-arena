@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import ProfileHud from './components/ProfileHud/ProfileHud';
+import GradingNotifier from './components/GradingNotifier/GradingNotifier';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
@@ -7,6 +8,8 @@ import SkillTestsPage from './pages/SkillTestsPage';
 import WritingAttemptPage from './pages/WritingAttemptPage';
 import ReadingAttemptPage from './pages/ReadingAttemptPage';
 import ListeningAttemptPage from './pages/ListeningAttemptPage';
+import SpeakingAttemptPage from './pages/SpeakingAttemptPage';
+import SpeakingComposerPage from './pages/SpeakingComposerPage';
 import SubmissionsPage from './pages/SubmissionsPage';
 import SubmissionDetailPage from './pages/SubmissionDetailPage';
 import CreateTestPage from './pages/CreateTestPage';
@@ -73,6 +76,21 @@ export default function App() {
             <ListeningAttemptPage />
           </PrivateRoute>
         } />
+        <Route path="/practice/speaking/custom/new" element={
+          <PrivateRoute>
+            <SpeakingComposerPage />
+          </PrivateRoute>
+        } />
+        <Route path="/practice/speaking/custom/:testId/edit" element={
+          <PrivateRoute>
+            <SpeakingComposerPage />
+          </PrivateRoute>
+        } />
+        <Route path="/practice/speaking/:testId" element={
+          <PrivateRoute focus>
+            <SpeakingAttemptPage />
+          </PrivateRoute>
+        } />
         <Route path="/submissions" element={
           <PrivateRoute>
             <SubmissionsPage />
@@ -90,6 +108,7 @@ export default function App() {
         } />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
+      <GradingNotifier />
     </BrowserRouter>
   );
 }

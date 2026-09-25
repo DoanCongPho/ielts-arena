@@ -12,4 +12,7 @@ var (
 	// ErrNoAnswerKey: the test's skill is graded by the LLM (writing /
 	// speaking) and has no answer key.
 	ErrNoAnswerKey = errors.New("this test has no answer key")
+	// ErrInvalidSubmission: the payload doesn't fit the test (wrong
+	// questions, someone else's recordings, …). Wrapped with the reason.
+	ErrInvalidSubmission = errors.New("invalid submission")
 )

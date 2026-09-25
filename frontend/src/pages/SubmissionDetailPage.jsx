@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
-import { getScore, getSubmission, getTest } from '../lib/api';
+import { getScore, getSubmission, getTest, isSettled, waitForGrading } from '../lib/api';
+import { forgetGrading } from '../lib/gradingWatch';
 import { flattenQuestions } from '../lib/answerUtils';
 import { useEvidenceReview } from '../lib/useEvidenceReview';
 import { useSectionAudio } from '../lib/useSectionAudio';
 import { safeParse } from '../lib/safeParse';
 import { SKILL_CONFIG } from '../lib/skillConfig';
 import ScoreResult from '../components/ScoreResult/ScoreResult';
+import SpeakingResult from '../components/SpeakingResult/SpeakingResult';
 import QuestionList from '../components/QuestionList/QuestionList';
 import { ReviewContext } from '../components/AnswerExplanation/ReviewContext';
 import HighlightableText from '../components/HighlightableText/HighlightableText';
@@ -31,6 +33,7 @@ export default function SubmissionDetailPage() {
 
   useEffect(() => {
     let cancelled = false;
+    const stopWaiting = new AbortController();
     setLoading(true);
     setError('');
 
@@ -44,9 +47,20 @@ export default function SubmissionDetailPage() {
         if (cancelled) return;
         setTest(testResult);
         setScore(scoreResult);
+        setLoading(false);
+        // Still being graded: show the answer now, then wait and show the
+        // result as soon as it's in, instead of asking for a reload.
+        if (!isSettled(sub.status)) {
+          const settled = await waitForGrading(sub.id, { intervalMs: 4000, timeoutMs: 20 * 60 * 1000, signal: stopWaiting.signal });
+          if (cancelled) return;
+          // The result is on screen, so no notification is needed for it.
+          forgetGrading(settled.id);
+          setSubmission(settled);
+          if (settled.status === 'graded') setScore(await getScore(settled.id));
+        }
       })
       .catch((err) => {
-        if (!cancelled) setError(err.message);
+        if (!cancelled && err.name !== 'AbortError') setError(err.message);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -54,6 +68,7 @@ export default function SubmissionDetailPage() {
 
     return () => {
       cancelled = true;
+      stopWaiting.abort();
     };
   }, [submissionId]);
 
@@ -68,7 +83,7 @@ export default function SubmissionDetailPage() {
     <p className="practice-status practice-error" style={{ marginTop: 16 }}>
       {submission?.status === 'failed'
         ? 'Bài này chấm điểm thất bại và đã dừng thử lại.'
-        : 'Bài này đang chờ chấm điểm. Tải lại trang sau ít phút.'}
+        : 'Bài đang được chấm — kết quả sẽ tự hiện ở đây khi xong, bạn không cần tải lại trang (hoặc cứ làm việc khác, sẽ có thông báo).'}
     </p>
   );
 
@@ -81,7 +96,12 @@ export default function SubmissionDetailPage() {
         <span className="attempt-timer">{formatDate(submission?.submitted_at)}</span>
       </header>
 
-      {isAutoGraded ? (
+      {skill === 'speaking' ? (
+        <>
+          {notGradedMessage}
+          {score && <SpeakingResult score={score} submissionId={submission.id} />}
+        </>
+      ) : isAutoGraded ? (
         <MultiUnitReview
           skill={skill}
           test={test}
