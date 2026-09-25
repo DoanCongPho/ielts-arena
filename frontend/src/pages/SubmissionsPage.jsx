@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { listSubmissions } from '../lib/api';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { isSettled, listSubmissions } from '../lib/api';
+import { SETTLED_EVENT } from '../lib/gradingWatch';
 import Button from '../components/ui/Button/Button';
 import SkillTag from '../components/ui/SkillTag/SkillTag';
 import StatusBadge from '../components/ui/StatusBadge/StatusBadge';
@@ -14,17 +15,48 @@ const SKILL_LABEL = {
   listening: 'Listening',
 };
 
+// While any submission on the page is still being graded, the list reloads
+// itself this often, so statuses and bands appear without a manual refresh.
+const REFRESH_MS = 5000;
+
 export default function SubmissionsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  // Set by an attempt page that just handed in (see watchGrading).
+  const [justSubmitted, setJustSubmitted] = useState(location.state?.justSubmitted || null);
   const [page, setPage] = useState(1);
   const [submissions, setSubmissions] = useState([]);
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [reload, setReload] = useState(0);
+
+  // Drop the "just submitted" state from history once read, so reloading
+  // this page doesn't bring the notice back.
+  useEffect(() => {
+    if (location.state?.justSubmitted) navigate('.', { replace: true, state: null });
+  }, [location.state, navigate]);
+
+  const anyUnsettled = submissions.some((s) => !isSettled(s.status));
+
+  // Reload while something is being graded, and as soon as GradingNotifier
+  // reports one settled.
+  useEffect(() => {
+    if (!anyUnsettled) return undefined;
+    const id = setInterval(() => setReload((n) => n + 1), REFRESH_MS);
+    return () => clearInterval(id);
+  }, [anyUnsettled]);
+  useEffect(() => {
+    const onSettled = () => setReload((n) => n + 1);
+    window.addEventListener(SETTLED_EVENT, onSettled);
+    return () => window.removeEventListener(SETTLED_EVENT, onSettled);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    // Only the first load shows the loading state; refreshes swap the
+    // rows in place so the list doesn't flicker.
+    if (reload === 0) setLoading(true);
     setError('');
     listSubmissions(page)
       .then((data) => {
@@ -41,7 +73,10 @@ export default function SubmissionsPage() {
     return () => {
       cancelled = true;
     };
-  }, [page]);
+  }, [page, reload]);
+
+  const justSubmittedRow = justSubmitted && submissions.find((s) => s.id === justSubmitted.id);
+  const justSubmittedDone = justSubmittedRow && isSettled(justSubmittedRow.status);
 
   return (
     <div className="practice-page">
@@ -51,6 +86,29 @@ export default function SubmissionsPage() {
           ← Dashboard
         </Button>
       </header>
+
+      {justSubmitted && (
+        <div className={`submission-notice ${justSubmittedDone ? 'submission-notice-done' : ''}`}>
+          <span className="submission-notice-text">
+            {justSubmittedDone ? (
+              <><strong>{justSubmitted.label}</strong> đã chấm xong.</>
+            ) : (
+              <>
+                Đã nộp <strong>{justSubmitted.label}</strong>. Bài đang được chấm — bạn không cần chờ ở đây, cứ làm bài
+                khác; khi có kết quả sẽ có thông báo.
+              </>
+            )}
+          </span>
+          {justSubmittedDone && (
+            <Button variant="primary" onClick={() => navigate(`/submissions/${justSubmitted.id}`)}>
+              Xem kết quả
+            </Button>
+          )}
+          <button type="button" className="submission-notice-close" aria-label="Đóng" onClick={() => setJustSubmitted(null)}>
+            ×
+          </button>
+        </div>
+      )}
 
       {loading && <p className="practice-status">Đang tải...</p>}
       {error && <p className="practice-status practice-error">{error}</p>}
@@ -74,7 +132,7 @@ export default function SubmissionsPage() {
             <span className="submission-row-band text-data-sm">
               {sub.overall_band != null ? `Band ${sub.overall_band}` : ''}
             </span>
-            <StatusBadge status={sub.status} className="submission-row-status" />
+            <StatusBadge status={sub.status} className="submission-row-status" busy={!isSettled(sub.status)} />
           </div>
         ))}
       </div>

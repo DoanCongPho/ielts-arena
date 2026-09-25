@@ -1,16 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import {
-  getScore,
-  getSpeakingScript,
-  requestUploadSlots,
-  submitAnswer,
-  uploadRecording,
-  waitForGrading,
-} from '../lib/api';
+import { getSpeakingScript, requestUploadSlots, submitAnswer, uploadRecording } from '../lib/api';
+import { watchGrading } from '../lib/gradingWatch';
 import { openMicrophone, recordingFormat, speakLine, startRecording } from '../lib/speakingAudio';
 import { useLeaveGuard } from '../lib/useAttemptSession';
-import SpeakingResult from '../components/SpeakingResult/SpeakingResult';
 import Button from '../components/ui/Button/Button';
 import './WritingAttemptPage.css';
 import './SpeakingAttemptPage.css';
@@ -21,9 +14,6 @@ import './SpeakingAttemptPage.css';
 const SOFT_LIMIT_GRACE = 30;
 // Answers can't be ended before this, so a stray click doesn't skip one.
 const MIN_ANSWER_SECONDS = 2;
-// Speaking grades transcribe every answer and wait on the pronunciation
-// service, which may be waking up — minutes, not seconds.
-const GRADING_TIMEOUT_MS = 20 * 60 * 1000;
 
 const MODE_TITLES = {
   full: 'Speaking — Full test',
@@ -48,8 +38,6 @@ export default function SpeakingAttemptPage() {
   const [now, setNow] = useState(Date.now());
   const [showText, setShowText] = useState(false);
   const [notes, setNotes] = useState('');
-  const [score, setScore] = useState(null);
-  const [submissionId, setSubmissionId] = useState(null);
 
   const skipRef = useRef(null);
   const abortRef = useRef(null);
@@ -169,15 +157,12 @@ export default function SpeakingAttemptPage() {
       const failed = (await Promise.all(uploads)).find(Boolean);
       if (failed) throw failed;
       const queued = await submitAnswer(Number(testId), { answers });
-      setSubmissionId(queued.id);
-      setPhase('grading');
-      const settled = await waitForGrading(queued.id, { intervalMs: 4000, timeoutMs: GRADING_TIMEOUT_MS });
-      if (settled.status === 'graded') {
-        setScore(await getScore(settled.id));
-        setPhase('done');
-      } else {
-        setPhase('failed');
-      }
+      // Grading takes minutes (every answer is transcribed and scored for
+      // pronunciation), so the learner goes to their history and
+      // GradingNotifier tells them when the result is in.
+      const label = MODE_TITLES[script.mode] || 'Speaking';
+      watchGrading(queued.id, label);
+      navigate('/submissions', { replace: true, state: { justSubmitted: { id: queued.id, label } } });
     } catch (err) {
       setError(err.message);
     }
@@ -291,29 +276,16 @@ export default function SpeakingAttemptPage() {
         </div>
       )}
 
-      {(phase === 'submitting' || phase === 'grading') && (
+      {phase === 'submitting' && (
         <div className="speaking-stage">
-          <h2 className="speaking-stage-title">{phase === 'submitting' ? 'Đang nộp bài...' : 'Đang chấm điểm...'}</h2>
+          <h2 className="speaking-stage-title">Đang nộp bài...</h2>
           <p className="practice-status">
-            Bài nói được chép lại, đo độ trôi chảy và phát âm, rồi chấm theo 4 tiêu chí của IELTS. Việc này có thể mất vài phút —
-            bạn có thể rời trang và xem kết quả trong mục Lịch sử làm bài.
+            Đang tải các bản ghi âm lên — đừng đóng trang. Nộp xong bạn không cần chờ: bài được chấm ngầm và bạn sẽ
+            được báo khi có kết quả.
           </p>
           {error && <p className="practice-status practice-error">{error}</p>}
-          {submissionId && (
-            <Button variant="secondary" onClick={() => navigate('/submissions')}>Xem sau trong Lịch sử</Button>
-          )}
         </div>
       )}
-
-      {phase === 'failed' && (
-        <div className="speaking-stage">
-          <p className="practice-status practice-error">
-            Bài đã được lưu nhưng chấm điểm thất bại. Xem lại trong mục Lịch sử làm bài.
-          </p>
-        </div>
-      )}
-
-      {phase === 'done' && score && <SpeakingResult score={score} submissionId={submissionId} />}
     </div>
   );
 }
