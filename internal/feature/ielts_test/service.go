@@ -82,7 +82,7 @@ type service struct {
 	grader   Grader
 	xpGrants XPGranter
 	// speaking grades speaking submissions; nil leaves them ungradable.
-	speaking *SpeakingGrader
+	speaking SpeakingGrader
 	// jobTimeouts overrides defaultJobTimeout per skill.
 	jobTimeouts map[string]time.Duration
 }
@@ -93,7 +93,7 @@ type ServiceOption func(*service)
 // WithSpeakingGrader enables speaking grading, whose jobs may run for up to
 // timeout: they transcribe every answer and wait on the pronunciation
 // service.
-func WithSpeakingGrader(g *SpeakingGrader, timeout time.Duration) ServiceOption {
+func WithSpeakingGrader(g SpeakingGrader, timeout time.Duration) ServiceOption {
 	return func(s *service) {
 		s.speaking = g
 		s.jobTimeouts["speaking"] = timeout

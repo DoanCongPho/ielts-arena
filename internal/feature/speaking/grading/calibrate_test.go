@@ -1,4 +1,4 @@
-package ielts_test
+package grading
 
 import (
 	"os"
@@ -22,7 +22,7 @@ func TestRunCalibrateCmd(t *testing.T) {
 	path := filepath.Join(dir, "manifest.json")
 	_ = os.WriteFile(path, []byte(manifest), 0o644)
 
-	g := NewSpeakingGrader(nil, fakeASR{}, &fakePron{}, &fakeJudge{band: 7}, SpeakingGraderConfig{})
+	g := New(nil, fakeASR{}, &fakePron{}, &fakeJudge{band: 7}, Config{})
 	var out strings.Builder
 	code := RunCalibrateCmd(g, []string{path}, &out)
 

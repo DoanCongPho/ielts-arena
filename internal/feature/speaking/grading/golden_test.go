@@ -1,56 +1,17 @@
-package ielts_test
+package grading
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
+	"github/DoanCongPho/game-arena/internal/feature/ielts_test"
+	"github/DoanCongPho/game-arena/internal/feature/speaking/speakingtest"
+	"github/DoanCongPho/game-arena/internal/platform/llm"
+	"github/DoanCongPho/game-arena/internal/platform/pronunciation"
 	"strings"
 	"sync"
 	"testing"
-
-	"github/DoanCongPho/game-arena/internal/platform/llm"
-	"github/DoanCongPho/game-arena/internal/platform/pronunciation"
 )
-
-// Golden tests pin speaking grading's output — the stored details JSON, the
-// judge prompts, the measured evidence and the examiner script — so a
-// refactor can prove it changed nothing. Regenerate deliberately with
-// UPDATE_GOLDEN=1 go test ./...
-
-const goldenDir = "testdata/speaking_golden"
-
-func checkGolden(t *testing.T, name string, got []byte) {
-	t.Helper()
-	path := filepath.Join(goldenDir, name)
-	if os.Getenv("UPDATE_GOLDEN") == "1" {
-		if err := os.MkdirAll(goldenDir, 0o755); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(path, got, 0o644); err != nil {
-			t.Fatal(err)
-		}
-		return
-	}
-	want, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("read golden %s: %v (run with UPDATE_GOLDEN=1 to create it)", path, err)
-	}
-	if string(want) != string(got) {
-		t.Errorf("%s differs from the golden file; diff it against %s", name, path)
-		_ = os.WriteFile(path+".got", got, 0o644)
-	}
-}
-
-func goldenJSON(t *testing.T, v any) []byte {
-	t.Helper()
-	b, err := json.MarshalIndent(v, "", "  ")
-	if err != nil {
-		t.Fatal(err)
-	}
-	return append(b, '\n')
-}
 
 // goldenAnswers are the candidate's answers by question id. "||" marks a
 // 1.2 s pause and "|" a 0.5 s one; "um"/"uh" are fillers.
@@ -158,14 +119,14 @@ func (j *goldenJudge) Complete(_ context.Context, system, user, _ string, params
 		bands[criterion], bands[criterion]+1, criterion, corrections), nil
 }
 
-func goldenGradeInputs() (SpeakingContent, SpeakingPayload, fakeAudio) {
-	content := fullSpeakingContent()
+func goldenGradeInputs() (ielts_test.SpeakingContent, ielts_test.SpeakingPayload, fakeAudio) {
+	content := speakingtest.FullContent()
 	audio := fakeAudio{}
-	var payload SpeakingPayload
+	var payload ielts_test.SpeakingPayload
 	for _, q := range content.Questions() {
 		key := "speaking/1/" + q.ID + ".webm"
 		audio[key] = []byte(goldenAnswers[q.ID])
-		payload.Answers = append(payload.Answers, SpeakingAnswer{QuestionID: q.ID, AudioKey: key, DurationSec: 20})
+		payload.Answers = append(payload.Answers, ielts_test.SpeakingAnswer{QuestionID: q.ID, AudioKey: key, DurationSec: 20})
 	}
 	return content, payload, audio
 }
@@ -173,7 +134,7 @@ func goldenGradeInputs() (SpeakingContent, SpeakingPayload, fakeAudio) {
 func TestGolden_SpeakingGrade(t *testing.T) {
 	content, payload, audio := goldenGradeInputs()
 	judge := &goldenJudge{prompts: map[string]string{}}
-	g := NewSpeakingGrader(audio, goldenTranscriber{}, goldenPronunciation{}, judge, SpeakingGraderConfig{JudgeModel: "judge-model"})
+	g := New(audio, goldenTranscriber{}, goldenPronunciation{}, judge, Config{JudgeModel: "judge-model"})
 
 	details, overall, err := g.Grade(context.Background(), content, payload, false)
 	if err != nil {
@@ -183,38 +144,38 @@ func TestGolden_SpeakingGrade(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	checkGolden(t, "details.json", append(stored, '\n'))
-	checkGolden(t, "overall.txt", []byte(fmt.Sprintf("%v\n", overall)))
-	for _, c := range speakingCriteria {
+	speakingtest.CheckGolden(t, "details.json", append(stored, '\n'))
+	speakingtest.CheckGolden(t, "overall.txt", []byte(fmt.Sprintf("%v\n", overall)))
+	for _, c := range criteria {
 		name := strings.ToLower(strings.NewReplacer(" ", "_").Replace(c))
-		checkGolden(t, "prompt_"+name+".txt", []byte(judge.prompts[c]))
+		speakingtest.CheckGolden(t, "prompt_"+name+".txt", []byte(judge.prompts[c]))
 	}
 }
 
 func TestGolden_SpeakingGradeWithoutPronunciationService(t *testing.T) {
 	content, payload, audio := goldenGradeInputs()
 	content.Part1, content.Part3 = nil, nil
-	var part2 SpeakingPayload
+	var part2 ielts_test.SpeakingPayload
 	for _, a := range payload.Answers {
 		if strings.HasPrefix(a.QuestionID, "p2") {
 			part2.Answers = append(part2.Answers, a)
 		}
 	}
 	judge := &goldenJudge{prompts: map[string]string{}}
-	g := NewSpeakingGrader(audio, goldenTranscriber{}, nil, judge, SpeakingGraderConfig{})
+	g := New(audio, goldenTranscriber{}, nil, judge, Config{})
 	details, overall, err := g.Grade(context.Background(), content, part2, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	stored, _ := json.Marshal(details)
-	checkGolden(t, "details_part2_estimated.json", append(stored, '\n'))
-	checkGolden(t, "overall_part2_estimated.txt", []byte(fmt.Sprintf("%v\n", overall)))
-	checkGolden(t, "prompt_part2_pronunciation.txt", []byte(judge.prompts[CriterionP]))
+	speakingtest.CheckGolden(t, "details_part2_estimated.json", append(stored, '\n'))
+	speakingtest.CheckGolden(t, "overall_part2_estimated.txt", []byte(fmt.Sprintf("%v\n", overall)))
+	speakingtest.CheckGolden(t, "prompt_part2_pronunciation.txt", []byte(judge.prompts[CriterionP]))
 }
 
 func TestGolden_SpeakingEvidence(t *testing.T) {
 	content, payload, audio := goldenGradeInputs()
-	qs := map[string]SpeakingQuestionRef{}
+	qs := map[string]ielts_test.SpeakingQuestionRef{}
 	for _, q := range content.Questions() {
 		qs[q.ID] = q
 	}
@@ -223,29 +184,5 @@ func TestGolden_SpeakingEvidence(t *testing.T) {
 		tr, _ := goldenTranscriber{}.Transcribe(context.Background(), "", audio[a.AudioKey], "", "")
 		answers = append(answers, answerTranscript{QuestionID: a.QuestionID, Part: qs[a.QuestionID].Part, Text: tr.Text, Duration: tr.Duration, Words: tr.Words, Segments: tr.Segments})
 	}
-	checkGolden(t, "evidence.json", goldenJSON(t, extractEvidence(answers)))
-}
-
-func TestGolden_SpeakingScript(t *testing.T) {
-	type line struct {
-		Kind, Text, QuestionID, AudioKey string
-		Part, Seconds                    int
-	}
-	flatten := func(ls []ScriptLine) []line {
-		out := make([]line, len(ls))
-		for i, l := range ls {
-			out[i] = line{l.Kind, l.Text, l.QuestionID, l.AudioKey, l.Part, l.Seconds}
-		}
-		return out
-	}
-	full := fullSpeakingContent()
-	part2 := fullSpeakingContent()
-	part2.Part1, part2.Part3 = nil, nil
-	part3 := SpeakingContent{Part3: &SpeakingPart3{Theme: "Reading habits", Questions: full.Part3.Questions}}
-	scripts := map[string][]line{
-		"full":  flatten(buildSpeakingScript(full, defaultExaminerVoice)),
-		"part2": flatten(buildSpeakingScript(part2, defaultExaminerVoice)),
-		"part3": flatten(buildSpeakingScript(part3, NewExaminerVoice("tts-x", "alloy"))),
-	}
-	checkGolden(t, "script.json", goldenJSON(t, scripts))
+	speakingtest.CheckGolden(t, "evidence.json", speakingtest.IndentJSON(t, extractEvidence(answers)))
 }

@@ -3,6 +3,28 @@
 Speaking is graded the way an IELTS examiner rates a test, using only free
 hosting and the OpenAI API.
 
+## Where the code lives
+
+`internal/feature/ielts_test` owns what every skill shares: tests,
+submissions, the grading queue. For speaking that is the content model
+(`speaking_content.go`) and submission validation (`speaking_submission.go`).
+It reaches grading only through the `SpeakingGrader` interface and never
+imports the packages below.
+
+`internal/feature/speaking/`:
+
+| Package | What it does |
+|---|---|
+| `grading` | The examiner engine. `grader.go` orchestrates it. Measurements are split by dimension: `fluency.go`, `coherence.go`, `language.go`, and `pronunciation.go` (the service's results). `judge.go` and `descriptors.go` are the LLM judges; `corrections.go` handles grammar and word-choice fixes; `caps.go` holds the guardrails; `calibrate.go` is the calibration command. |
+| `examiner` | The examiner's script (`script.go`) and voice, synthesised once per line and cached (`audio.go`). |
+| `api` | `/api/speaking`: `uploads.go`, `script.go`, `custom.go` (custom tests), `generate.go` ("fill the rest"), `recordings.go` and `handler.go`. |
+| `speakingtest` | Test fixtures only. |
+
+Golden files in `grading/testdata/golden` and `examiner/testdata/golden` pin
+the stored score JSON, the judge prompts, the evidence and the script. A change
+that alters them fails the tests. If the change is intended, regenerate them
+with `UPDATE_GOLDEN=1 go test ./internal/feature/speaking/...`.
+
 ## How a test runs
 
 1. `GET /api/speaking/tests/{id}/script` returns the examiner's script. It
@@ -28,18 +50,18 @@ hosting and the OpenAI API.
 |---|---|
 | One rating for the whole test, not per answer | One grade per submission. Each criterion judge sees every part, labelled. |
 | Four criteria, equal weight, whole bands | `Fluency and Coherence`, `Lexical Resource`, `Grammatical Range and Accuracy`, `Pronunciation`, each an int from 1 to 9 |
-| Best fit to the band descriptors | Each judge gets that criterion's descriptors (`speaking_descriptors.go`). For each band it checks the key features as met, partly met or not met, with evidence, and only then picks a band. |
+| Best fit to the band descriptors | Each judge gets that criterion's descriptors (`grading/descriptors.go`). For each band it checks the key features as met, partly met or not met, with evidence, and only then picks a band. |
 | Overall = mean, .25 rounds up to .5 and .75 to the next band | `ieltsOverall` in Go. Writing uses it now too. |
 | Accent is not penalised | Phonemes are scored against both British and American references, and each word keeps the better one |
 | Content-planning pauses are fine at band 8+; word searches are not | Each long pause goes to the judge with its surrounding words, marked as mid-clause or at a boundary |
 | Rehearsed or off-topic answers don't count | The judges leave them out and list them. The review shows which ones. |
 
-The pipeline (`speaking_grader.go`):
+The pipeline (`grading/grader.go`):
 
 1. **Transcribe** every answer with `whisper-1` (`verbose_json`, word and
    segment timestamps). A prompt full of fillers keeps the "um"s and restarts
    that fluency is rated on.
-2. **Measure** (`speaking_evidence.go`, pure Go):
+2. **Measure** (`grading/evidence.go` and a file per dimension, pure Go):
    - speech rate and articulation rate
    - pauses and long pauses per minute, with their context
    - mean length of run
@@ -56,7 +78,7 @@ The pipeline (`speaking_grader.go`):
    - word-stress placement
    - vowel rhythm (nPVI)
 4. **Judge.** Four parallel calls to `SPEAKING_MODEL`, one per criterion.
-5. **Guardrails** (`speaking_scoring.go`). Measurements cap what a judge may
+5. **Guardrails** (`grading/caps.go`). Measurements cap what a judge may
    award:
    - a Part 2 under 45 s caps FC at 5
    - intelligibility under 75% caps P at 5
@@ -167,6 +189,6 @@ ours, and exits non-zero until both targets are met:
   samples
 - each criterion matches exactly for at least 70% of samples
 
-Tune `speaking_scoring.go` (and the pronunciation service's `INTELLIGIBLE_AT`)
+Tune `grading/caps.go` (and the pronunciation service's `INTELLIGIBLE_AT`)
 against it. Sample recordings are copyrighted, so keep them out of the repo
 the way `tests_bank/` is.

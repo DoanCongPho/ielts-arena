@@ -1,9 +1,12 @@
-package ielts_test
+package api
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github/DoanCongPho/game-arena/internal/feature/ielts_test"
+	"github/DoanCongPho/game-arena/internal/feature/speaking/examiner"
+	"github/DoanCongPho/game-arena/internal/feature/speaking/speakingtest"
 	"strings"
 	"sync"
 	"testing"
@@ -48,13 +51,13 @@ func (f fakeModerator) Flagged(_ context.Context, texts []string) (bool, error) 
 	return false, nil
 }
 
-func newSpeakingAPI(t *testing.T) (*SpeakingService, *MockTestRepository, *fakeStore, *Test) {
+func newSpeakingAPI(t *testing.T) (*Service, *ielts_test.MockTestRepository, *fakeStore, *ielts_test.Test) {
 	t.Helper()
-	repo := NewMockTestRepository()
+	repo := ielts_test.NewMockTestRepository()
 	store := newFakeStore()
-	official, _ := repo.CreateTest(context.Background(), &Test{Skill: "speaking", TaskType: "full", ContentData: mustMarshal(t, fullSpeakingContent())})
-	examiner := NewExaminerAudio(store, nil, defaultExaminerVoice)
-	return NewSpeakingService(repo, store, examiner, nil, fakeModerator{flag: "FORBIDDEN"}), repo, store, official
+	official, _ := repo.CreateTest(context.Background(), &ielts_test.Test{Skill: "speaking", TaskType: "full", ContentData: speakingtest.MustJSON(t, speakingtest.FullContent())})
+	examiner := examiner.NewAudio(store, nil, examiner.DefaultVoice())
+	return NewService(repo, store, examiner, nil, fakeModerator{flag: "FORBIDDEN"}), repo, store, official
 }
 
 func customPart2JSON() json.RawMessage {
@@ -75,10 +78,10 @@ func TestUploadSlots(t *testing.T) {
 			t.Errorf("key %q is not under the user's prefix", s.Key)
 		}
 	}
-	if _, err := svc.UploadSlots(42, 3, "exe"); !errors.Is(err, ErrInvalidSpeakingContent) {
+	if _, err := svc.UploadSlots(42, 3, "exe"); !errors.Is(err, ErrInvalidContent) {
 		t.Errorf("ext exe: err = %v", err)
 	}
-	if _, err := svc.UploadSlots(42, maxUploadSlots+1, "webm"); !errors.Is(err, ErrInvalidSpeakingContent) {
+	if _, err := svc.UploadSlots(42, maxUploadSlots+1, "webm"); !errors.Is(err, ErrInvalidContent) {
 		t.Errorf("too many slots: err = %v", err)
 	}
 }
@@ -87,7 +90,7 @@ func TestCreateCustom_MixesBankAndOwnParts(t *testing.T) {
 	svc, repo, _, official := newSpeakingAPI(t)
 	ctx := context.Background()
 
-	res, err := svc.CreateCustom(ctx, 7, ComposeSpeakingRequest{
+	res, err := svc.CreateCustom(ctx, 7, ComposeRequest{
 		Title: "My travel test",
 		Part1: &PartSource{BankTestID: official.ID},
 		Part2: &PartSource{Custom: customPart2JSON()},
@@ -97,10 +100,10 @@ func TestCreateCustom_MixesBankAndOwnParts(t *testing.T) {
 		t.Fatal(err)
 	}
 	saved, _ := repo.GetTestByID(ctx, res.Test.ID)
-	if saved.OwnerID != 7 || saved.TaskType != SpeakingModeFull || saved.XPGain != 0 {
+	if saved.OwnerID != 7 || saved.TaskType != ielts_test.SpeakingModeFull || saved.XPGain != 0 {
 		t.Errorf("saved test = owner %d, task %q, xp %d", saved.OwnerID, saved.TaskType, saved.XPGain)
 	}
-	var c SpeakingContent
+	var c ielts_test.SpeakingContent
 	_ = json.Unmarshal(saved.ContentData, &c)
 	if c.Part2.Topic != "Describe a place you visited." || c.Part2.ID != "p2" {
 		t.Errorf("part2 = %+v", c.Part2)
@@ -119,13 +122,13 @@ func TestCreateCustom_Rejections(t *testing.T) {
 	ctx := context.Background()
 
 	cases := map[string]struct {
-		req  ComposeSpeakingRequest
+		req  ComposeRequest
 		want error
 	}{
-		"two parts":    {ComposeSpeakingRequest{Part1: &PartSource{BankTestID: official.ID}, Part2: &PartSource{Custom: customPart2JSON()}}, ErrInvalidSpeakingContent},
-		"both sources": {ComposeSpeakingRequest{Part2: &PartSource{BankTestID: official.ID, Custom: customPart2JSON()}}, ErrInvalidSpeakingContent},
-		"missing bank": {ComposeSpeakingRequest{Part2: &PartSource{BankTestID: 999}}, ErrInvalidSpeakingContent},
-		"flagged":      {ComposeSpeakingRequest{Title: "FORBIDDEN words", Part2: &PartSource{Custom: customPart2JSON()}}, ErrContentFlagged},
+		"two parts":    {ComposeRequest{Part1: &PartSource{BankTestID: official.ID}, Part2: &PartSource{Custom: customPart2JSON()}}, ErrInvalidContent},
+		"both sources": {ComposeRequest{Part2: &PartSource{BankTestID: official.ID, Custom: customPart2JSON()}}, ErrInvalidContent},
+		"missing bank": {ComposeRequest{Part2: &PartSource{BankTestID: 999}}, ErrInvalidContent},
+		"flagged":      {ComposeRequest{Title: "FORBIDDEN words", Part2: &PartSource{Custom: customPart2JSON()}}, ErrContentFlagged},
 	}
 	for name, c := range cases {
 		if _, err := svc.CreateCustom(ctx, 7, c.req); !errors.Is(err, c.want) {
@@ -134,8 +137,8 @@ func TestCreateCustom_Rejections(t *testing.T) {
 	}
 
 	// Another user's custom test is not a bank.
-	mine, _ := svc.CreateCustom(ctx, 7, ComposeSpeakingRequest{Part2: &PartSource{Custom: customPart2JSON()}})
-	if _, err := svc.CreateCustom(ctx, 8, ComposeSpeakingRequest{Part2: &PartSource{BankTestID: mine.Test.ID}}); !errors.Is(err, ErrInvalidSpeakingContent) {
+	mine, _ := svc.CreateCustom(ctx, 7, ComposeRequest{Part2: &PartSource{Custom: customPart2JSON()}})
+	if _, err := svc.CreateCustom(ctx, 8, ComposeRequest{Part2: &PartSource{BankTestID: mine.Test.ID}}); !errors.Is(err, ErrInvalidContent) {
 		t.Errorf("copying from someone's custom test: err = %v", err)
 	}
 }
@@ -143,24 +146,24 @@ func TestCreateCustom_Rejections(t *testing.T) {
 func TestCustomTest_OwnershipAndAttempts(t *testing.T) {
 	svc, repo, _, _ := newSpeakingAPI(t)
 	ctx := context.Background()
-	req := ComposeSpeakingRequest{Part2: &PartSource{Custom: customPart2JSON()}}
+	req := ComposeRequest{Part2: &PartSource{Custom: customPart2JSON()}}
 	res, _ := svc.CreateCustom(ctx, 7, req)
 	id := res.Test.ID
 
-	if _, err := svc.UpdateCustom(ctx, 8, id, req); !errors.Is(err, ErrTestNotFound) {
+	if _, err := svc.UpdateCustom(ctx, 8, id, req); !errors.Is(err, ielts_test.ErrTestNotFound) {
 		t.Errorf("another user updated it: err = %v", err)
 	}
-	if err := svc.DeleteCustom(ctx, 8, id); !errors.Is(err, ErrTestNotFound) {
+	if err := svc.DeleteCustom(ctx, 8, id); !errors.Is(err, ielts_test.ErrTestNotFound) {
 		t.Errorf("another user deleted it: err = %v", err)
 	}
-	if _, err := svc.Script(ctx, 8, id); !errors.Is(err, ErrTestNotFound) {
+	if _, err := svc.Script(ctx, 8, id); !errors.Is(err, ielts_test.ErrTestNotFound) {
 		t.Errorf("another user got its script: err = %v", err)
 	}
 	if list, _ := svc.ListCustom(ctx, 8, 1); len(list.Data) != 0 {
 		t.Errorf("another user lists it: %+v", list.Data)
 	}
 
-	_, _ = repo.CreateSubmission(ctx, &Submission{UserID: 7, TestID: id, Payload: []byte(`{}`)})
+	_, _ = repo.CreateSubmission(ctx, &ielts_test.Submission{UserID: 7, TestID: id, Payload: []byte(`{}`)})
 	if _, err := svc.UpdateCustom(ctx, 7, id, req); !errors.Is(err, ErrTestHasAttempts) {
 		t.Errorf("edited after an attempt: err = %v", err)
 	}
@@ -173,16 +176,16 @@ func TestScript_UsesRecordedExaminerLinesWhenPresent(t *testing.T) {
 	svc, _, store, official := newSpeakingAPI(t)
 	ctx := context.Background()
 
-	var c SpeakingContent
+	var c ielts_test.SpeakingContent
 	_ = json.Unmarshal(official.ContentData, &c)
-	lines := buildSpeakingScript(c, defaultExaminerVoice)
+	lines := examiner.Build(c, examiner.DefaultVoice())
 	_ = store.Put(ctx, lines[0].AudioKey, "audio/mpeg", []byte("mp3"))
 
 	script, err := svc.Script(ctx, 1, official.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if script.Mode != SpeakingModeFull {
+	if script.Mode != ielts_test.SpeakingModeFull {
 		t.Errorf("mode = %q", script.Mode)
 	}
 	if script.Lines[0].AudioURL == "" {
@@ -196,14 +199,14 @@ func TestScript_UsesRecordedExaminerLinesWhenPresent(t *testing.T) {
 func TestRecordings_OwnerOnly(t *testing.T) {
 	svc, repo, _, official := newSpeakingAPI(t)
 	ctx := context.Background()
-	payload := SpeakingPayload{Answers: []SpeakingAnswer{{QuestionID: "p2", AudioKey: "speaking/7/a.webm", DurationSec: 90}}}
-	sub, _ := repo.CreateSubmission(ctx, &Submission{UserID: 7, TestID: official.ID, Payload: mustMarshal(t, payload)})
+	payload := ielts_test.SpeakingPayload{Answers: []ielts_test.SpeakingAnswer{{QuestionID: "p2", AudioKey: "speaking/7/a.webm", DurationSec: 90}}}
+	sub, _ := repo.CreateSubmission(ctx, &ielts_test.Submission{UserID: 7, TestID: official.ID, Payload: speakingtest.MustJSON(t, payload)})
 
 	links, err := svc.Recordings(ctx, 7, sub.ID)
 	if err != nil || links["p2"] == "" {
 		t.Errorf("owner's recordings = %v, %v", links, err)
 	}
-	if _, err := svc.Recordings(ctx, 8, sub.ID); !errors.Is(err, ErrSubmissionNotFound) {
+	if _, err := svc.Recordings(ctx, 8, sub.ID); !errors.Is(err, ielts_test.ErrSubmissionNotFound) {
 		t.Errorf("another user: err = %v", err)
 	}
 }

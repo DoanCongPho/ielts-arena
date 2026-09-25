@@ -1,9 +1,10 @@
-package ielts_test
+package grading
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github/DoanCongPho/game-arena/internal/feature/ielts_test"
 	"io"
 	"math"
 	"os"
@@ -45,29 +46,29 @@ func (fileAudio) Get(_ context.Context, key string) ([]byte, error) { return os.
 
 // sampleContent turns a sample's answers into test content and a payload
 // whose audio keys are file paths.
-func sampleContent(s CalibrationSample, dir string) (SpeakingContent, SpeakingPayload) {
-	var c SpeakingContent
+func sampleContent(s CalibrationSample, dir string) (ielts_test.SpeakingContent, ielts_test.SpeakingPayload) {
+	var c ielts_test.SpeakingContent
 	for _, a := range s.Answers {
 		switch a.Part {
 		case 1:
 			if c.Part1 == nil {
-				c.Part1 = &SpeakingPart1{Topics: []SpeakingTopic{{Topic: "Interview"}}}
+				c.Part1 = &ielts_test.SpeakingPart1{Topics: []ielts_test.SpeakingTopic{{Topic: "Interview"}}}
 			}
-			c.Part1.Topics[0].Questions = append(c.Part1.Topics[0].Questions, SpeakingQuestion{Text: a.Question})
+			c.Part1.Topics[0].Questions = append(c.Part1.Topics[0].Questions, ielts_test.SpeakingQuestion{Text: a.Question})
 		case 2:
 			if c.Part2 == nil {
-				c.Part2 = &SpeakingPart2{Topic: a.Question}
+				c.Part2 = &ielts_test.SpeakingPart2{Topic: a.Question}
 			} else {
-				c.Part2.FollowUps = append(c.Part2.FollowUps, SpeakingQuestion{Text: a.Question})
+				c.Part2.FollowUps = append(c.Part2.FollowUps, ielts_test.SpeakingQuestion{Text: a.Question})
 			}
 		case 3:
 			if c.Part3 == nil {
-				c.Part3 = &SpeakingPart3{}
+				c.Part3 = &ielts_test.SpeakingPart3{}
 			}
-			c.Part3.Questions = append(c.Part3.Questions, SpeakingQuestion{Text: a.Question})
+			c.Part3.Questions = append(c.Part3.Questions, ielts_test.SpeakingQuestion{Text: a.Question})
 		}
 	}
-	NormalizeSpeakingContent(&c)
+	ielts_test.NormalizeSpeakingContent(&c)
 
 	// Questions come back in exam order; pair them with the answers in
 	// the same order.
@@ -75,17 +76,17 @@ func sampleContent(s CalibrationSample, dir string) (SpeakingContent, SpeakingPa
 	for _, a := range s.Answers {
 		byPart[a.Part] = append(byPart[a.Part], a)
 	}
-	var p SpeakingPayload
+	var p ielts_test.SpeakingPayload
 	for _, q := range c.Questions() {
 		a := byPart[q.Part][0]
 		byPart[q.Part] = byPart[q.Part][1:]
-		p.Answers = append(p.Answers, SpeakingAnswer{QuestionID: q.ID, AudioKey: filepath.Join(dir, a.Audio)})
+		p.Answers = append(p.Answers, ielts_test.SpeakingAnswer{QuestionID: q.ID, AudioKey: filepath.Join(dir, a.Audio)})
 	}
 	return c, p
 }
 
 // RunCalibrateCmd implements `api calibrate-speaking MANIFEST.json`.
-func RunCalibrateCmd(g *SpeakingGrader, args []string, out io.Writer) int {
+func RunCalibrateCmd(g *Grader, args []string, out io.Writer) int {
 	if len(args) != 1 {
 		fmt.Fprintln(out, "usage: api calibrate-speaking MANIFEST.json")
 		return 2
@@ -127,7 +128,7 @@ func RunCalibrateCmd(g *SpeakingGrader, args []string, out io.Writer) int {
 			}
 		}
 		line := ""
-		for _, c := range speakingCriteria {
+		for _, c := range criteria {
 			got := details.Criteria[c].Score
 			want, ok := s.Bands[c]
 			if !ok {
@@ -162,7 +163,7 @@ func RunCalibrateCmd(g *SpeakingGrader, args []string, out io.Writer) int {
 		pass = pass && rate >= calibrationTargetOverall
 		fmt.Fprintf(out, "overall within ±0.5: %d/%d (%.0f%%, target %.0f%%)\n", overallHit, overallN, 100*rate, 100*calibrationTargetOverall)
 	}
-	for _, c := range speakingCriteria {
+	for _, c := range criteria {
 		if critN[c] == 0 {
 			continue
 		}

@@ -1,4 +1,4 @@
-package ielts_test
+package grading
 
 // The four IELTS Speaking criteria, weighted equally in the overall band.
 const (
@@ -8,14 +8,14 @@ const (
 	CriterionP   = "Pronunciation"
 )
 
-var speakingCriteria = []string{CriterionFC, CriterionLR, CriterionGRA, CriterionP}
+var criteria = []string{CriterionFC, CriterionLR, CriterionGRA, CriterionP}
 
-// speakingDescriptors paraphrases the public IELTS Speaking band
+// descriptors paraphrases the public IELTS Speaking band
 // descriptors (the version revised in May 2023), band 9 down to band 1.
 // They are paraphrased, not quoted, but each band keeps the features an
 // examiner checks for it, and keeps the descriptor's structure: Pronunciation
 // bands 7, 5 and 3 are defined only relative to the bands either side.
-var speakingDescriptors = map[string]string{
+var descriptors = map[string]string{
 	CriterionFC: `Band 9: Speaks fluently; repetition or self-correction is rare. Any hesitation is for thinking about ideas, never for finding words or grammar. Cohesive devices are used fully appropriately. Topics are developed fully, coherently and at appropriate length.
 Band 8: Speaks fluently with only occasional repetition or self-correction. Hesitation is usually about content and only rarely a search for language. Topics are developed coherently, appropriately and relevantly.
 Band 7: Keeps going and produces long turns readily, without noticeable effort. Some hesitation, repetition or self-correction, sometimes mid-sentence, shows occasional difficulty reaching the right language, but coherence is not affected. Uses spoken discourse markers, connectives and cohesive features flexibly.

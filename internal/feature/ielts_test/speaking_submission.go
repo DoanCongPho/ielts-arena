@@ -7,6 +7,17 @@ import (
 	"strings"
 )
 
+// SpeakingGrader rates a speaking submission against the IELTS band
+// descriptors. internal/feature/speaking/grading implements it; declaring it
+// here, where it's used, keeps this package free of Whisper, the
+// pronunciation service and the judges.
+type SpeakingGrader interface {
+	// GradeSpeaking returns the overall band and the score details to store.
+	// When the pronunciation service is unavailable it fails, so the job is
+	// retried — unless lastAttempt, when pronunciation is estimated instead.
+	GradeSpeaking(ctx context.Context, content SpeakingContent, payload SpeakingPayload, lastAttempt bool) (overall float64, details json.RawMessage, err error)
+}
+
 // SpeakingAudioPrefix is where a user's recordings live. A submission may
 // only reference keys under the submitter's own prefix, so nobody can have
 // someone else's recording graded (or read back) as theirs.
@@ -71,16 +82,11 @@ func (s *service) gradeSpeaking(ctx context.Context, test *Test, sub *Submission
 	// Retry while the pronunciation service may just be cold or busy; on
 	// the last attempt, estimate pronunciation rather than fail the test.
 	lastAttempt := sub.Attempts >= maxGradingAttempts
-	details, overall, err := s.speaking.Grade(ctx, content, payload, lastAttempt)
+	overall, details, err := s.speaking.GradeSpeaking(ctx, content, payload, lastAttempt)
 	if err != nil {
 		return fmt.Errorf("grade speaking: %w", err)
 	}
-
-	raw, err := json.Marshal(details)
-	if err != nil {
-		return fmt.Errorf("marshal score details: %w", err)
-	}
-	if _, err := s.repo.CreateScore(ctx, &Score{SubmissionID: sub.ID, OverallBand: &overall, Details: raw}); err != nil {
+	if _, err := s.repo.CreateScore(ctx, &Score{SubmissionID: sub.ID, OverallBand: &overall, Details: details}); err != nil {
 		return fmt.Errorf("create score: %w", err)
 	}
 	sub.Status = StatusGraded

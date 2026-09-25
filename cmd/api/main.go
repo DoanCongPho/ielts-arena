@@ -14,6 +14,9 @@ import (
 	"github/DoanCongPho/game-arena/internal/feature/ielts_test"
 	"github/DoanCongPho/game-arena/internal/feature/profile"
 	"github/DoanCongPho/game-arena/internal/feature/progression"
+	speakingapi "github/DoanCongPho/game-arena/internal/feature/speaking/api"
+	"github/DoanCongPho/game-arena/internal/feature/speaking/examiner"
+	"github/DoanCongPho/game-arena/internal/feature/speaking/grading"
 	"github/DoanCongPho/game-arena/internal/platform"
 	"github/DoanCongPho/game-arena/internal/platform/auth"
 	"github/DoanCongPho/game-arena/internal/platform/config"
@@ -43,7 +46,7 @@ func main() {
 		// Grades examiner-rated samples from disk; needs the model and
 		// pronunciation settings but no database.
 		g := newSpeakingGrader(cfg, llm.NewClient(cfg.App.OpenAIAPIKey, cfg.App.OpenAIModel), nil)
-		os.Exit(ielts_test.RunCalibrateCmd(g, os.Args[2:], os.Stdout))
+		os.Exit(grading.RunCalibrateCmd(g, os.Args[2:], os.Stdout))
 	}
 	if len(os.Args) > 1 && os.Args[1] == "migrate" {
 		os.Exit(database.RunMigrateCmd(cfg, migrations.FS, os.Args[2:]))
@@ -152,9 +155,9 @@ func main() {
 	)
 	ielts_test.NewHandler(testSvc).MountRoutes(api)
 
-	examiner := ielts_test.NewExaminerAudio(media, llmClient, ielts_test.NewExaminerVoice(sp.TTSModel, sp.ExaminerVoice))
-	speakingSvc := ielts_test.NewSpeakingService(testRepo, media, examiner, llmClient, llmClient)
-	ielts_test.NewSpeakingHandler(speakingSvc).MountRoutes(api)
+	examiner := examiner.NewAudio(media, llmClient, examiner.NewVoice(sp.TTSModel, sp.ExaminerVoice))
+	speakingSvc := speakingapi.NewService(testRepo, media, examiner, llmClient, llmClient)
+	speakingapi.NewHandler(speakingSvc).MountRoutes(api)
 
 	// Grading runs here, not in the request that submitted the answer:
 	// writing/speaking need a slow paid API call, and a fixed-size pool
@@ -219,12 +222,12 @@ func main() {
 // and the self-hosted pronunciation service measures phonemes and prosody.
 // Without that service, pronunciation is estimated from recognition
 // confidence.
-func newSpeakingGrader(cfg *config.Config, llmClient *llm.Client, media storage.ObjectStore) *ielts_test.SpeakingGrader {
+func newSpeakingGrader(cfg *config.Config, llmClient *llm.Client, media storage.ObjectStore) *grading.Grader {
 	sp := cfg.App.Speaking
-	speakingCfg := ielts_test.SpeakingGraderConfig{WhisperModel: sp.WhisperModel, JudgeModel: sp.JudgeModel}
+	speakingCfg := grading.Config{WhisperModel: sp.WhisperModel, JudgeModel: sp.JudgeModel}
 	if pron := pronunciation.NewClient(sp.PronURL, sp.PronToken, sp.PronTimeout); pron != nil {
-		return ielts_test.NewSpeakingGrader(media, llmClient, pron, llmClient, speakingCfg)
+		return grading.New(media, llmClient, pron, llmClient, speakingCfg)
 	}
 	log.Println("speaking: PRON_SERVICE_URL is not set — pronunciation will be estimated")
-	return ielts_test.NewSpeakingGrader(media, llmClient, nil, llmClient, speakingCfg)
+	return grading.New(media, llmClient, nil, llmClient, speakingCfg)
 }

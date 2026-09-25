@@ -1,9 +1,10 @@
-package ielts_test
+package examiner
 
 import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github/DoanCongPho/game-arena/internal/feature/ielts_test"
 	"strings"
 )
 
@@ -26,8 +27,8 @@ const (
 	part3AnswerSeconds   = 60
 )
 
-// ScriptLine is one step of the examiner's script, in order.
-type ScriptLine struct {
+// Line is one step of the examiner's script, in order.
+type Line struct {
 	Kind       string `json:"kind"`
 	Part       int    `json:"part"`
 	Text       string `json:"text"`
@@ -36,32 +37,32 @@ type ScriptLine struct {
 	// (cue_card).
 	Seconds int `json:"seconds,omitempty"`
 	// AudioKey is where the examiner's recording of Text is stored; see
-	// examinerAudioKey. The runner falls back to browser speech when the
+	// audioKey. The runner falls back to browser speech when the
 	// recording isn't there yet.
 	AudioKey string `json:"-"`
 	AudioURL string `json:"audio_url,omitempty"`
 }
 
-// ExaminerVoice fixes how every examiner line sounds. It is part of each
+// Voice fixes how every examiner line sounds. It is part of each
 // line's audio key, so changing it regenerates everything rather than
 // mixing two voices in one test.
-type ExaminerVoice struct {
+type Voice struct {
 	Model        string
 	Voice        string
 	Instructions string
 }
 
-var defaultExaminerVoice = ExaminerVoice{
+var defaultVoice = Voice{
 	Model: "gpt-4o-mini-tts",
 	Voice: "sage",
 	Instructions: "You are a neutral British IELTS speaking examiner. Speak with a clear southern British accent, " +
 		"at a calm, measured pace, with clear articulation and no emotion or emphasis beyond natural questioning intonation.",
 }
 
-// NewExaminerVoice is the standard examiner delivery with the given model
+// NewVoice is the standard examiner delivery with the given model
 // and voice; empty values keep the defaults.
-func NewExaminerVoice(model, voice string) ExaminerVoice {
-	v := defaultExaminerVoice
+func NewVoice(model, voice string) Voice {
+	v := defaultVoice
 	if model != "" {
 		v.Model = model
 	}
@@ -71,25 +72,25 @@ func NewExaminerVoice(model, voice string) ExaminerVoice {
 	return v
 }
 
-// examinerAudioKey names a line's recording by a hash of everything that
+// audioKey names a line's recording by a hash of everything that
 // shapes the audio, so identical lines across tests share one file.
-func examinerAudioKey(v ExaminerVoice, text string) string {
+func audioKey(v Voice, text string) string {
 	sum := sha256.Sum256([]byte(v.Model + "\n" + v.Voice + "\n" + v.Instructions + "\n" + text))
 	return "examiner/" + hex.EncodeToString(sum[:16]) + ".mp3"
 }
 
-// buildSpeakingScript turns content into the examiner's script, using the
+// Build turns content into the examiner's script, using the
 // standard examiner wording for openings, hand-overs and the close.
-func buildSpeakingScript(c SpeakingContent, v ExaminerVoice) []ScriptLine {
-	var lines []ScriptLine
+func Build(c ielts_test.SpeakingContent, v Voice) []Line {
+	var lines []Line
 	say := func(part int, text string) {
-		lines = append(lines, ScriptLine{Kind: LineSay, Part: part, Text: text})
+		lines = append(lines, Line{Kind: LineSay, Part: part, Text: text})
 	}
-	ask := func(part int, q SpeakingQuestion, seconds int) {
-		lines = append(lines, ScriptLine{Kind: LineAsk, Part: part, Text: q.Text, QuestionID: q.ID, Seconds: seconds})
+	ask := func(part int, q ielts_test.SpeakingQuestion, seconds int) {
+		lines = append(lines, Line{Kind: LineAsk, Part: part, Text: q.Text, QuestionID: q.ID, Seconds: seconds})
 	}
 
-	full := c.Mode() == SpeakingModeFull
+	full := c.Mode() == ielts_test.SpeakingModeFull
 	say(firstPart(c), "Good afternoon. My name is Alex, and I'll be your examiner today.")
 
 	if p := c.Part1; p != nil {
@@ -106,8 +107,8 @@ func buildSpeakingScript(c SpeakingContent, v ExaminerVoice) []ScriptLine {
 		say(2, "Now, I'm going to give you a topic, and I'd like you to talk about it for one to two minutes. "+
 			"Before you talk, you'll have one minute to think about what you're going to say. "+
 			"You can make some notes if you wish. Do you understand? Here is your topic.")
-		lines = append(lines, ScriptLine{Kind: LineCueCard, Part: 2, Text: p.CueCardText(), Seconds: part2PrepSeconds})
-		lines = append(lines, ScriptLine{
+		lines = append(lines, Line{Kind: LineCueCard, Part: 2, Text: p.CueCardText(), Seconds: part2PrepSeconds})
+		lines = append(lines, Line{
 			Kind: LineLongTurn, Part: 2, QuestionID: p.ID, Seconds: part2TalkSeconds,
 			Text: "All right? Remember, you have one to two minutes for this, so don't worry if I stop you. " +
 				"I'll tell you when the time is up. Can you start speaking now, please?",
@@ -121,7 +122,7 @@ func buildSpeakingScript(c SpeakingContent, v ExaminerVoice) []ScriptLine {
 	if p := c.Part3; p != nil {
 		if c.Part2 != nil {
 			say(3, fmt.Sprintf("We've been talking about %s, and I'd like to discuss with you one or two more general questions related to this.",
-				part2Subject(c.Part2.Topic)))
+				Part2Subject(c.Part2.Topic)))
 		} else {
 			say(3, fmt.Sprintf("In this part, I'd like to discuss with you some general questions about %s.",
 				lowerFirst(strings.TrimSuffix(p.Theme, "."))))
@@ -138,12 +139,12 @@ func buildSpeakingScript(c SpeakingContent, v ExaminerVoice) []ScriptLine {
 	}
 
 	for i := range lines {
-		lines[i].AudioKey = examinerAudioKey(v, lines[i].Text)
+		lines[i].AudioKey = audioKey(v, lines[i].Text)
 	}
 	return lines
 }
 
-func firstPart(c SpeakingContent) int {
+func firstPart(c ielts_test.SpeakingContent) int {
 	switch {
 	case c.Part1 != nil:
 		return 1
@@ -153,9 +154,9 @@ func firstPart(c SpeakingContent) int {
 	return 3
 }
 
-// part2Subject turns "Describe a book you enjoyed reading." into "a book
+// Part2Subject turns "Describe a book you enjoyed reading." into "a book
 // you enjoyed reading" for the Part 3 lead-in.
-func part2Subject(topic string) string {
+func Part2Subject(topic string) string {
 	t := strings.TrimSuffix(strings.TrimSpace(topic), ".")
 	for _, prefix := range []string{"Describe ", "Talk about ", "Tell me about "} {
 		if rest, ok := strings.CutPrefix(t, prefix); ok {
@@ -176,3 +177,6 @@ func lowerFirst(s string) string {
 	}
 	return strings.ToLower(string(r[0])) + string(r[1:])
 }
+
+// DefaultVoice is the standard examiner delivery with the default model.
+func DefaultVoice() Voice { return defaultVoice }
