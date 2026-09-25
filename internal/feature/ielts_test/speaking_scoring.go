@@ -211,11 +211,18 @@ func summarizePronunciation(clips []clipAssessment) *pronunciationSummary {
 		m.Score = round1(m.Score)
 		s.Mispronounced = append(s.Mispronounced, *m)
 	}
+	// Ties are broken by the word itself: the list comes out of a map and is
+	// cut to 25, so without that the words kept (and shown to the judge)
+	// would vary from run to run.
 	sort.Slice(s.Mispronounced, func(i, j int) bool {
-		if s.Mispronounced[i].Count != s.Mispronounced[j].Count {
-			return s.Mispronounced[i].Count > s.Mispronounced[j].Count
+		a, b := s.Mispronounced[i], s.Mispronounced[j]
+		if a.Count != b.Count {
+			return a.Count > b.Count
 		}
-		return s.Mispronounced[i].Score < s.Mispronounced[j].Score
+		if a.Score != b.Score {
+			return a.Score < b.Score
+		}
+		return a.Word < b.Word
 	})
 	if len(s.Mispronounced) > 25 {
 		s.Mispronounced = s.Mispronounced[:25]
