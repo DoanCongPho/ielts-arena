@@ -95,5 +95,9 @@ func (r *CreateTestRequest) Validate() error {
 	if r.XPGain < 0 {
 		return errors.New("xp_gain cannot be negative")
 	}
+	// The grader's rubric and the attempt page's timer both key on it.
+	if r.Skill == "writing" && r.TaskType != "task1" && r.TaskType != "task2" {
+		return errors.New("a writing test's task_type must be task1 or task2")
+	}
 	return validateContentData(r.Skill, r.ContentData)
 }

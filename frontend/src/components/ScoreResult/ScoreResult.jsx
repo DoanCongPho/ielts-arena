@@ -1,3 +1,4 @@
+import ReactMarkdown from 'react-markdown';
 import { safeParse } from '../../lib/safeParse';
 import ScoreCard from '../ui/ScoreCard/ScoreCard';
 import './ScoreResult.css';
@@ -10,6 +11,7 @@ export default function ScoreResult({ score }) {
   return (
     <div className="score-result">
       <ScoreCard skill="writing" band={score.overall_band} />
+      {details.word_count > 0 && <p className="score-result-word-count">{details.word_count} từ</p>}
 
       <div className="score-result-criteria-list">
         {Object.entries(criteria).map(([name, c]) => (
@@ -31,6 +33,7 @@ export default function ScoreResult({ score }) {
               <p className="score-result-correction-span">"{c.span}"</p>
               <p className="score-result-correction-issue">{c.issue}</p>
               <p className="score-result-correction-suggestion">→ {c.suggestion}</p>
+              {c.explanation && <p className="score-result-correction-explanation">{c.explanation}</p>}
             </div>
           ))}
         </div>
@@ -38,8 +41,11 @@ export default function ScoreResult({ score }) {
 
       {details.model_answer && (
         <div className="score-result-model-answer">
-          <h3>Model Answer</h3>
-          <p>{details.model_answer}</p>
+          <h3>
+            Bài mẫu
+            {details.model_answer_source === 'llm' && <span className="score-result-ai-tag">AI viết</span>}
+          </h3>
+          <ReactMarkdown>{details.model_answer}</ReactMarkdown>
         </div>
       )}
     </div>

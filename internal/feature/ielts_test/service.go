@@ -274,15 +274,32 @@ func (s *service) gradeSubmission(ctx context.Context, test *Test, sub *Submissi
 		return fmt.Errorf("%w: unmarshal submission payload: %v", ErrUngradable, err)
 	}
 
-	result, err := s.grader.Grade(ctx, test.Skill, test.TaskType, content.Prompt, content.ImageURL, payload.Text)
+	result, err := s.grader.Grade(ctx, GradeInput{
+		TaskType:        test.TaskType,
+		Prompt:          content.Prompt,
+		ImageURL:        content.ImageURL,
+		Answer:          payload.Text,
+		NeedModelAnswer: content.SampleAnswer == "",
+	})
 	if err != nil {
 		return fmt.Errorf("grade: %w", err)
 	}
+	// Scores are clamped and the overall band computed here with IELTS
+	// rounding, rather than trusting the model's arithmetic.
+	if err := normalizeResult(result, test.TaskType, payload.Text); err != nil {
+		return fmt.Errorf("grade: %w", err)
+	}
 
+	modelAnswer, source := content.SampleAnswer, "sample"
+	if modelAnswer == "" {
+		modelAnswer, source = result.ModelAnswer, "llm"
+	}
 	details, err := json.Marshal(ScoreDetails{
-		Criteria:    result.Criteria,
-		Corrections: result.Corrections,
-		ModelAnswer: result.ModelAnswer,
+		Criteria:          result.Criteria,
+		Corrections:       result.Corrections,
+		ModelAnswer:       modelAnswer,
+		ModelAnswerSource: source,
+		WordCount:         countWords(payload.Text),
 	})
 	if err != nil {
 		return fmt.Errorf("marshal score details: %w", err)

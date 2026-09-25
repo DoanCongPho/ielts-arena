@@ -128,5 +128,15 @@ func summarizeTest(req CreateTestRequest) string {
 		}
 		s += fmt.Sprintf(": %d questions, %d marks, %d explained, %d with evidence", len(questions), marks, explained, cited)
 	}
+	if req.Skill == "writing" {
+		var c WritingContent
+		if json.Unmarshal(req.ContentData, &c) == nil {
+			image := "no image"
+			if c.ImageURL != "" {
+				image = "image " + c.ImageURL
+			}
+			s += fmt.Sprintf(": prompt %d words, %s, sample answer %d words", countWords(c.Prompt), image, countWords(c.SampleAnswer))
+		}
+	}
 	return s
 }

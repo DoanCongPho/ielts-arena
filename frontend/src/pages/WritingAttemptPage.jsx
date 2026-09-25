@@ -3,10 +3,31 @@ import { useNavigate, useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { getScore, getTest, submitAnswer, waitForGrading } from '../lib/api';
 import { safeParse } from '../lib/safeParse';
-import { ATTEMPT_SECONDS, useCountdown, useLeaveGuard } from '../lib/useAttemptSession';
+import { ATTEMPT_SECONDS, WRITING_SECONDS, useCountdown, useElapsed, useLeaveGuard } from '../lib/useAttemptSession';
 import ScoreResult from '../components/ScoreResult/ScoreResult';
 import Button from '../components/ui/Button/Button';
 import './WritingAttemptPage.css';
+
+// Timed ("thi thử") runs the task's exam clock and hands the essay in when
+// it runs out; practice ("luyện tập") has no clock and waits for the
+// learner to submit. The last choice is remembered per browser.
+const MODE_KEY = 'writing-mode';
+
+function loadMode() {
+  try {
+    return localStorage.getItem(MODE_KEY) === 'practice' ? 'practice' : 'timed';
+  } catch {
+    return 'timed';
+  }
+}
+
+function saveMode(mode) {
+  try {
+    localStorage.setItem(MODE_KEY, mode);
+  } catch {
+    // Storage blocked (private window): the choice just isn't remembered.
+  }
+}
 
 export default function WritingAttemptPage() {
   const { testId } = useParams();
@@ -16,6 +37,8 @@ export default function WritingAttemptPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // null until the learner picks a mode; nothing is timed before that.
+  const [mode, setMode] = useState(null);
   const [text, setText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [score, setScore] = useState(null);
@@ -28,9 +51,17 @@ export default function WritingAttemptPage() {
       .finally(() => setLoading(false));
   }, [testId]);
 
-  const inProgress = !!test && !score && !gradeFailed;
-  const remaining = useCountdown(ATTEMPT_SECONDS, inProgress, handleTimeUp);
+  const timed = mode === 'timed';
+  const allowance = WRITING_SECONDS[test?.task_type] ?? ATTEMPT_SECONDS;
+  const inProgress = !!test && !!mode && !score && !gradeFailed;
+  const remaining = useCountdown(allowance, inProgress && timed, handleTimeUp);
+  const elapsed = useElapsed(inProgress);
   const confirmLeave = useLeaveGuard(inProgress);
+
+  function start(chosen) {
+    saveMode(chosen);
+    setMode(chosen);
+  }
 
   // Time's up: hand in whatever has been written. An empty answer isn't
   // worth an LLM grading call, so it's not submitted.
@@ -46,7 +77,7 @@ export default function WritingAttemptPage() {
     try {
       // The API only queues the answer; a background worker grades it, so
       // poll the submission until its status settles.
-      const queued = await submitAnswer(Number(testId), { text });
+      const queued = await submitAnswer(Number(testId), { text, mode, elapsed_seconds: elapsed });
       const settled = await waitForGrading(queued.id);
       if (settled.status === 'graded') {
         setScore(await getScore(settled.id));
@@ -65,6 +96,34 @@ export default function WritingAttemptPage() {
 
   const content = safeParse(test?.content_data);
   const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
+  const taskLabel = test.task_type === 'task1' ? 'Writing Task 1' : 'Writing Task 2';
+
+  if (!mode) {
+    const preferred = loadMode();
+    return (
+      <div className="attempt-page attempt-page-focus">
+        <header className="attempt-header">
+          <button type="button" className="attempt-back" onClick={() => navigate('/practice/writing')} aria-label="Về danh sách đề" title="Về danh sách đề">
+            ←
+          </button>
+        </header>
+        <div className="attempt-mode-card">
+          <h2>{taskLabel}</h2>
+          <p className="attempt-mode-lead">Chọn cách làm bài:</p>
+          <div className="attempt-mode-options">
+            <Button variant={preferred === 'timed' ? 'primary' : 'secondary'} className="attempt-mode-option" onClick={() => start('timed')}>
+              <strong>Thi thử · {Math.round(allowance / 60)} phút</strong>
+              <span>Tính giờ như thi thật, hết giờ tự động nộp bài.</span>
+            </Button>
+            <Button variant={preferred === 'practice' ? 'primary' : 'secondary'} className="attempt-mode-option" onClick={() => start('practice')}>
+              <strong>Luyện tập</strong>
+              <span>Không giới hạn thời gian, nộp khi bạn viết xong.</span>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="attempt-page attempt-page-focus">
@@ -72,12 +131,20 @@ export default function WritingAttemptPage() {
         <button type="button" className="attempt-back" onClick={() => confirmLeave() && navigate('/practice/writing')} aria-label="Về danh sách đề" title="Về danh sách đề">
           ←
         </button>
-        <span className={`attempt-timer ${inProgress && remaining <= 5 * 60 ? 'attempt-timer-low' : ''}`}>{formatTime(remaining)}</span>
+        {timed ? (
+          <span className={`attempt-timer ${inProgress && remaining <= 5 * 60 ? 'attempt-timer-low' : ''}`} title="Thời gian còn lại">
+            {formatTime(remaining)}
+          </span>
+        ) : (
+          <span className="attempt-timer" title="Thời gian đã viết (luyện tập, không giới hạn)">
+            Luyện tập · {formatTime(elapsed)}
+          </span>
+        )}
       </header>
 
       <div className="attempt-body">
         <div className="attempt-prompt-panel">
-          <h2>{test.task_type === 'task1' ? 'Writing Task 1' : 'Writing Task 2'}</h2>
+          <h2>{taskLabel}</h2>
           {content?.image_url && (
             <img className="attempt-chart" src={content.image_url} alt="Task chart" />
           )}

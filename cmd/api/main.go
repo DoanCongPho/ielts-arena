@@ -72,11 +72,16 @@ func main() {
 	// Static assets (e.g. Writing Task 1 chart images) — public, no auth.
 	// With S3_BUCKET set (production), the files live in a private bucket and
 	// this redirects to a short-lived presigned link, so stored URLs like
-	// /assets/audio/x.mp3 keep working.
+	// /assets/audio/x.mp3 keep working. presignAsset gives the writing
+	// grader the same links for chart images; nil means read from disk.
+	var presignAsset func(key string) (string, error)
 	if a := cfg.App.Assets; a.Bucket != "" {
 		bucket := &storage.Bucket{
 			Endpoint: a.Endpoint, Region: a.Region, Name: a.Bucket,
 			AccessKeyID: a.AccessKeyID, SecretAccessKey: a.SecretAccessKey,
+		}
+		presignAsset = func(key string) (string, error) {
+			return bucket.PresignGet(key, 15*time.Minute, time.Now())
 		}
 		r.PathPrefix("/assets/").Handler(http.StripPrefix("/assets", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			link, err := bucket.PresignGet(req.URL.Path, time.Hour, time.Now())
@@ -109,7 +114,7 @@ func main() {
 
 	// --ielts_test--
 	llmClient := llm.NewClient(cfg.App.OpenAIAPIKey, cfg.App.OpenAIModel)
-	grader := ielts_test.NewOpenAIGrader(llmClient)
+	grader := ielts_test.NewOpenAIGrader(llmClient, ielts_test.NewAssetImageResolver("internal/assets", presignAsset))
 
 	testRepo := ielts_test.NewRepository(plat.DB)
 	// progRepo satisfies ielts_test.XPGranter structurally — grading knows

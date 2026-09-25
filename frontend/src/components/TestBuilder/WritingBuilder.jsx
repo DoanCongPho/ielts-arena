@@ -18,6 +18,15 @@ export default function WritingBuilder({ content, onChange }) {
           onChange={(e) => onChange({ ...content, image_url: e.target.value })}
         />
       </label>
+      <label className="tb-field">
+        <span>Bài mẫu (sample_answer, tuỳ chọn — để trống thì AI viết bài mẫu khi chấm)</span>
+        <textarea
+          className="tb-textarea"
+          rows={8}
+          value={content.sample_answer || ''}
+          onChange={(e) => onChange({ ...content, sample_answer: e.target.value })}
+        />
+      </label>
     </div>
   );
 }

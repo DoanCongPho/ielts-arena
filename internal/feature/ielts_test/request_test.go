@@ -98,23 +98,38 @@ func TestCreateTestRequest_Validate(t *testing.T) {
 		},
 		{
 			name:    "series without volume",
-			req:     CreateTestRequest{Skill: "writing", TaskType: "test1", Series: "cambridge", TestNumber: 1, ContentData: validWriting},
+			req:     CreateTestRequest{Skill: "writing", TaskType: "task1", Series: "cambridge", TestNumber: 1, ContentData: validWriting},
 			wantErr: true,
 		},
 		{
 			name:    "series without test_number",
-			req:     CreateTestRequest{Skill: "writing", TaskType: "test1", Series: "cambridge", Volume: 20, ContentData: validWriting},
+			req:     CreateTestRequest{Skill: "writing", TaskType: "task1", Series: "cambridge", Volume: 20, ContentData: validWriting},
 			wantErr: true,
 		},
 		{
 			name:    "valid in a series",
-			req:     CreateTestRequest{Skill: "writing", TaskType: "test1", Series: "cambridge", Volume: 20, TestNumber: 1, ContentData: validWriting},
+			req:     CreateTestRequest{Skill: "writing", TaskType: "task1", Series: "cambridge", Volume: 20, TestNumber: 1, ContentData: validWriting},
 			wantErr: false,
 		},
 		{
 			name:    "valid",
 			req:     CreateTestRequest{Skill: "writing", TaskType: "task2", ContentData: validWriting, XPGain: 10},
 			wantErr: false,
+		},
+		{
+			name:    "writing task_type other than task1/task2",
+			req:     CreateTestRequest{Skill: "writing", TaskType: "essay", ContentData: validWriting},
+			wantErr: true,
+		},
+		{
+			name:    "writing chart as an asset path",
+			req:     CreateTestRequest{Skill: "writing", TaskType: "task1", ContentData: json.RawMessage(`{"prompt":"Describe the chart.","image_url":"/assets/writing_charts/a.png"}`)},
+			wantErr: false,
+		},
+		{
+			name:    "writing chart as a bare relative path",
+			req:     CreateTestRequest{Skill: "writing", TaskType: "task1", ContentData: json.RawMessage(`{"prompt":"Describe the chart.","image_url":"charts/a.png"}`)},
+			wantErr: true,
 		},
 	}
 	for _, tc := range cases {

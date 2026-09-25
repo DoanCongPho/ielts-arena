@@ -119,6 +119,7 @@ export function buildTestPayload({ skill, taskType, source, isCurrent, xpGain, t
 
   if (skill === 'writing') {
     content_data = { prompt: writingContent.prompt, image_url: writingContent.image_url || '' };
+    if (writingContent.sample_answer?.trim()) content_data.sample_answer = writingContent.sample_answer.trim();
   } else if (skill === 'reading') {
     const orderRef = { next: 1 };
     content_data = {

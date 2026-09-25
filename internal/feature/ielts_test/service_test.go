@@ -14,10 +14,22 @@ import (
 type fakeGrader struct {
 	result *GradingResult
 	err    error
+	last   GradeInput // the input of the most recent Grade call
 }
 
-func (f *fakeGrader) Grade(ctx context.Context, skill, taskType, prompt, imageURL, answer string) (*GradingResult, error) {
+func (f *fakeGrader) Grade(ctx context.Context, in GradeInput) (*GradingResult, error) {
+	f.last = in
 	return f.result, f.err
+}
+
+// writingGrade is a complete grade for a writing task: every criterion the
+// task is scored on, each at band.
+func writingGrade(taskType string, band float64) *GradingResult {
+	criteria := map[string]CriterionScore{}
+	for _, name := range writingCriteria(taskType) {
+		criteria[name] = CriterionScore{Score: band, Feedback: "Tốt."}
+	}
+	return &GradingResult{OverallBand: band, Criteria: criteria}
 }
 
 func newTestService(repo Repository, grader Grader) Service {
@@ -200,11 +212,9 @@ func TestService_PostTest_PersistsValidContent(t *testing.T) {
 
 func TestService_SubmitAnswer_WritingGradedSuccessfully(t *testing.T) {
 	repo := NewMockTestRepository()
-	grader := &fakeGrader{result: &GradingResult{
-		OverallBand: 7,
-		Criteria:    map[string]CriterionScore{"Task Achievement": {Score: 7, Feedback: "Good."}},
-		ModelAnswer: "A model essay.",
-	}}
+	grade := writingGrade("task2", 7)
+	grade.ModelAnswer = "A model essay."
+	grader := &fakeGrader{result: grade}
 	svc := newTestService(repo, grader)
 	ctx := context.Background()
 
@@ -370,10 +380,7 @@ func TestService_GradeNextPending_EmptyQueueIsNotAnError(t *testing.T) {
 
 func TestService_GradeNextPending_ReclaimsSubmissionAbandonedByDeadWorker(t *testing.T) {
 	repo := NewMockTestRepository()
-	grader := &fakeGrader{result: &GradingResult{
-		OverallBand: 7,
-		Criteria:    map[string]CriterionScore{"Task Achievement": {Score: 7}},
-	}}
+	grader := &fakeGrader{result: writingGrade("task2", 7)}
 	svc := newTestService(repo, grader)
 	ctx := context.Background()
 
@@ -535,7 +542,7 @@ func TestService_GetSubmissionByID_EnforcesOwnership(t *testing.T) {
 
 func TestService_GetScore_EnforcesOwnershipAndPendingState(t *testing.T) {
 	repo := NewMockTestRepository()
-	grader := &fakeGrader{result: &GradingResult{OverallBand: 6, Criteria: map[string]CriterionScore{}}}
+	grader := &fakeGrader{result: writingGrade("task2", 6)}
 	svc := newTestService(repo, grader)
 	ctx := context.Background()
 
@@ -573,7 +580,7 @@ func TestService_GetScore_EnforcesOwnershipAndPendingState(t *testing.T) {
 
 func TestService_GetListSubmission_ReturnsOnlyOwnedSubmissionsIncludingPending(t *testing.T) {
 	repo := NewMockTestRepository()
-	grader := &fakeGrader{result: &GradingResult{OverallBand: 6, Criteria: map[string]CriterionScore{}}}
+	grader := &fakeGrader{result: writingGrade("task2", 6)}
 	svc := newTestService(repo, grader)
 	ctx := context.Background()
 
