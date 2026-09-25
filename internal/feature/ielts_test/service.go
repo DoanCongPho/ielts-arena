@@ -126,8 +126,16 @@ func (s *service) GetListTest(ctx context.Context, skill string, req ListTestReq
 }
 
 func (s *service) PostTest(ctx context.Context, test Test) (*Test, error) {
+	canonical, err := canonicalContentData(test.Skill, test.ContentData)
+	if err != nil {
+		return nil, err
+	}
+	test.ContentData = canonical
 	if err := validateContentData(test.Skill, test.ContentData); err != nil {
 		return nil, err
+	}
+	if test.Skill == "speaking" {
+		test.TaskType = speakingModeOf(test.ContentData)
 	}
 	return s.repo.CreateTest(ctx, &test)
 }

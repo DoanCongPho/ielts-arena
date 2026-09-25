@@ -113,5 +113,18 @@ func (r *CreateTestRequest) Validate() error {
 	if r.Skill == "writing" && r.TaskType != "task1" && r.TaskType != "task2" {
 		return errors.New("a writing test's task_type must be task1 or task2")
 	}
-	return validateContentData(r.Skill, r.ContentData)
+	canonical, err := canonicalContentData(r.Skill, r.ContentData)
+	if err != nil {
+		return err
+	}
+	r.ContentData = canonical
+	if err := validateContentData(r.Skill, r.ContentData); err != nil {
+		return err
+	}
+	if r.Skill == "speaking" {
+		// A speaking test's task type is its mode, whatever was sent, so
+		// the list filters (full test / one part) always agree with it.
+		r.TaskType = speakingModeOf(r.ContentData)
+	}
+	return nil
 }

@@ -94,14 +94,18 @@ type ScoreDetails struct {
 	WordCount         int    `json:"word_count"`
 }
 
-// --- speaking test ---
-type SpeakingContent struct {
-	Prompt string `json:"prompt"`
-	Part   int    `json:"part"` // IELTS speaking part 1, 2, or 3
+// --- speaking test --- content lives in speaking_content.go.
+
+// SpeakingPayload is a speaking submission: one recording per answered
+// question, uploaded beforehand through POST /api/speaking/uploads.
+type SpeakingPayload struct {
+	Answers []SpeakingAnswer `json:"answers"`
 }
 
-type SpeakingPayload struct {
-	Text string `json:"text"`
+type SpeakingAnswer struct {
+	QuestionID  string  `json:"question_id"`
+	AudioKey    string  `json:"audio_key"`
+	DurationSec float64 `json:"duration_sec"`
 }
 
 // --- Reading/Listening --> docs/ielts-rl-data-structure.md. ---
