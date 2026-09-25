@@ -6,6 +6,7 @@ import { SKILLS, SKILL_CONFIG, seriesLabel } from '../lib/skillConfig';
 import Button from '../components/ui/Button/Button';
 import SkillTag from '../components/ui/SkillTag/SkillTag';
 import Card from '../components/ui/Card/Card';
+import CustomSpeakingList from '../components/CustomSpeakingList/CustomSpeakingList';
 import './PracticePage.css';
 
 export default function SkillTestsPage() {
@@ -109,6 +110,8 @@ export default function SkillTestsPage() {
           </button>
         ))}
       </div>
+
+      {skill === 'speaking' && <CustomSpeakingList />}
 
       {loading && <p className="practice-status">Đang tải đề...</p>}
       {error && <p className="practice-status practice-error">{error}</p>}

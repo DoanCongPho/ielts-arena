@@ -1,3 +1,5 @@
+import { MODE_LABELS, speakingSummary } from './speakingContent';
+
 export const SKILLS = [
   { key: 'reading', label: 'Reading' },
   { key: 'listening', label: 'Listening' },
@@ -80,8 +82,17 @@ export const SKILL_CONFIG = {
   },
   speaking: {
     label: 'Speaking',
-    enabled: false,
+    enabled: true,
     colorToken: 'speaking',
-    comingSoon: true,
+    attemptPath: (id) => `/practice/speaking/${id}`,
+    taskFilters: [
+      { key: 'all', label: 'Tất cả', query: {} },
+      { key: 'full', label: 'Full test', query: { task_type: 'full' } },
+      { key: 'part1', label: 'Part 1', query: { task_type: 'part1' } },
+      { key: 'part2', label: 'Part 2', query: { task_type: 'part2' } },
+      { key: 'part3', label: 'Part 3', query: { task_type: 'part3' } },
+    ],
+    taskTypeLabel: (taskType) => MODE_LABELS[taskType] || taskType,
+    cardSummary: speakingSummary,
   },
 };

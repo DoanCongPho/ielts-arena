@@ -7,6 +7,8 @@ import SkillTestsPage from './pages/SkillTestsPage';
 import WritingAttemptPage from './pages/WritingAttemptPage';
 import ReadingAttemptPage from './pages/ReadingAttemptPage';
 import ListeningAttemptPage from './pages/ListeningAttemptPage';
+import SpeakingAttemptPage from './pages/SpeakingAttemptPage';
+import SpeakingComposerPage from './pages/SpeakingComposerPage';
 import SubmissionsPage from './pages/SubmissionsPage';
 import SubmissionDetailPage from './pages/SubmissionDetailPage';
 import CreateTestPage from './pages/CreateTestPage';
@@ -71,6 +73,21 @@ export default function App() {
         <Route path="/practice/listening/:testId" element={
           <PrivateRoute focus>
             <ListeningAttemptPage />
+          </PrivateRoute>
+        } />
+        <Route path="/practice/speaking/custom/new" element={
+          <PrivateRoute>
+            <SpeakingComposerPage />
+          </PrivateRoute>
+        } />
+        <Route path="/practice/speaking/custom/:testId/edit" element={
+          <PrivateRoute>
+            <SpeakingComposerPage />
+          </PrivateRoute>
+        } />
+        <Route path="/practice/speaking/:testId" element={
+          <PrivateRoute focus>
+            <SpeakingAttemptPage />
           </PrivateRoute>
         } />
         <Route path="/submissions" element={

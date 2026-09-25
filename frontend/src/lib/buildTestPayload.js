@@ -114,7 +114,7 @@ function buildGroup(group, groupOrder, orderRef) {
 // expects, auto-numbering question_order globally (1..N, in document
 // order; a multi-select question takes select_count numbers) so authors
 // never have to manage that numbering by hand.
-export function buildTestPayload({ skill, taskType, source, isCurrent, xpGain, thumbnailUrl, writingContent, passages, listeningAudioUrl, sections }) {
+export function buildTestPayload({ skill, taskType, source, isCurrent, xpGain, thumbnailUrl, writingContent, passages, listeningAudioUrl, sections, speakingContent }) {
   let content_data;
 
   if (skill === 'writing') {
@@ -140,6 +140,10 @@ export function buildTestPayload({ skill, taskType, source, isCurrent, xpGain, t
         question_groups: s.question_groups.map((g, gi) => buildGroup(g, gi + 1, orderRef)),
       })),
     };
+  } else if (skill === 'speaking') {
+    // Already in API shape (speakingContent.js); the server assigns the
+    // question ids and derives task_type from the parts present.
+    content_data = speakingContent;
   }
 
   return {
