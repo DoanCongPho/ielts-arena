@@ -73,8 +73,14 @@ async function request(path, options = {}, retry = true) {
   return body?.data;
 }
 
-export function listTests(skill, page = 1) {
-  return request(`/api/tests?skill=${encodeURIComponent(skill)}&page=${page}`);
+// listTests fetches one page of official tests. filter narrows them on the
+// server ({task_type, series}), so pagination counts only matching tests.
+export function listTests(skill, page = 1, filter = {}) {
+  const params = new URLSearchParams({ skill, page: String(page) });
+  for (const [k, v] of Object.entries(filter)) {
+    if (v) params.set(k, v);
+  }
+  return request(`/api/tests?${params}`);
 }
 
 export function getTest(id) {

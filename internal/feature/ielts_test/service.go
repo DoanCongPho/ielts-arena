@@ -18,7 +18,8 @@ import (
 // be exercised in tests with nothing but a context.
 type Service interface {
 	//test
-	GetTest(ctx context.Context, id uint64) (*TestResponse, error)
+	// GetTest returns an official test, or one of userID's own tests.
+	GetTest(ctx context.Context, userID, id uint64) (*TestResponse, error)
 	GetListTest(ctx context.Context, skill string, req ListTestRequest) (*ListTestResponse, error)
 	PostTest(ctx context.Context, test Test) (*Test, error)
 	// GetAnswerKey returns a reading/listening test's answers, explanations
@@ -81,8 +82,22 @@ func NewService(repo Repository, grader Grader, xpGrants XPGranter) Service {
 	return &service{repo: repo, grader: grader, xpGrants: xpGrants}
 }
 
-func (s *service) GetTest(ctx context.Context, id uint64) (*TestResponse, error) {
+// visibleTest loads a test userID may see: official, or their own. Someone
+// else's custom test is reported as not found rather than forbidden, so
+// its existence doesn't leak.
+func (s *service) visibleTest(ctx context.Context, userID, id uint64) (*Test, error) {
 	t, err := s.repo.GetTestByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if t.OwnerID != 0 && t.OwnerID != userID {
+		return nil, ErrTestNotFound
+	}
+	return t, nil
+}
+
+func (s *service) GetTest(ctx context.Context, userID, id uint64) (*TestResponse, error) {
+	t, err := s.visibleTest(ctx, userID, id)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +110,7 @@ func (s *service) GetTest(ctx context.Context, id uint64) (*TestResponse, error)
 }
 
 func (s *service) GetListTest(ctx context.Context, skill string, req ListTestRequest) (*ListTestResponse, error) {
-	tests, total, err := s.repo.GetListTest(ctx, skill, req.Limit(), req.Offset())
+	tests, total, err := s.repo.GetListTest(ctx, skill, req.TestFilter, req.Limit(), req.Offset())
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +183,7 @@ func (s *service) GetAnswerKey(ctx context.Context, userID uint64, isAdmin bool,
 func (s *service) SubmitAnswer(ctx context.Context, userID uint64, req SubmitRequest) (*Submission, error) {
 	// Validate the test exists before accepting the answer, so a bad
 	// test_id is a 404 at submit time rather than a failed grade later.
-	if _, err := s.repo.GetTestByID(ctx, req.TestID); err != nil {
+	if _, err := s.visibleTest(ctx, userID, req.TestID); err != nil {
 		return nil, err
 	}
 

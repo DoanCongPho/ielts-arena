@@ -19,7 +19,10 @@ const (
 )
 
 type Test struct {
-	ID       uint64
+	ID uint64
+	// OwnerID is the user a custom test belongs to; 0 for official tests,
+	// which everyone sees. A custom test is visible only to its owner.
+	OwnerID  uint64
 	Skill    string
 	TaskType string
 	// Series/Volume/TestNumber place a test in a book ("cambridge", 20, 1 =

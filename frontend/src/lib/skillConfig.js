@@ -7,13 +7,16 @@ export const SKILLS = [
 
 const SERIES_NAMES = { cambridge: 'Cambridge' };
 
+// A filter's `query` is sent to GET /api/tests, which filters before it
+// paginates — so a filter always sees every matching test, not just the
+// ones on the current page.
+//
 // Filters shared by skills whose tests come from books: "Cambridge" keeps
-// tests in a series, "Khác" keeps the rest. A filter with `match` is a
-// predicate on the test; without one, its key is a task_type prefix.
+// tests in a series, "Khác" keeps the rest.
 const SERIES_FILTERS = [
-  { key: 'all', label: 'Tất cả' },
-  { key: 'cambridge', label: 'Cambridge', match: (t) => t.series === 'cambridge' },
-  { key: 'other', label: 'Khác', match: (t) => !t.series },
+  { key: 'all', label: 'Tất cả', query: {} },
+  { key: 'cambridge', label: 'Cambridge', query: { series: 'cambridge' } },
+  { key: 'other', label: 'Khác', query: { series: 'none' } },
 ];
 
 // seriesLabel names the book a test belongs to ("Cambridge 20"), or null
@@ -31,9 +34,9 @@ export const SKILL_CONFIG = {
     colorToken: 'writing',
     attemptPath: (id) => `/practice/writing/${id}`,
     taskFilters: [
-      { key: 'all', label: 'Tất cả' },
-      { key: 'task1', label: 'Task 1' },
-      { key: 'task2', label: 'Task 2' },
+      { key: 'all', label: 'Tất cả', query: {} },
+      { key: 'task1', label: 'Task 1', query: { task_type: 'task1' } },
+      { key: 'task2', label: 'Task 2', query: { task_type: 'task2' } },
     ],
     taskTypeLabel: (taskType) => (taskType === 'task1' ? 'Task 1' : 'Task 2'),
     cardSummary: (content) => content?.prompt,

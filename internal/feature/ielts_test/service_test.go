@@ -116,7 +116,7 @@ func TestService_GetTest(t *testing.T) {
 		t.Fatalf("seed test: %v", err)
 	}
 
-	resp, err := svc.GetTest(ctx, created.ID)
+	resp, err := svc.GetTest(ctx, 1, created.ID)
 	if err != nil {
 		t.Fatalf("GetTest: %v", err)
 	}
@@ -128,7 +128,7 @@ func TestService_GetTest(t *testing.T) {
 		t.Error("expected reading answers to be redacted from the response")
 	}
 
-	if _, err := svc.GetTest(ctx, 9999); !errors.Is(err, ErrTestNotFound) {
+	if _, err := svc.GetTest(ctx, 1, 9999); !errors.Is(err, ErrTestNotFound) {
 		t.Errorf("expected ErrTestNotFound, got %v", err)
 	}
 }
@@ -179,7 +179,7 @@ func TestService_PostTest_RejectsInvalidContent(t *testing.T) {
 		t.Fatal("expected validation error for empty prompt")
 	}
 
-	if _, total, _ := repo.GetListTest(ctx, "", 10, 0); total != 0 {
+	if _, total, _ := repo.GetListTest(ctx, "", TestFilter{}, 10, 0); total != 0 {
 		t.Errorf("invalid test should not have been persisted, total = %d", total)
 	}
 }
@@ -691,5 +691,108 @@ func TestService_GetAnswerKey(t *testing.T) {
 	}
 	if len(lk.Transcripts) != 1 || len(lk.Transcripts[0]) != 1 || len(lk.Questions["1"].Evidence) != 1 {
 		t.Errorf("listening key = %+v, want the section transcript and the cited evidence", lk)
+	}
+}
+
+func TestService_GetListTest_FiltersInTheQuery(t *testing.T) {
+	repo := NewMockTestRepository()
+	svc := newTestService(repo, &fakeGrader{})
+	ctx := context.Background()
+	add := func(taskType, series string) {
+		_, _ = repo.CreateTest(ctx, &Test{Skill: "speaking", TaskType: taskType, Series: series, ContentData: []byte(`{}`)})
+	}
+	// 14 Part 2 tests spread among other modes: with a 12-test page, the
+	// filter has to run before paging or Part 2 would span pages mixed with
+	// everything else.
+	for i := 0; i < 14; i++ {
+		add("part2", "")
+		add("part1", "")
+	}
+	add("full", "cambridge")
+
+	resp, err := svc.GetListTest(ctx, "speaking", ListTestRequest{Page: 1, TestFilter: TestFilter{TaskType: "part2"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.Pagination.Total != 14 || len(resp.Data) != defaultPageSize {
+		t.Fatalf("part2 page 1: total %d, %d items; want 14, %d", resp.Pagination.Total, len(resp.Data), defaultPageSize)
+	}
+	for _, tr := range resp.Data {
+		if tr.TaskType != "part2" {
+			t.Errorf("filter let through a %q test", tr.TaskType)
+		}
+	}
+	page2, _ := svc.GetListTest(ctx, "speaking", ListTestRequest{Page: 2, TestFilter: TestFilter{TaskType: "part2"}})
+	if len(page2.Data) != 2 {
+		t.Errorf("part2 page 2 has %d items, want 2", len(page2.Data))
+	}
+
+	books, _ := svc.GetListTest(ctx, "speaking", ListTestRequest{Page: 1, TestFilter: TestFilter{Series: "cambridge"}})
+	none, _ := svc.GetListTest(ctx, "speaking", ListTestRequest{Page: 1, TestFilter: TestFilter{Series: SeriesNone}})
+	if books.Pagination.Total != 1 || none.Pagination.Total != 28 {
+		t.Errorf("series filters: cambridge %d, none %d; want 1, 28", books.Pagination.Total, none.Pagination.Total)
+	}
+}
+
+func TestService_GradeWriting_ModelAnswerSourceAndWordCount(t *testing.T) {
+	cases := []struct {
+		name       string
+		sample     string
+		wantNeed   bool
+		wantAnswer string
+		wantSource string
+	}{
+		{"stored sample is used", "The book's model answer.", false, "The book's model answer.", "sample"},
+		{"grader writes one otherwise", "", true, "An LLM essay.", "llm"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := NewMockTestRepository()
+			grade := writingGrade("task1", 6)
+			grade.Criteria[criterionLexical] = CriterionScore{Score: 7}
+			grade.OverallBand = 9 // the model's arithmetic, which must be ignored
+			grade.ModelAnswer = "An LLM essay."
+			grader := &fakeGrader{result: grade}
+			svc := newTestService(repo, grader)
+			ctx := context.Background()
+
+			test, err := repo.CreateTest(ctx, &Test{
+				Skill:       "writing",
+				TaskType:    "task1",
+				ContentData: mustMarshal(t, WritingContent{Prompt: "Describe the chart.", SampleAnswer: tc.sample}),
+			})
+			if err != nil {
+				t.Fatalf("seed test: %v", err)
+			}
+			sub := submitAndGrade(t, svc, repo, 1, SubmitRequest{
+				TestID:  test.ID,
+				Payload: mustMarshal(t, map[string]any{"text": "The chart  shows\nfour things.", "mode": "practice", "elapsed_seconds": 90}),
+			})
+			if sub.Status != StatusGraded {
+				t.Fatalf("Status = %q, want %q", sub.Status, StatusGraded)
+			}
+			if grader.last.NeedModelAnswer != tc.wantNeed {
+				t.Errorf("NeedModelAnswer = %v, want %v", grader.last.NeedModelAnswer, tc.wantNeed)
+			}
+
+			score, err := repo.GetScoreBySubmissionID(ctx, sub.ID)
+			if err != nil {
+				t.Fatalf("score: %v", err)
+			}
+			// 6, 6, 7, 6 → mean 6.25 → 6.5
+			if score.OverallBand == nil || *score.OverallBand != 6.5 {
+				t.Errorf("OverallBand = %v, want 6.5 computed from the criteria", score.OverallBand)
+			}
+			var details ScoreDetails
+			if err := json.Unmarshal(score.Details, &details); err != nil {
+				t.Fatalf("details: %v", err)
+			}
+			if details.ModelAnswer != tc.wantAnswer || details.ModelAnswerSource != tc.wantSource {
+				t.Errorf("model answer = %q (%s), want %q (%s)", details.ModelAnswer, details.ModelAnswerSource, tc.wantAnswer, tc.wantSource)
+			}
+			if details.WordCount != 5 {
+				t.Errorf("WordCount = %d, want 5", details.WordCount)
+			}
+		})
 	}
 }

@@ -9,7 +9,21 @@ const defaultPageSize = 12
 
 type ListTestRequest struct {
 	Page int `json:"page"`
+	TestFilter
 }
+
+// TestFilter narrows a test list. Filtering happens in the query, not on
+// the returned page, so the total and the page count reflect the filter.
+type TestFilter struct {
+	// TaskType matches exactly: "task1", "part2", "full", "test1"…
+	TaskType string
+	// Series is a series name ("cambridge"), or SeriesNone for tests that
+	// belong to no series.
+	Series string
+}
+
+// SeriesNone selects tests outside any series.
+const SeriesNone = "none"
 
 func (r *ListTestRequest) Limit() int { return defaultPageSize }
 
