@@ -1,0 +1,29 @@
+# The pronunciation service behind Caddy, which gets and renews a Let's
+# Encrypt certificate on its own, so the API's bearer token and the
+# candidates' recordings never travel in plain HTTP.
+services:
+  pron:
+    build: ../..
+    restart: unless-stopped
+    environment:
+      PRON_TOKEN: ${PRON_TOKEN:?set PRON_TOKEN in .env}
+      TORCH_THREADS: ${TORCH_THREADS:-4}
+    expose:
+      - "7860"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      PRON_DOMAIN: ${PRON_DOMAIN:?set PRON_DOMAIN in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on:
+      - pron
+
+volumes:
+  caddy_data:
