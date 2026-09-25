@@ -67,3 +67,70 @@ func distinct(toks []string) int {
 	}
 	return len(seen)
 }
+
+// lexisMetrics measures lexical variety over everything said.
+func lexisMetrics(answers []answerTranscript) LexisMetrics {
+	var tokens []string
+	for _, a := range answers {
+		tokens = append(tokens, spokenTokens(a)...)
+	}
+	return LexisMetrics{MATTR: round2(mattr(tokens, 50)), DistinctWords: distinct(tokens)}
+}
+
+// grammarMetrics counts sentences and how many are complex.
+func grammarMetrics(answers []answerTranscript) GrammarMetrics {
+	var sentences, complexSents, wordSum int
+	for _, a := range answers {
+		if !hasSpeech(a) {
+			continue
+		}
+		for _, sent := range splitSentences(a.Text) {
+			toks := strings.Fields(sent)
+			if len(toks) == 0 {
+				continue
+			}
+			sentences++
+			wordSum += len(toks)
+			for _, t := range toks {
+				if subordinators[normalizeToken(t)] {
+					complexSents++
+					break
+				}
+			}
+		}
+	}
+	if sentences == 0 {
+		return GrammarMetrics{}
+	}
+	return GrammarMetrics{
+		Sentences:            sentences,
+		MeanSentenceWords:    round1(float64(wordSum) / float64(sentences)),
+		ComplexSentenceShare: round2(float64(complexSents) / float64(sentences)),
+	}
+}
+
+// recognitionMetrics is how confidently speech recognition made out the
+// words, weighted by segment length.
+func recognitionMetrics(answers []answerTranscript) RecognitionMetrics {
+	var segSeconds, lowSeconds, logprobSum float64
+	for _, a := range answers {
+		if !hasSpeech(a) {
+			continue
+		}
+		for _, s := range a.Segments {
+			d := s.End - s.Start
+			segSeconds += d
+			logprobSum += s.AvgLogprob * d
+			if s.AvgLogprob < -0.8 {
+				lowSeconds += d
+			}
+		}
+	}
+	if segSeconds == 0 {
+		return RecognitionMetrics{}
+	}
+	return RecognitionMetrics{
+		MeanLogprob:        round2(logprobSum / segSeconds),
+		LowConfidenceShare: round2(lowSeconds / segSeconds),
+	}
+}

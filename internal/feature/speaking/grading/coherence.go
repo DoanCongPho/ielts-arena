@@ -25,8 +25,12 @@ var discourseMarkers = []string{
 	"although", "while", "apart from that", "besides", "and then", "you know", "well",
 }
 
-func coherenceMetrics(answers []answerTranscript, answerWords map[int][]int) CoherenceMetrics {
+func coherenceMetrics(answers []answerTranscript) CoherenceMetrics {
 	c := CoherenceMetrics{DiscourseMarkers: map[string]int{}, MeanAnswerWords: map[string]float64{}}
+	answerWords := map[int][]int{} // part -> each answer's length in words
+	for _, a := range answers {
+		answerWords[a.Part] = append(answerWords[a.Part], len(spokenTokens(a)))
+	}
 	total, most := 0, 0
 	for _, a := range answers {
 		text := " " + strings.Join(strings.Fields(strings.ToLower(stripPunct(a.Text))), " ") + " "
