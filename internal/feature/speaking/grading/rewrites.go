@@ -24,7 +24,7 @@ type PartRewrite struct {
 }
 
 // rewriteOutputFormat follows every teacher prompt: the completer only
-// returns JSON, and the review is read in the app, not in a chat.
+// returns JSON.
 const rewriteOutputFormat = `
 
 ---
@@ -32,8 +32,7 @@ const rewriteOutputFormat = `
 ## ĐỊNH DẠNG TRẢ VỀ CHO ỨNG DỤNG
 
 Phản hồi được hiển thị trong ứng dụng luyện thi, ngay dưới kết quả chấm. Trả về DUY NHẤT một JSON hợp lệ:
-{"markdown": "<toàn bộ phản hồi theo định dạng đầu ra ở trên, viết bằng Markdown, dùng ### cho tiêu đề mục>"}
-Học viên xem lại trên ứng dụng, nên thay câu mời gửi bài tiếp theo bằng một câu mời thử nói lại bài.`
+{"markdown": "<toàn bộ phản hồi theo định dạng đầu ra ở trên, viết bằng Markdown, dùng ### cho tiêu đề mục>"}`
 
 var rewriteParams = llm.CompletionParams{Temperature: 0.4, MaxTokens: 8000}
 
