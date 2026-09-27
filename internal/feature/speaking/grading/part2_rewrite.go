@@ -23,7 +23,7 @@ Phản hồi được hiển thị trong ứng dụng luyện thi, ngay dưới 
 {"markdown": "<toàn bộ phản hồi theo các mục ở phần 5, viết bằng Markdown, dùng ### cho tiêu đề mục>"}
 Học viên xem lại trên ứng dụng, nên thay câu mời gửi bản ghi tiếp theo bằng một câu mời thử nói lại bài theo ghi chú ở Mục 7.`
 
-var part2RewriteParams = llm.CompletionParams{Temperature: 0.4, MaxTokens: 4000}
+var part2RewriteParams = llm.CompletionParams{Temperature: 0.4, MaxTokens: 8000}
 
 // rewritePart2 runs Mr Sơn's 4-layer review of the Part 2 talk. It is an
 // extra for his students, not part of the band, so a failure is logged
