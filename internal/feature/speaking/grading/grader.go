@@ -40,6 +40,10 @@ type Config struct {
 	// PronunciationSampleSeconds is how much speech is sent to the
 	// pronunciation service per test.
 	PronunciationSampleSeconds float64
+	// ScorePronunciation rates Pronunciation as a fourth criterion. Off,
+	// the service isn't called and the overall band averages the other
+	// three.
+	ScorePronunciation bool
 }
 
 type Grader struct {
@@ -48,6 +52,8 @@ type Grader struct {
 	pron  pronunciationAssessor // nil: always estimate
 	judge completer
 	cfg   Config
+	// criteria are the criteria this grader rates.
+	criteria []string
 }
 
 func New(audio audioSource, asr transcriber, pron pronunciationAssessor, judge completer, cfg Config) *Grader {
@@ -59,7 +65,11 @@ func New(audio audioSource, asr transcriber, pron pronunciationAssessor, judge c
 		// word-by-word comparison on the review page.
 		cfg.PronunciationSampleSeconds = 900
 	}
-	return &Grader{audio: audio, asr: asr, pron: pron, judge: judge, cfg: cfg}
+	rated := criteria
+	if !cfg.ScorePronunciation {
+		rated = []string{CriterionFC, CriterionLR, CriterionGRA}
+	}
+	return &Grader{audio: audio, asr: asr, pron: pron, judge: judge, cfg: cfg, criteria: rated}
 }
 
 // fillerPrompt biases Whisper toward a verbatim transcript. Without it,
@@ -87,14 +97,18 @@ func (g *Grader) Grade(ctx context.Context, content ielts_test.SpeakingContent, 
 	}
 
 	ev := extractEvidence(answers)
-	pron, err := g.assessPronunciation(ctx, answers, audio)
-	if err != nil {
-		// With no service configured, waiting for a retry changes nothing.
-		if !estimateOnFailure && g.pron != nil {
-			return nil, 0, err
+	var pron *pronunciationSummary
+	if g.cfg.ScorePronunciation {
+		var err error
+		pron, err = g.assessPronunciation(ctx, answers, audio)
+		if err != nil {
+			// With no service configured, waiting for a retry changes nothing.
+			if !estimateOnFailure && g.pron != nil {
+				return nil, 0, err
+			}
+			log.Printf("speaking: %v — estimating pronunciation", err)
+			pron = estimatedPronunciation(ev)
 		}
-		log.Printf("speaking: %v — estimating pronunciation", err)
-		pron = estimatedPronunciation(ev)
 	}
 
 	mode := content.Mode()
@@ -103,7 +117,7 @@ func (g *Grader) Grade(ctx context.Context, content ielts_test.SpeakingContent, 
 		return nil, 0, err
 	}
 
-	caps := capsFor(mode, ev, pron)
+	caps := capsFor(mode, ev, pron, g.criteria)
 	details := &Details{
 		Mode:          mode,
 		Indicative:    mode != ielts_test.SpeakingModeFull,
@@ -113,7 +127,7 @@ func (g *Grader) Grade(ctx context.Context, content ielts_test.SpeakingContent, 
 		Answers:       answers,
 	}
 	var bands []float64
-	for _, c := range criteria {
+	for _, c := range g.criteria {
 		v := verdicts[c]
 		band, applied := applyCaps(v.Band, caps[c])
 		details.Criteria[c] = Criterion{

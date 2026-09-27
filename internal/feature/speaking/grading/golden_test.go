@@ -134,7 +134,7 @@ func goldenGradeInputs() (ielts_test.SpeakingContent, ielts_test.SpeakingPayload
 func TestGolden_SpeakingGrade(t *testing.T) {
 	content, payload, audio := goldenGradeInputs()
 	judge := &goldenJudge{prompts: map[string]string{}}
-	g := New(audio, goldenTranscriber{}, goldenPronunciation{}, judge, Config{JudgeModel: "judge-model"})
+	g := New(audio, goldenTranscriber{}, goldenPronunciation{}, judge, Config{JudgeModel: "judge-model", ScorePronunciation: true})
 
 	details, overall, err := g.Grade(context.Background(), content, payload, false)
 	if err != nil {
@@ -162,7 +162,7 @@ func TestGolden_SpeakingGradeWithoutPronunciationService(t *testing.T) {
 		}
 	}
 	judge := &goldenJudge{prompts: map[string]string{}}
-	g := New(audio, goldenTranscriber{}, nil, judge, Config{})
+	g := New(audio, goldenTranscriber{}, nil, judge, Config{ScorePronunciation: true})
 	details, overall, err := g.Grade(context.Background(), content, part2, false)
 	if err != nil {
 		t.Fatal(err)

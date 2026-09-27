@@ -3,6 +3,7 @@ package grading
 import (
 	"fmt"
 	"github/DoanCongPho/game-arena/internal/feature/ielts_test"
+	"slices"
 )
 
 // bandCap is the highest band the measurements allow for one criterion,
@@ -27,8 +28,8 @@ const (
 	capMinWordsToRate    = 40
 )
 
-// capsFor derives the ceilings for each criterion from the evidence.
-func capsFor(mode string, ev Evidence, pron *pronunciationSummary) map[string][]bandCap {
+// capsFor derives the ceilings for each rated criterion from the evidence.
+func capsFor(mode string, ev Evidence, pron *pronunciationSummary, rated []string) map[string][]bandCap {
 	caps := map[string][]bandCap{}
 	add := func(criterion string, max int, format string, args ...any) {
 		caps[criterion] = append(caps[criterion], bandCap{Max: max, Reason: fmt.Sprintf(format, args...)})
@@ -38,7 +39,7 @@ func capsFor(mode string, ev Evidence, pron *pronunciationSummary) map[string][]
 	// Too little speech to rate is capped everywhere: descriptors above
 	// band 3 all describe sustained speech.
 	if f.WordCount < capMinWordsToRate {
-		for _, c := range criteria {
+		for _, c := range rated {
 			add(c, 3, "only %d words were spoken — not enough language to rate higher", f.WordCount)
 		}
 	}
@@ -67,6 +68,9 @@ func capsFor(mode string, ev Evidence, pron *pronunciationSummary) map[string][]
 		add(CriterionFC, 5, "speech rate of %.0f words per minute", f.SpeechRateWPM)
 	}
 
+	if !slices.Contains(rated, CriterionP) {
+		return caps
+	}
 	if pron == nil || pron.Estimated {
 		add(CriterionP, 7, "pronunciation was estimated from speech-recognition confidence; features needed for band 8 couldn't be measured")
 	}

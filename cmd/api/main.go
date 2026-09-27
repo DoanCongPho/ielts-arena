@@ -221,10 +221,14 @@ func main() {
 // newSpeakingGrader wires speaking grading: OpenAI transcribes and judges,
 // and the self-hosted pronunciation service measures phonemes and prosody.
 // Without that service, pronunciation is estimated from recognition
-// confidence.
+// confidence. With SPEAKING_SCORE_PRONUNCIATION off, it isn't rated at all.
 func newSpeakingGrader(cfg *config.Config, llmClient *llm.Client, media storage.ObjectStore) *grading.Grader {
 	sp := cfg.App.Speaking
-	speakingCfg := grading.Config{WhisperModel: sp.WhisperModel, JudgeModel: sp.JudgeModel}
+	speakingCfg := grading.Config{WhisperModel: sp.WhisperModel, JudgeModel: sp.JudgeModel, ScorePronunciation: sp.ScorePronunciation}
+	if !sp.ScorePronunciation {
+		log.Println("speaking: SPEAKING_SCORE_PRONUNCIATION is off — rating fluency, lexis and grammar only")
+		return grading.New(media, llmClient, nil, llmClient, speakingCfg)
+	}
 	if pron := pronunciation.NewClient(sp.PronURL, sp.PronToken, sp.PronTimeout); pron != nil {
 		return grading.New(media, llmClient, pron, llmClient, speakingCfg)
 	}

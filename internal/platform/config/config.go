@@ -50,6 +50,10 @@ type SpeakingConfig struct {
 	JudgeModel    string
 	TTSModel      string
 	ExaminerVoice string
+	// ScorePronunciation rates Pronunciation as a criterion. Off (the
+	// default for now), speaking is rated on the other three and the
+	// pronunciation service is never called.
+	ScorePronunciation bool
 	// PronURL is the pronunciation service (services/pronunciation);
 	// empty means pronunciation is always estimated.
 	PronURL     string
@@ -197,6 +201,11 @@ func loadFromMap(env map[string]string) (*Config, error) {
 	cfg.App.Speaking.JudgeModel = get("SPEAKING_MODEL", cfg.App.OpenAIModel)
 	cfg.App.Speaking.TTSModel = get("EXAMINER_TTS_MODEL", "gpt-4o-mini-tts")
 	cfg.App.Speaking.ExaminerVoice = get("EXAMINER_VOICE", "sage")
+	scorePron, err := getBool("SPEAKING_SCORE_PRONUNCIATION", false)
+	if err != nil {
+		return nil, fmt.Errorf("SPEAKING_SCORE_PRONUNCIATION: %w", err)
+	}
+	cfg.App.Speaking.ScorePronunciation = scorePron
 	cfg.App.Speaking.PronURL = strings.TrimRight(get("PRON_SERVICE_URL", ""), "/")
 	cfg.App.Speaking.PronToken = get("PRON_SERVICE_TOKEN", "")
 	pronTimeout, err := getInt("PRON_SERVICE_TIMEOUT_SECONDS", 180)

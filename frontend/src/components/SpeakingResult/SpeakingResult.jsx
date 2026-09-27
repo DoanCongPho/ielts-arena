@@ -5,21 +5,27 @@ import ScoreCard from '../ui/ScoreCard/ScoreCard';
 import SpeakingAnswerReview from './SpeakingAnswerReview';
 import './SpeakingResult.css';
 
+// SHOW_PRONUNCIATION turns the pronunciation band, measurements and
+// word-by-word review back on. Off while the pronunciation scoring is
+// being reworked: speaking is graded on the other three criteria, and even
+// older results that have a pronunciation band don't show it.
+const SHOW_PRONUNCIATION = false;
+
 const CRITERIA = [
   'Fluency and Coherence',
   'Lexical Resource',
   'Grammatical Range and Accuracy',
-  'Pronunciation',
+  ...(SHOW_PRONUNCIATION ? ['Pronunciation'] : []),
 ];
 
 const VERDICTS = { met: 'Đạt', partly: 'Một phần', not_met: 'Chưa đạt' };
 
 // SpeakingResult shows a graded speaking test the way an examiner's report
-// would: the four criterion bands with the descriptor evidence behind each,
+// would: the criterion bands with the descriptor evidence behind each,
 // then the measurements and the transcript with the recordings.
 export default function SpeakingResult({ score, submissionId }) {
   const d = safeParse(score.details) || {};
-  const pron = d.pronunciation;
+  const pron = SHOW_PRONUNCIATION ? d.pronunciation : null;
   const [recordings, setRecordings] = useState({});
 
   useEffect(() => {
@@ -98,10 +104,14 @@ export default function SpeakingResult({ score, submissionId }) {
         <section className="speaking-result-section">
           <h3>Bài nói của bạn</h3>
           <div className="sa-legend">
-            <span><span className="sa-word sa-word-bad">từ</span> phát âm sai</span>
-            <span><span className="sa-word sa-word-fair">từ</span> chưa rõ</span>
+            {SHOW_PRONUNCIATION && (
+              <>
+                <span><span className="sa-word sa-word-bad">từ</span> phát âm sai</span>
+                <span><span className="sa-word sa-word-fair">từ</span> chưa rõ</span>
+              </>
+            )}
             <span className="sa-fix sa-fix-grammar"><del>lỗi</del> <ins>sửa</ins></span>
-            <span>Bấm vào một từ để nghe lại và so sánh từng âm.</span>
+            {SHOW_PRONUNCIATION && <span>Bấm vào một từ để nghe lại và so sánh từng âm.</span>}
           </div>
           {d.answers.map((a) => (
             <div key={a.question_id} className="speaking-result-answer">
@@ -110,6 +120,7 @@ export default function SpeakingResult({ score, submissionId }) {
               </p>
               <SpeakingAnswerReview
                 answer={a}
+                showPronunciation={SHOW_PRONUNCIATION}
                 pronWords={pronWordsFor(pron, a.question_id)}
                 corrections={(d.corrections || []).filter((c) => c.question_id === a.question_id)}
                 recordingUrl={recordings[a.question_id]}
