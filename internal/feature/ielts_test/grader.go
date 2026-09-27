@@ -6,11 +6,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"math"
 	"mime"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github/DoanCongPho/game-arena/internal/platform/llm"
 )
@@ -18,6 +20,8 @@ import (
 type CriterionScore struct {
 	Score    float64 `json:"score"`
 	Feedback string  `json:"feedback"`
+	// Improvements are concrete steps towards the next band, in Vietnamese.
+	Improvements []string `json:"improvements,omitempty"`
 }
 
 type GradingResult struct {
@@ -53,28 +57,53 @@ type Grader interface {
 // ImageResolver turns a test's image_url into one the LLM can fetch.
 type ImageResolver func(ctx context.Context, url string) (string, error)
 
-// gradingParams is deliberately low-temperature: grading should be
-// consistent across runs rather than creative. MaxTokens leaves room for
-// the feedback, a dozen corrections and a model answer — a response cut
-// off by the limit is invalid JSON and costs a retry.
-var gradingParams = llm.CompletionParams{
-	Temperature: 0.2,
-	MaxTokens:   3000,
+type completer interface {
+	Complete(ctx context.Context, system, user, imageURL string, params llm.CompletionParams) (string, error)
 }
 
-// maxWritingCorrections bounds the correction list, so the feedback stays on the
-// errors that matter most rather than every slip.
-const maxWritingCorrections = 12
+// Grading is split into one call per job, run in parallel: a judge per
+// criterion, a correction pass and, when the test has no sample, a model
+// answer. One prompt doing all of it spreads the model's attention thin,
+// and its scores drift towards the middle of the scale. Judging and
+// correcting are deliberately low-temperature, to be consistent across
+// runs rather than creative.
+var (
+	judgeParams       = llm.CompletionParams{Temperature: 0.1, MaxTokens: 3000}
+	correctionParams  = llm.CompletionParams{Temperature: 0.1, MaxTokens: 5000}
+	modelAnswerParams = llm.CompletionParams{Temperature: 0.4, MaxTokens: 1500}
+)
+
+// maxWritingCorrections bounds the correction list. It is high enough to
+// cover a weak Task 2 essay, where a dozen would leave most errors unmarked.
+const maxWritingCorrections = 25
+
+// criterionVerdict is one judge's answer. Checks come first in the schema
+// so the model weighs the evidence before it commits to a band.
+type criterionVerdict struct {
+	Checks       []descriptorCheck `json:"checks"`
+	Band         int               `json:"band"`
+	Feedback     string            `json:"feedback"`
+	Improvements []string          `json:"improvements"`
+}
+
+type descriptorCheck struct {
+	Band     int    `json:"band"`
+	Feature  string `json:"feature"`
+	Verdict  string `json:"verdict"` // met | partly | not_met
+	Evidence string `json:"evidence"`
+}
 
 type openAIGrader struct {
-	client       *llm.Client
+	client       completer
+	model        string
 	resolveImage ImageResolver
 }
 
-// NewOpenAIGrader grades writing answers with the LLM behind client.
-// resolveImage may be nil when every image_url is already absolute.
-func NewOpenAIGrader(client *llm.Client, resolveImage ImageResolver) Grader {
-	return &openAIGrader{client: client, resolveImage: resolveImage}
+// NewOpenAIGrader grades writing answers with model through client; an
+// empty model means the client's default. resolveImage may be nil when
+// every image_url is already absolute.
+func NewOpenAIGrader(client completer, model string, resolveImage ImageResolver) Grader {
+	return &openAIGrader{client: client, model: model, resolveImage: resolveImage}
 }
 
 func (g *openAIGrader) Grade(ctx context.Context, in GradeInput) (*GradingResult, error) {
@@ -87,69 +116,199 @@ func (g *openAIGrader) Grade(ctx context.Context, in GradeInput) (*GradingResult
 		imageURL = resolved
 	}
 
-	system := buildSystemPrompt(in.TaskType, imageURL != "", in.NeedModelAnswer)
-	user := fmt.Sprintf("Task prompt:\n%s\n\nCandidate answer (%d words):\n%s", in.Prompt, countWords(in.Answer), in.Answer)
-
-	raw, err := g.client.Complete(ctx, system, user, imageURL, gradingParams)
-	if err != nil {
-		return nil, fmt.Errorf("llm: %w", err)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	var (
+		wg       sync.WaitGroup
+		mu       sync.Mutex
+		firstErr error
+		result   = GradingResult{Criteria: map[string]CriterionScore{}}
+	)
+	// run starts one grading job; the first failure cancels the others,
+	// since the whole grade is retried anyway.
+	run := func(name string, job func() error) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := job(); err != nil {
+				mu.Lock()
+				defer mu.Unlock()
+				if firstErr == nil {
+					firstErr = fmt.Errorf("%s: %w", name, err)
+					cancel()
+				}
+			}
+		}()
 	}
 
-	var result GradingResult
-	if err := json.Unmarshal([]byte(raw), &result); err != nil {
-		return nil, fmt.Errorf("parse grading response: %w", err)
+	criteria := writingCriteria(in.TaskType)
+	for i, criterion := range criteria {
+		// Only the first criterion (Task Achievement / Response) is about
+		// the content, so only its judge needs to see the chart.
+		image := ""
+		if i == 0 {
+			image = imageURL
+		}
+		run(criterion, func() error {
+			score, err := g.judge(ctx, criterion, in, image != "", image)
+			if err != nil {
+				return err
+			}
+			mu.Lock()
+			defer mu.Unlock()
+			result.Criteria[criterion] = *score
+			return nil
+		})
+	}
+	run("corrections", func() error {
+		corrections, err := g.correct(ctx, in)
+		if err != nil {
+			return err
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		result.Corrections = corrections
+		return nil
+	})
+	if in.NeedModelAnswer {
+		run("model answer", func() error {
+			answer, err := g.writeModelAnswer(ctx, in, imageURL)
+			if err != nil {
+				return err
+			}
+			mu.Lock()
+			defer mu.Unlock()
+			result.ModelAnswer = answer
+			return nil
+		})
+	}
+	wg.Wait()
+	if firstErr != nil {
+		return nil, firstErr
 	}
 	return &result, nil
 }
 
-func buildSystemPrompt(taskType string, hasImage, needModelAnswer bool) string {
-	criteria := writingCriteria(taskType)
-	task := "Writing Task 2 (an essay)"
+func (g *openAIGrader) complete(ctx context.Context, system, user, imageURL string, params llm.CompletionParams, out any) error {
+	params.Model = g.model
+	raw, err := g.client.Complete(ctx, system, user, imageURL, params)
+	if err != nil {
+		return fmt.Errorf("llm: %w", err)
+	}
+	if err := json.Unmarshal([]byte(raw), out); err != nil {
+		return fmt.Errorf("parse response: %w", err)
+	}
+	return nil
+}
+
+func (g *openAIGrader) judge(ctx context.Context, criterion string, in GradeInput, hasImage bool, imageURL string) (*CriterionScore, error) {
+	var v criterionVerdict
+	if err := g.complete(ctx, judgeSystemPrompt(in.TaskType, criterion, hasImage), answerPrompt(in), imageURL, judgeParams, &v); err != nil {
+		return nil, err
+	}
+	if v.Band < 0 || v.Band > 9 {
+		return nil, fmt.Errorf("band %d is not a whole band from 0 to 9", v.Band)
+	}
+	return &CriterionScore{Score: float64(v.Band), Feedback: v.Feedback, Improvements: v.Improvements}, nil
+}
+
+func (g *openAIGrader) correct(ctx context.Context, in GradeInput) ([]Correction, error) {
+	var out struct {
+		Corrections []Correction `json:"corrections"`
+	}
+	if err := g.complete(ctx, correctionSystemPrompt(in.TaskType), answerPrompt(in), "", correctionParams, &out); err != nil {
+		return nil, err
+	}
+	return out.Corrections, nil
+}
+
+func (g *openAIGrader) writeModelAnswer(ctx context.Context, in GradeInput, imageURL string) (string, error) {
+	var out struct {
+		ModelAnswer string `json:"model_answer"`
+	}
+	user := "Task prompt:\n" + in.Prompt
+	if err := g.complete(ctx, modelAnswerSystemPrompt(in.TaskType, imageURL != ""), user, imageURL, modelAnswerParams, &out); err != nil {
+		return "", err
+	}
+	if strings.TrimSpace(out.ModelAnswer) == "" {
+		return "", errors.New("empty model answer")
+	}
+	return out.ModelAnswer, nil
+}
+
+// answerPrompt is the user message every judge and the correction pass read.
+func answerPrompt(in GradeInput) string {
+	return fmt.Sprintf("Task prompt:\n%s\n\nCandidate answer (%d words):\n%s", in.Prompt, countWords(in.Answer), in.Answer)
+}
+
+func taskName(taskType string) string {
 	if taskType == "task1" {
-		task = "Writing Task 1 (a report on visual information)"
+		return "Writing Task 1 (a report on visual information)"
 	}
+	return "Writing Task 2 (an essay)"
+}
 
-	var b strings.Builder
-	fmt.Fprintf(&b, "You are an experienced IELTS examiner grading an Academic %s.\n", task)
-	b.WriteString("Score each criterion on the official 0–9 band scale in steps of 0.5, judging strictly against these band descriptors:\n")
-	for _, name := range criteria {
-		fmt.Fprintf(&b, "\n%s:%s\n", name, bandDescriptors[name])
-	}
-	if words, ok := minWords[taskType]; ok {
-		fmt.Fprintf(&b, "\nThe task asks for at least %d words. An answer under that length cannot score above 5 for %s.\n", words, criteria[0])
-	}
-	if hasImage {
-		fmt.Fprintf(&b, "\nThe task's chart/graph/diagram is attached: check the candidate's figures and trends against it when scoring %s.\n", criteria[0])
-	}
-	fmt.Fprintf(&b, `
-Write every "feedback" and "explanation" in Vietnamese, addressed to the learner, naming concrete strengths and what to fix to reach the next band.
-List up to %d corrections, most important first. "span" must be copied exactly from the candidate's answer; "suggestion" is the corrected English text; "issue" is one of: %s.
-`, maxWritingCorrections, strings.Join(correctionIssues, ", "))
-
-	modelAnswer := ""
-	if needModelAnswer {
-		modelAnswer = "\n  \"model_answer\": \"<an English band-8+ answer to this task, paragraphs separated by \\n\\n>\","
-		b.WriteString("Also write a model answer of about the required length.\n")
-	}
-
-	var schema strings.Builder
-	for i, name := range criteria {
-		sep := ","
-		if i == len(criteria)-1 {
-			sep = ""
+func judgeSystemPrompt(taskType, criterion string, hasImage bool) string {
+	var notes strings.Builder
+	if criterion == writingCriteria(taskType)[0] {
+		if words, ok := minWords[taskType]; ok {
+			fmt.Fprintf(&notes, "\nThe task asks for at least %d words. An answer under that length is penalised under this criterion, since it cannot fully cover the task.", words)
 		}
-		fmt.Fprintf(&schema, "\n    %q: { \"score\": <0-9>, \"feedback\": \"<string>\" }%s", name, sep)
+		if hasImage {
+			notes.WriteString("\nThe task's chart/graph/diagram is attached. Check every figure, trend and comparison the candidate reports against it: inaccurate data counts against this criterion.")
+		}
 	}
-	fmt.Fprintf(&b, `
-Respond with ONLY valid JSON in this exact schema:
+	return fmt.Sprintf(`You are a certified IELTS Writing examiner. You are rating an Academic %s on one criterion only: %s.
+
+%s
+
+Band descriptors for %s:%s
+%s
+Work in this order:
+1. For each band from 9 down to 4 (and lower if needed), check that band's key features against the answer: "met", "partly" or "not_met", each with a short quote from the answer as evidence.
+2. Pick the best-fit whole band.
+3. Write feedback in Vietnamese, addressed to the learner: two to four sentences specific to this answer, quoting their own English words, saying what earns the band and what holds it back from the next one.
+4. Give two or three improvements in Vietnamese: concrete things to do to reach the next band, using an example from their answer where you can.
+
+Respond with ONLY valid JSON:
 {
-  "criteria": {%s
-  },%s
+  "checks": [ { "band": <int>, "feature": "<descriptor feature>", "verdict": "met|partly|not_met", "evidence": "<quote>" } ],
+  "band": <whole number 0-9>,
+  "feedback": "<string>",
+  "improvements": ["<string>"]
+}`, taskName(taskType), criterion, examinerPrinciples, criterion, bandDescriptors[criterion], notes.String())
+}
+
+func correctionSystemPrompt(taskType string) string {
+	return fmt.Sprintf(`You are an experienced IELTS Writing teacher marking a learner's Academic %s for language errors.
+
+Mark every real error and every clearly unnatural expression a band 8 writer would not produce. Don't mark stylistic preferences in language that is already correct and natural.
+- "span": the shortest stretch of the answer that contains the error, copied character for character, with enough words around it to be unambiguous (e.g. "many people believes", not "believes").
+- "issue": one of %s.
+- "suggestion": the corrected English text that replaces exactly the span.
+- "explanation": one short sentence in Vietnamese saying why it is wrong.
+Mark each error once, and don't let spans overlap. List them in the order they appear in the answer. If there are more than %d, keep the %d that matter most: errors that obscure meaning first, then ones the learner repeats.
+
+Respond with ONLY valid JSON:
+{
   "corrections": [
     { "span": "<exact text from the answer>", "issue": "<category>", "suggestion": "<corrected text>", "explanation": "<why, in Vietnamese>" }
   ]
-}`, schema.String(), modelAnswer)
-	return b.String()
+}`, taskName(taskType), strings.Join(correctionIssues, ", "), maxWritingCorrections, maxWritingCorrections)
+}
+
+func modelAnswerSystemPrompt(taskType string, hasImage bool) string {
+	length := "about 280 words"
+	if taskType == "task1" {
+		length = "about 180 words, with a clear overview of the main trends"
+	}
+	if hasImage {
+		length += ". The chart/graph/diagram is attached: every figure you report must match it"
+	}
+	return fmt.Sprintf(`You are an IELTS Writing examiner. Write a band 8-9 model answer to this Academic %s, %s.
+
+Respond with ONLY valid JSON:
+{ "model_answer": "<the answer in English, paragraphs separated by \\n\\n>" }`, taskName(taskType), length)
 }
 
 // normalizeResult makes an LLM grade safe to store: it keeps exactly the
@@ -175,9 +334,11 @@ func normalizeResult(r *GradingResult, taskType, answer string) error {
 
 	haystack := collapseSpace(answer)
 	kept := r.Corrections[:0]
+	dropped := 0
 	for _, c := range r.Corrections {
 		span := collapseSpace(c.Span)
 		if span == "" || !strings.Contains(haystack, span) {
+			dropped++
 			continue
 		}
 		c.Issue = strings.ToLower(strings.TrimSpace(c.Issue))
@@ -188,6 +349,11 @@ func normalizeResult(r *GradingResult, taskType, answer string) error {
 		if len(kept) == maxWritingCorrections {
 			break
 		}
+	}
+	if dropped > 0 {
+		// A span the model didn't copy exactly can't be marked in the
+		// answer. Many of these mean the model is misquoting the learner.
+		log.Printf("ielts_test: dropped %d of %d writing corrections whose span is not in the answer", dropped, len(r.Corrections))
 	}
 	r.Corrections = kept
 	return nil

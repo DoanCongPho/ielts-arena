@@ -1,0 +1,183 @@
+.wr {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  font-family: var(--font-ui);
+}
+
+/* Each issue sets --wr-color; marks, chips and the panel all use it. */
+.wr-issue-grammar { --wr-color: var(--error-600); }
+.wr-issue-vocabulary { --wr-color: var(--listening-600); }
+.wr-issue-spelling { --wr-color: var(--gold-600); }
+.wr-issue-punctuation { --wr-color: var(--ink-400); }
+.wr-issue-cohesion { --wr-color: var(--writing-600); }
+.wr-issue-task { --wr-color: var(--speaking-600); }
+.wr-issue-other { --wr-color: var(--ink-400); }
+
+.wr-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.wr-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.wr-chip {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 8px;
+  margin-right: var(--space-2);
+  border-radius: var(--radius-full);
+  color: var(--wr-color);
+  background: color-mix(in srgb, var(--wr-color) 12%, transparent);
+}
+
+.wr-legend .wr-chip {
+  margin-right: 0;
+}
+
+.wr-toggle,
+.wr-panel-nav button {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-0);
+  color: var(--ink-700);
+  cursor: pointer;
+}
+
+.wr-toggle:hover,
+.wr-panel-nav button:hover:not(:disabled) {
+  border-color: var(--writing-500);
+  color: var(--writing-600);
+}
+
+.wr-panel-nav button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.wr-text {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--ink-700);
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+.wr-mark {
+  color: inherit;
+  background: color-mix(in srgb, var(--wr-color) 12%, transparent);
+  text-decoration: underline wavy var(--wr-color);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  border-radius: 3px;
+  padding: 1px 0;
+  cursor: pointer;
+}
+
+.wr-mark:hover,
+.wr-mark:focus-visible {
+  background: color-mix(in srgb, var(--wr-color) 22%, transparent);
+  outline: none;
+}
+
+.wr-mark-selected {
+  background: color-mix(in srgb, var(--wr-color) 28%, transparent);
+  box-shadow: 0 0 0 2px var(--wr-color);
+}
+
+.wr-mark del,
+.wr-panel-fix del,
+.wr-unplaced del {
+  color: var(--error-600);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+
+.wr-mark ins,
+.wr-panel-fix ins,
+.wr-unplaced ins {
+  color: var(--success-600);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.wr-panel {
+  position: sticky;
+  bottom: var(--space-3);
+  background: var(--surface-0);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-3);
+  font-size: 13px;
+  color: var(--ink-700);
+}
+
+.wr-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.wr-panel-head .wr-chip {
+  margin-right: 0;
+}
+
+.wr-panel-count {
+  font-family: var(--font-data);
+  font-size: 12px;
+  color: var(--ink-400);
+}
+
+.wr-panel-nav {
+  display: flex;
+  gap: var(--space-1);
+  margin-left: auto;
+}
+
+.wr-panel-fix {
+  margin: var(--space-2) 0 0;
+  font-size: 14px;
+}
+
+.wr-panel-why {
+  margin: var(--space-1) 0 0;
+  color: var(--ink-700);
+}
+
+.wr-hint {
+  color: var(--ink-400);
+}
+
+.wr-unplaced h3 {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-400);
+  margin: 0 0 var(--space-2);
+}
+
+.wr-unplaced ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: 13px;
+  color: var(--ink-700);
+}

@@ -30,7 +30,15 @@
   line-height: 1.5;
 }
 
-.score-result-corrections h3,
+.score-result-criteria-improvements {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--ink-700);
+  line-height: 1.5;
+}
+
 .score-result-model-answer h3 {
   font-family: var(--font-ui);
   font-size: 13px;
@@ -41,30 +49,9 @@
   margin: 0 0 var(--space-3);
 }
 
-.score-result-correction-item {
-  background: var(--paper-50);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-sm);
-  padding: var(--space-3);
-  margin-bottom: var(--space-2);
-  font-family: var(--font-ui);
-  font-size: 13px;
-}
 
-.score-result-correction-span {
-  font-style: italic;
-  margin-bottom: var(--space-1);
-}
 
-.score-result-correction-issue {
-  color: var(--ink-700);
-  margin-bottom: var(--space-1);
-}
 
-.score-result-correction-suggestion {
-  font-weight: 600;
-  color: var(--success-600);
-}
 
 .score-result-model-answer p {
   font-family: var(--font-ui);
@@ -81,10 +68,6 @@
   margin: var(--space-2) 0 var(--space-4);
 }
 
-.score-result-correction-explanation {
-  color: var(--ink-700);
-  margin-top: var(--space-1);
-}
 
 .score-result-ai-tag {
   margin-left: var(--space-2);
