@@ -9,6 +9,7 @@ import (
 
 	"github/DoanCongPho/game-arena/internal/feature/ielts_test"
 	"github/DoanCongPho/game-arena/internal/feature/speaking/speakingtest"
+	"github/DoanCongPho/game-arena/internal/platform/llm"
 )
 
 // answerAll records the same two-sentence answer for every question of
@@ -136,4 +137,59 @@ func TestGrade_WithoutPronunciationScoring(t *testing.T) {
 	if overall != 6.5 {
 		t.Errorf("overall = %v, want 6.5", overall)
 	}
+}
+
+func TestGrade_Part2RewriteForMrSonsStudents(t *testing.T) {
+	content := speakingtest.FullContent()
+	payload, audio := answerAll(content)
+	judge := &fakeJudge{band: 7}
+	g := New(audio, fakeASR{}, nil, judge, Config{})
+
+	d, _, err := g.Grade(context.Background(), content, payload, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(judge.rewrites) != 1 || !strings.Contains(judge.rewrites[0], content.Part2.CueCardText()) {
+		t.Fatalf("rewrite prompts = %q, want one with the cue card", judge.rewrites)
+	}
+	if !strings.Contains(d.Part2Rewrite, "Bài sửa theo 4 tầng") {
+		t.Errorf("Part2Rewrite = %q", d.Part2Rewrite)
+	}
+
+	// Part 1 practice has no talk to rewrite.
+	content = speakingtest.FullContent()
+	content.Part2, content.Part3 = nil, nil
+	payload, audio = answerAll(content)
+	judge = &fakeJudge{band: 7}
+	d, _, err = New(audio, fakeASR{}, nil, judge, Config{}).Grade(context.Background(), content, payload, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(judge.rewrites) != 0 || d.Part2Rewrite != "" {
+		t.Errorf("Part 1 practice got a Part 2 rewrite: %q", d.Part2Rewrite)
+	}
+}
+
+func TestGrade_Part2RewriteFailureKeepsTheGrade(t *testing.T) {
+	content := speakingtest.FullContent()
+	payload, audio := answerAll(content)
+	g := New(audio, fakeASR{}, nil, &brokenRewriteJudge{fakeJudge{band: 6}}, Config{})
+
+	d, overall, err := g.Grade(context.Background(), content, payload, false)
+	if err != nil {
+		t.Fatalf("a failed rewrite failed the grade: %v", err)
+	}
+	if d.Part2Rewrite != "" || overall == 0 {
+		t.Errorf("rewrite %q, overall %v", d.Part2Rewrite, overall)
+	}
+}
+
+// brokenRewriteJudge judges normally but fails the Part 2 rewrite.
+type brokenRewriteJudge struct{ fakeJudge }
+
+func (b *brokenRewriteJudge) Complete(ctx context.Context, system, user, image string, p llm.CompletionParams) (string, error) {
+	if system == part2RewriteSystem {
+		return "", errors.New("rate limited")
+	}
+	return b.fakeJudge.Complete(ctx, system, user, image, p)
 }

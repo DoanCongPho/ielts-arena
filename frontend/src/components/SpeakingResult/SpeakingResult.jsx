@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { getRecordings } from '../../lib/api';
 import { safeParse } from '../../lib/safeParse';
 import ScoreCard from '../ui/ScoreCard/ScoreCard';
@@ -97,6 +99,21 @@ export default function SpeakingResult({ score, submissionId }) {
           );
         })}
       </div>
+
+      {d.part2_rewrite && (
+        <section className="speaking-result-section speaking-rewrite">
+          <header className="speaking-rewrite-header">
+            <h3>Bài mẫu Part 2 — Flow 4 tầng</h3>
+            <span className="speaking-rewrite-badge">Đặc biệt dành cho học sinh thầy Sơn</span>
+          </header>
+          <p className="speaking-result-note">
+            Bài sửa theo phương pháp 4 tầng TIME → HOW → WHY → VALUE của thầy Sơn, giữ nguyên câu chuyện của bạn.
+          </p>
+          <div className="speaking-rewrite-body">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{d.part2_rewrite}</ReactMarkdown>
+          </div>
+        </section>
+      )}
 
       <Measurements evidence={d.evidence} pron={pron} />
 

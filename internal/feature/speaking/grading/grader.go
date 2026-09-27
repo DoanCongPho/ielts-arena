@@ -111,6 +111,11 @@ func (g *Grader) Grade(ctx context.Context, content ielts_test.SpeakingContent, 
 		}
 	}
 
+	// Mr Sơn's Part 2 review doesn't depend on the bands, so it runs
+	// alongside the judges.
+	rewrite := make(chan string, 1)
+	go func() { rewrite <- g.rewritePart2(ctx, content, answers) }()
+
 	mode := content.Mode()
 	verdicts, err := g.judgeAll(ctx, mode, answers, ev, pron)
 	if err != nil {
@@ -141,6 +146,7 @@ func (g *Grader) Grade(ctx context.Context, content ielts_test.SpeakingContent, 
 	details.Corrections = anchoredCorrections(answers,
 		verdicts[CriterionGRA].Corrections, "grammar",
 		verdicts[CriterionLR].Corrections, "vocabulary")
+	details.Part2Rewrite = <-rewrite
 	return details, ielts_test.IELTSOverall(bands), nil
 }
 

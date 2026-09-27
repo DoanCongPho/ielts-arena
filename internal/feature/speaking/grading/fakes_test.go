@@ -42,16 +42,23 @@ func (f *fakePron) Assess(context.Context, []byte, string, string, any) (*pronun
 }
 
 // fakeJudge gives every criterion the same band and records prompts. The
-// four criteria are judged concurrently, hence the lock.
+// criteria and the Part 2 rewrite run concurrently, hence the lock.
 type fakeJudge struct {
 	band    int
 	mu      sync.Mutex
 	prompts []string
+	// rewrites are the user prompts of Part 2 rewrite calls, kept apart
+	// from the criterion judges.
+	rewrites []string
 }
 
 func (f *fakeJudge) Complete(_ context.Context, system, user, _ string, _ llm.CompletionParams) (string, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if system == part2RewriteSystem {
+		f.rewrites = append(f.rewrites, user)
+		return `{"markdown":"### Mục 5 — Bài sửa theo 4 tầng\n**TIME** ..."}`, nil
+	}
 	f.prompts = append(f.prompts, system+"\n"+user)
 	return fmt.Sprintf(`{"checks":[{"band":%d,"feature":"x","verdict":"met","evidence":"y"}],"band":%d,"feedback":"ok","improvements":["z"]}`, f.band, f.band), nil
 }
