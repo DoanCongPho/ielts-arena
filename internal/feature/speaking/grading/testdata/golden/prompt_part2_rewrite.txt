@@ -1,0 +1,12 @@
+model=judge-model temperature=0.4 max_tokens=8000
+--- user
+Đề bài (cue card):
+Describe a book you enjoyed reading.
+You should say:
+- what the book was
+- when you read it
+- what it was about
+and explain why you enjoyed it.
+
+Bản ghi lời nói của học viên (29 giây, nhận dạng giọng nói tự động nên có thể nghe nhầm vài từ):
+I want to talk about a book called The Little Prince. I read it when I am young, maybe ten years old. It is about a little prince who travel between planets and meet many strange adults. I I really enjoyed it because it teach me that, uh, the most important things are invisible to the eyes. On top of that, the drawings are lovely. All in all, it is a book I would recommend to anyone.

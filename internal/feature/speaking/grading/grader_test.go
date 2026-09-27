@@ -9,6 +9,8 @@ import (
 
 	"github/DoanCongPho/game-arena/internal/feature/ielts_test"
 	"github/DoanCongPho/game-arena/internal/feature/speaking/speakingtest"
+	"github/DoanCongPho/game-arena/internal/platform/llm"
+	"github/DoanCongPho/game-arena/internal/prompt"
 )
 
 // answerAll records the same two-sentence answer for every question of
@@ -136,4 +138,74 @@ func TestGrade_WithoutPronunciationScoring(t *testing.T) {
 	if overall != 6.5 {
 		t.Errorf("overall = %v, want 6.5", overall)
 	}
+}
+
+func TestGrade_PartReviewsSeeOnlyTheirPart(t *testing.T) {
+	content := speakingtest.FullContent()
+	payload, audio := answerAll(content)
+	judge := &fakeJudge{band: 7}
+	g := New(audio, fakeASR{}, nil, judge, Config{})
+	if _, ok := g.rewrites[2]; !ok {
+		t.Fatal("Mr Sơn's Part 2 prompt isn't loaded")
+	}
+	g.rewrites[1] = prompt.SpeakingRewrite{Part: 1, Title: "Part 1", System: "Review Part 1."}
+
+	d, _, err := g.Grade(context.Background(), content, payload, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(judge.rewrites) != 2 {
+		t.Fatalf("%d review calls, want one each for Parts 1 and 2", len(judge.rewrites))
+	}
+	for _, in := range judge.rewrites {
+		cue := strings.Contains(in, content.Part2.CueCardText())
+		p1 := strings.Contains(in, content.Part1.Topics[0].Questions[0].Text)
+		p3 := strings.Contains(in, content.Part3.Questions[0].Text)
+		if p3 || cue == p1 {
+			t.Errorf("a review was given another part's answers:\n%s", in)
+		}
+	}
+	if len(d.Rewrites) != 2 || d.Rewrites[0].Part != 1 || d.Rewrites[1].Part != 2 {
+		t.Fatalf("rewrites = %+v, want Parts 1 and 2 in order", d.Rewrites)
+	}
+	if r := d.Rewrites[1]; r.Badge == "" || !strings.Contains(r.Markdown, "Bài sửa theo 4 tầng") {
+		t.Errorf("Part 2 review = %+v", r)
+	}
+
+	// Part 3 practice: Part 3 has no prompt, so no review is asked for.
+	content = speakingtest.FullContent()
+	content.Part1, content.Part2 = nil, nil
+	payload, audio = answerAll(content)
+	judge = &fakeJudge{band: 7}
+	d, _, err = New(audio, fakeASR{}, nil, judge, Config{}).Grade(context.Background(), content, payload, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(judge.rewrites) != 0 || d.Rewrites != nil {
+		t.Errorf("Part 3 practice got reviews: %+v", d.Rewrites)
+	}
+}
+
+func TestGrade_ReviewFailureKeepsTheGrade(t *testing.T) {
+	content := speakingtest.FullContent()
+	payload, audio := answerAll(content)
+	g := New(audio, fakeASR{}, nil, &brokenRewriteJudge{fakeJudge{band: 6}}, Config{})
+
+	d, overall, err := g.Grade(context.Background(), content, payload, false)
+	if err != nil {
+		t.Fatalf("a failed review failed the grade: %v", err)
+	}
+	if d.Rewrites != nil || overall == 0 {
+		t.Errorf("rewrites %+v, overall %v", d.Rewrites, overall)
+	}
+}
+
+// brokenRewriteJudge judges normally but fails the Part 2 rewrite.
+type brokenRewriteJudge struct{ fakeJudge }
+
+func (b *brokenRewriteJudge) Complete(ctx context.Context, system, user, image string, p llm.CompletionParams) (string, error) {
+	if isRewrite(system) {
+		return "", errors.New("rate limited")
+	}
+	return b.fakeJudge.Complete(ctx, system, user, image, p)
 }

@@ -1,4 +1,4 @@
-model= temperature=0.1 max_tokens=3500
+model= temperature=0.1 max_tokens=8000
 --- system
 You are a certified IELTS Speaking examiner. You are rating Part 2 of an IELTS Speaking test, practised on its own (rate what this part shows; don't penalise the missing parts) on one criterion only: Pronunciation.
 

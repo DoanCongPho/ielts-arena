@@ -45,12 +45,16 @@ type AppConfig struct {
 	MediaDir string
 }
 
+// defaultSpeakingModel judges speaking when SPEAKING_MODEL is unset.
+const defaultSpeakingModel = "gpt-5"
+
 // SpeakingConfig tunes speaking grading and the examiner voice.
 type SpeakingConfig struct {
 	WhisperModel string
-	// JudgeModel rates the band descriptors; empty means OPENAI_MODEL.
-	// Rating is a judgement task, so a stronger model than the writing
-	// default is worth its cost at four calls per test.
+	// JudgeModel rates the band descriptors and writes the Part 2 review;
+	// empty means gpt-5. Rating is a judgement task, and with a small
+	// group of students a reasoning model is worth its cost at four calls
+	// per test.
 	JudgeModel    string
 	TTSModel      string
 	ExaminerVoice string
@@ -203,7 +207,7 @@ func loadFromMap(env map[string]string) (*Config, error) {
 
 	// Speaking
 	cfg.App.Speaking.WhisperModel = get("WHISPER_MODEL", "whisper-1")
-	cfg.App.Speaking.JudgeModel = get("SPEAKING_MODEL", cfg.App.OpenAIModel)
+	cfg.App.Speaking.JudgeModel = get("SPEAKING_MODEL", defaultSpeakingModel)
 	cfg.App.Speaking.TTSModel = get("EXAMINER_TTS_MODEL", "gpt-4o-mini-tts")
 	cfg.App.Speaking.ExaminerVoice = get("EXAMINER_VOICE", "sage")
 	scorePron, err := getBool("SPEAKING_SCORE_PRONUNCIATION", false)

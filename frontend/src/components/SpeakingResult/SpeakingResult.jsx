@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { getRecordings } from '../../lib/api';
 import { safeParse } from '../../lib/safeParse';
 import ScoreCard from '../ui/ScoreCard/ScoreCard';
@@ -97,6 +99,19 @@ export default function SpeakingResult({ score, submissionId }) {
           );
         })}
       </div>
+
+      {(d.rewrites || []).map((r) => (
+        <section key={r.part} className="speaking-result-section speaking-rewrite">
+          <header className="speaking-rewrite-header">
+            <h3>{r.title}</h3>
+            {r.badge && <span className="speaking-rewrite-badge">{r.badge}</span>}
+          </header>
+          {r.note && <p className="speaking-result-note">{r.note}</p>}
+          <div className="speaking-rewrite-body">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{r.markdown}</ReactMarkdown>
+          </div>
+        </section>
+      ))}
 
       <Measurements evidence={d.evidence} pron={pron} />
 

@@ -15,6 +15,10 @@ type Details struct {
 	// Corrections are the grammar and word-choice errors in the answers,
 	// each anchored to text that appears verbatim in its answer.
 	Corrections []Correction `json:"corrections"`
+	// Rewrites are the teachers' reviews, one per part that has a prompt
+	// in internal/prompt/speaking and was answered, in part order. A
+	// review that failed is left out.
+	Rewrites []PartRewrite `json:"rewrites,omitempty"`
 }
 
 // Correction is one error in an answer and how to fix it.

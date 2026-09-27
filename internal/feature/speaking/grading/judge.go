@@ -28,7 +28,10 @@ type descriptorCheck struct {
 	Evidence string `json:"evidence"`
 }
 
-var judgeParams = llm.CompletionParams{Temperature: 0.1, MaxTokens: 3500}
+// judgeParams leaves room for a check per descriptor feature from band 9
+// down, plus the corrections. Reasoning models ignore both settings (see
+// llm.Client.Complete).
+var judgeParams = llm.CompletionParams{Temperature: 0.1, MaxTokens: 8000}
 
 // judgeAll runs the criterion judges in parallel.
 func (g *Grader) judgeAll(ctx context.Context, mode string, answers []answerTranscript, ev Evidence, pron *pronunciationSummary) (map[string]criterionVerdict, error) {

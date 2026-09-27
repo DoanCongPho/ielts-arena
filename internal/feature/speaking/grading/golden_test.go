@@ -91,6 +91,14 @@ type goldenJudge struct {
 }
 
 func (j *goldenJudge) Complete(_ context.Context, system, user, _ string, params llm.CompletionParams) (string, error) {
+	if isRewrite(system) {
+		// Only the user prompt: the system prompt is the teacher's file,
+		// which they keep editing.
+		j.mu.Lock()
+		j.prompts["part2_rewrite"] = fmt.Sprintf("model=%s temperature=%v max_tokens=%d\n--- user\n%s", params.Model, params.Temperature, params.MaxTokens, user)
+		j.mu.Unlock()
+		return `{"markdown":"### Mục 1 — Nhận xét nhanh\n**Một điểm tốt:** ...\n\n### Mục 5 — Bài sửa theo 4 tầng\n**TIME** I'd like to talk about a book called The Little Prince."}`, nil
+	}
 	bands := map[string]int{CriterionFC: 7, CriterionLR: 6, CriterionGRA: 6, CriterionP: 8}
 	var criterion string
 	for c := range bands {
@@ -150,6 +158,7 @@ func TestGolden_SpeakingGrade(t *testing.T) {
 		name := strings.ToLower(strings.NewReplacer(" ", "_").Replace(c))
 		speakingtest.CheckGolden(t, "prompt_"+name+".txt", []byte(judge.prompts[c]))
 	}
+	speakingtest.CheckGolden(t, "prompt_part2_rewrite.txt", []byte(judge.prompts["part2_rewrite"]))
 }
 
 func TestGolden_SpeakingGradeWithoutPronunciationService(t *testing.T) {

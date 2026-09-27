@@ -91,7 +91,7 @@ func Build(c ielts_test.SpeakingContent, v Voice) []Line {
 	}
 
 	full := c.Mode() == ielts_test.SpeakingModeFull
-	say(firstPart(c), "Good afternoon. My name is Alex, and I'll be your examiner today.")
+	say(firstPart(c), "Good afternoon. My name is Pho, and I'll be your examiner today.")
 
 	if p := c.Part1; p != nil {
 		say(1, "In this first part, I'd like to ask you some questions about yourself.")
