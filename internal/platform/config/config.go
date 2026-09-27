@@ -34,6 +34,10 @@ type AppConfig struct {
 	Assets       AssetsBucketConfig
 	OpenAIAPIKey string
 	OpenAIModel  string
+	// WritingModel grades writing; empty means OPENAI_MODEL. Grading is a
+	// judgement task, so a stronger model than the default is worth its
+	// cost at five or six calls per answer.
+	WritingModel string
 	Grading      GradingConfig
 	Speaking     SpeakingConfig
 	// MediaDir holds recordings and examiner audio when no bucket is
@@ -178,6 +182,7 @@ func loadFromMap(env map[string]string) (*Config, error) {
 	}
 	cfg.App.OpenAIAPIKey = get("OPENAI_API_KEY", "")
 	cfg.App.OpenAIModel = get("OPENAI_MODEL", "gpt-4o-mini")
+	cfg.App.WritingModel = get("WRITING_MODEL", cfg.App.OpenAIModel)
 
 	// Grading workers
 	gradingWorkers, err := getInt("GRADING_WORKERS", 2)

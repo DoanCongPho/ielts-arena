@@ -141,7 +141,7 @@ func main() {
 
 	// --ielts_test--
 	llmClient := llm.NewClient(cfg.App.OpenAIAPIKey, cfg.App.OpenAIModel)
-	grader := ielts_test.NewOpenAIGrader(llmClient, ielts_test.NewAssetImageResolver("internal/assets", presignAsset))
+	grader := ielts_test.NewOpenAIGrader(llmClient, cfg.App.WritingModel, ielts_test.NewAssetImageResolver("internal/assets", presignAsset))
 
 	sp := cfg.App.Speaking
 	speakingGrader := newSpeakingGrader(cfg, llmClient, media)

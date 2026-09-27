@@ -6,7 +6,6 @@ import './ScoreResult.css';
 export default function ScoreResult({ score }) {
   const details = safeParse(score.details) || {};
   const criteria = details.criteria || {};
-  const corrections = details.corrections || [];
 
   return (
     <div className="score-result">
@@ -21,23 +20,14 @@ export default function ScoreResult({ score }) {
               <span className="score-result-criteria-score">{c.score}</span>
             </div>
             <p className="score-result-criteria-feedback">{c.feedback}</p>
+            {c.improvements?.length > 0 && (
+              <ul className="score-result-criteria-improvements">
+                {c.improvements.map((tip, i) => <li key={i}>{tip}</li>)}
+              </ul>
+            )}
           </div>
         ))}
       </div>
-
-      {corrections.length > 0 && (
-        <div className="score-result-corrections">
-          <h3>Corrections</h3>
-          {corrections.map((c, i) => (
-            <div key={i} className="score-result-correction-item">
-              <p className="score-result-correction-span">"{c.span}"</p>
-              <p className="score-result-correction-issue">{c.issue}</p>
-              <p className="score-result-correction-suggestion">→ {c.suggestion}</p>
-              {c.explanation && <p className="score-result-correction-explanation">{c.explanation}</p>}
-            </div>
-          ))}
-        </div>
-      )}
 
       {details.model_answer && (
         <div className="score-result-model-answer">
