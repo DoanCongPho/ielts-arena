@@ -95,7 +95,7 @@ func (j *goldenJudge) Complete(_ context.Context, system, user, _ string, params
 		// Only the user prompt: the system prompt is the teacher's file,
 		// which they keep editing.
 		j.mu.Lock()
-		j.prompts["part2_rewrite"] = fmt.Sprintf("model=%s temperature=%v max_tokens=%d\n--- user\n%s", params.Model, params.Temperature, params.MaxTokens, user)
+		j.prompts["part2_rewrite"] = fmt.Sprintf("model=%s temperature=%v max_tokens=%d reasoning_effort=%s\n--- user\n%s", params.Model, params.Temperature, params.MaxTokens, params.ReasoningEffort, user)
 		j.mu.Unlock()
 		return `{"markdown":"### Mục 1 — Nhận xét nhanh\n**Một điểm tốt:** ...\n\n### Mục 5 — Bài sửa theo 4 tầng\n**TIME** I'd like to talk about a book called The Little Prince."}`, nil
 	}
@@ -142,7 +142,7 @@ func goldenGradeInputs() (ielts_test.SpeakingContent, ielts_test.SpeakingPayload
 func TestGolden_SpeakingGrade(t *testing.T) {
 	content, payload, audio := goldenGradeInputs()
 	judge := &goldenJudge{prompts: map[string]string{}}
-	g := New(audio, goldenTranscriber{}, goldenPronunciation{}, judge, Config{JudgeModel: "judge-model", ScorePronunciation: true})
+	g := New(audio, goldenTranscriber{}, goldenPronunciation{}, judge, Config{JudgeModel: "judge-model", ReviewModel: "review-model", ScorePronunciation: true})
 
 	details, overall, err := g.Grade(context.Background(), content, payload, false)
 	if err != nil {

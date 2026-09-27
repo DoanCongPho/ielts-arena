@@ -34,7 +34,9 @@ const rewriteOutputFormat = `
 Phản hồi được hiển thị trong ứng dụng luyện thi, ngay dưới kết quả chấm. Trả về DUY NHẤT một JSON hợp lệ:
 {"markdown": "<toàn bộ phản hồi theo định dạng đầu ra ở trên, viết bằng Markdown, dùng ### cho tiêu đề mục>"}`
 
-var rewriteParams = llm.CompletionParams{Temperature: 0.4, MaxTokens: 8000}
+// rewriteParams keeps a reasoning model's thinking low: the review follows
+// the teacher's fixed format, and thinking was two thirds of its cost.
+var rewriteParams = llm.CompletionParams{Temperature: 0.4, MaxTokens: 8000, ReasoningEffort: "low"}
 
 // loadRewrites reads the teachers' prompts. They are embedded, so an error
 // is a malformed file; grading goes on without reviews rather than fail.
@@ -80,7 +82,10 @@ func (g *Grader) rewriteAll(ctx context.Context, content ielts_test.SpeakingCont
 // so a failure is logged and the grade goes on without it.
 func (g *Grader) rewrite1(ctx context.Context, p prompt.SpeakingRewrite, input string) string {
 	params := rewriteParams
-	params.Model = g.cfg.JudgeModel
+	params.Model = g.cfg.ReviewModel
+	if params.Model == "" {
+		params.Model = g.cfg.JudgeModel
+	}
 	raw, err := g.judge.Complete(ctx, p.System+rewriteOutputFormat, input, "", params)
 	if err != nil {
 		log.Printf("speaking: part %d review: %v", p.Part, err)

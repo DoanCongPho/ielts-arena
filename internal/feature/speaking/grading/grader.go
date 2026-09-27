@@ -32,12 +32,12 @@ type (
 	}
 )
 
-// Config picks the models. JudgeModel rates the descriptors;
-// it is a judgement task, so a stronger model than the writing default
-// pays for itself at four calls per test.
+// Config picks the models. JudgeModel rates the descriptors; ReviewModel
+// writes the teachers' part reviews, and is JudgeModel when empty.
 type Config struct {
 	WhisperModel string
 	JudgeModel   string
+	ReviewModel  string
 	// PronunciationSampleSeconds is how much speech is sent to the
 	// pronunciation service per test.
 	PronunciationSampleSeconds float64

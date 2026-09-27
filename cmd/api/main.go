@@ -141,7 +141,7 @@ func main() {
 
 	// --ielts_test--
 	llmClient := llm.NewClient(cfg.App.OpenAIAPIKey, cfg.App.OpenAIModel)
-	grader := ielts_test.NewOpenAIGrader(llmClient, cfg.App.WritingModel, ielts_test.NewAssetImageResolver("internal/assets", presignAsset))
+	grader := ielts_test.NewOpenAIGrader(llmClient, cfg.App.WritingModel, cfg.App.WritingReviewModel, ielts_test.NewAssetImageResolver("internal/assets", presignAsset))
 
 	sp := cfg.App.Speaking
 	speakingGrader := newSpeakingGrader(cfg, llmClient, media)
@@ -224,7 +224,7 @@ func main() {
 // confidence. With SPEAKING_SCORE_PRONUNCIATION off, it isn't rated at all.
 func newSpeakingGrader(cfg *config.Config, llmClient *llm.Client, media storage.ObjectStore) *grading.Grader {
 	sp := cfg.App.Speaking
-	speakingCfg := grading.Config{WhisperModel: sp.WhisperModel, JudgeModel: sp.JudgeModel, ScorePronunciation: sp.ScorePronunciation}
+	speakingCfg := grading.Config{WhisperModel: sp.WhisperModel, JudgeModel: sp.JudgeModel, ReviewModel: sp.ReviewModel, ScorePronunciation: sp.ScorePronunciation}
 	if !sp.ScorePronunciation {
 		log.Println("speaking: SPEAKING_SCORE_PRONUNCIATION is off — rating fluency, lexis and grammar only")
 		return grading.New(media, llmClient, nil, llmClient, speakingCfg)
