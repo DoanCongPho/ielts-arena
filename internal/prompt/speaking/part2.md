@@ -1,3 +1,8 @@
+---
+title: Bài mẫu Part 2 — Flow 4 tầng
+badge: Đặc biệt dành cho học sinh thầy Sơn
+note: Bài sửa theo phương pháp 4 tầng TIME → HOW → WHY → VALUE của thầy Sơn, giữ nguyên câu chuyện của bạn.
+---
 # PROMPT: SỬA BÀI IELTS SPEAKING PART 2 THEO HỆ 4 TẦNG
 
 > Cách dùng: dán toàn bộ file này làm **system prompt** (hoặc tin nhắn đầu tiên), sau đó mỗi lần chỉ gửi: đề bài (cue card) + bản ghi lời nói của học viên. Không cần dán lại file này.

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github/DoanCongPho/game-arena/internal/platform/llm"
 	"github/DoanCongPho/game-arena/internal/platform/pronunciation"
+	"strings"
 	"sync"
 )
 
@@ -47,7 +48,7 @@ type fakeJudge struct {
 	band    int
 	mu      sync.Mutex
 	prompts []string
-	// rewrites are the user prompts of Part 2 rewrite calls, kept apart
+	// rewrites are the user prompts of part review calls, kept apart
 	// from the criterion judges.
 	rewrites []string
 }
@@ -55,10 +56,13 @@ type fakeJudge struct {
 func (f *fakeJudge) Complete(_ context.Context, system, user, _ string, _ llm.CompletionParams) (string, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	if system == part2RewriteSystem {
+	if isRewrite(system) {
 		f.rewrites = append(f.rewrites, user)
 		return `{"markdown":"### Mục 5 — Bài sửa theo 4 tầng\n**TIME** ..."}`, nil
 	}
 	f.prompts = append(f.prompts, system+"\n"+user)
 	return fmt.Sprintf(`{"checks":[{"band":%d,"feature":"x","verdict":"met","evidence":"y"}],"band":%d,"feedback":"ok","improvements":["z"]}`, f.band, f.band), nil
 }
+
+// isRewrite tells a teacher's part review call from a criterion judge.
+func isRewrite(system string) bool { return strings.HasSuffix(system, rewriteOutputFormat) }

@@ -8,6 +8,7 @@ import (
 	"github/DoanCongPho/game-arena/internal/feature/ielts_test"
 	"github/DoanCongPho/game-arena/internal/platform/llm"
 	"github/DoanCongPho/game-arena/internal/platform/pronunciation"
+	"github/DoanCongPho/game-arena/internal/prompt"
 	"log"
 	"path"
 	"strings"
@@ -54,6 +55,8 @@ type Grader struct {
 	cfg   Config
 	// criteria are the criteria this grader rates.
 	criteria []string
+	// rewrites are the teachers' review prompts by part.
+	rewrites map[int]prompt.SpeakingRewrite
 }
 
 func New(audio audioSource, asr transcriber, pron pronunciationAssessor, judge completer, cfg Config) *Grader {
@@ -69,7 +72,7 @@ func New(audio audioSource, asr transcriber, pron pronunciationAssessor, judge c
 	if !cfg.ScorePronunciation {
 		rated = []string{CriterionFC, CriterionLR, CriterionGRA}
 	}
-	return &Grader{audio: audio, asr: asr, pron: pron, judge: judge, cfg: cfg, criteria: rated}
+	return &Grader{audio: audio, asr: asr, pron: pron, judge: judge, cfg: cfg, criteria: rated, rewrites: loadRewrites()}
 }
 
 // fillerPrompt biases Whisper toward a verbatim transcript. Without it,
@@ -111,10 +114,10 @@ func (g *Grader) Grade(ctx context.Context, content ielts_test.SpeakingContent, 
 		}
 	}
 
-	// Mr Sơn's Part 2 review doesn't depend on the bands, so it runs
+	// The teachers' part reviews don't depend on the bands, so they run
 	// alongside the judges.
-	rewrite := make(chan string, 1)
-	go func() { rewrite <- g.rewritePart2(ctx, content, answers) }()
+	rewrites := make(chan []PartRewrite, 1)
+	go func() { rewrites <- g.rewriteAll(ctx, content, answers) }()
 
 	mode := content.Mode()
 	verdicts, err := g.judgeAll(ctx, mode, answers, ev, pron)
@@ -146,7 +149,7 @@ func (g *Grader) Grade(ctx context.Context, content ielts_test.SpeakingContent, 
 	details.Corrections = anchoredCorrections(answers,
 		verdicts[CriterionGRA].Corrections, "grammar",
 		verdicts[CriterionLR].Corrections, "vocabulary")
-	details.Part2Rewrite = <-rewrite
+	details.Rewrites = <-rewrites
 	return details, ielts_test.IELTSOverall(bands), nil
 }
 

@@ -91,9 +91,9 @@ type goldenJudge struct {
 }
 
 func (j *goldenJudge) Complete(_ context.Context, system, user, _ string, params llm.CompletionParams) (string, error) {
-	if system == part2RewriteSystem {
-		// Only the user prompt: the system prompt is Mr Sơn's file, which
-		// he keeps editing.
+	if isRewrite(system) {
+		// Only the user prompt: the system prompt is the teacher's file,
+		// which they keep editing.
 		j.mu.Lock()
 		j.prompts["part2_rewrite"] = fmt.Sprintf("model=%s temperature=%v max_tokens=%d\n--- user\n%s", params.Model, params.Temperature, params.MaxTokens, user)
 		j.mu.Unlock()

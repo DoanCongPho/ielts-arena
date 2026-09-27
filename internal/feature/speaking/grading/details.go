@@ -15,10 +15,10 @@ type Details struct {
 	// Corrections are the grammar and word-choice errors in the answers,
 	// each anchored to text that appears verbatim in its answer.
 	Corrections []Correction `json:"corrections"`
-	// Part2Rewrite is Mr Sơn's "Flow 4 tầng" review of the Part 2 talk, in
-	// Markdown: feedback in Vietnamese and a model answer built from the
-	// student's own story. Empty without a Part 2 or when it failed.
-	Part2Rewrite string `json:"part2_rewrite,omitempty"`
+	// Rewrites are the teachers' reviews, one per part that has a prompt
+	// in internal/prompt/speaking and was answered, in part order. A
+	// review that failed is left out.
+	Rewrites []PartRewrite `json:"rewrites,omitempty"`
 }
 
 // Correction is one error in an answer and how to fix it.

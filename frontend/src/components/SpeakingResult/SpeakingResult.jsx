@@ -100,20 +100,18 @@ export default function SpeakingResult({ score, submissionId }) {
         })}
       </div>
 
-      {d.part2_rewrite && (
-        <section className="speaking-result-section speaking-rewrite">
+      {(d.rewrites || []).map((r) => (
+        <section key={r.part} className="speaking-result-section speaking-rewrite">
           <header className="speaking-rewrite-header">
-            <h3>Bài mẫu Part 2 — Flow 4 tầng</h3>
-            <span className="speaking-rewrite-badge">Đặc biệt dành cho học sinh thầy Sơn</span>
+            <h3>{r.title}</h3>
+            {r.badge && <span className="speaking-rewrite-badge">{r.badge}</span>}
           </header>
-          <p className="speaking-result-note">
-            Bài sửa theo phương pháp 4 tầng TIME → HOW → WHY → VALUE của thầy Sơn, giữ nguyên câu chuyện của bạn.
-          </p>
+          {r.note && <p className="speaking-result-note">{r.note}</p>}
           <div className="speaking-rewrite-body">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{d.part2_rewrite}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{r.markdown}</ReactMarkdown>
           </div>
         </section>
-      )}
+      ))}
 
       <Measurements evidence={d.evidence} pron={pron} />
 
