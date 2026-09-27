@@ -187,6 +187,9 @@ func (r *MockTestRepository) RescheduleGrading(ctx context.Context, id uint64, c
 	if !ok {
 		return ErrSubmissionNotFound
 	}
+	if submission.Status != StatusGrading {
+		return nil
+	}
 	submission.Status = StatusPending
 	submission.LastError = cause
 	submission.NextAttemptAt = &nextAttemptAt
@@ -199,6 +202,9 @@ func (r *MockTestRepository) FailGrading(ctx context.Context, id uint64, cause s
 	if !ok {
 		return ErrSubmissionNotFound
 	}
+	if submission.Status != StatusGrading {
+		return nil
+	}
 	submission.Status = StatusFailed
 	submission.LastError = cause
 	submission.NextAttemptAt = nil
@@ -207,6 +213,9 @@ func (r *MockTestRepository) FailGrading(ctx context.Context, id uint64, cause s
 }
 
 func (r *MockTestRepository) CreateScore(ctx context.Context, sc *Score) (*Score, error) {
+	if _, ok := r.scores[int(sc.SubmissionID)]; ok {
+		return nil, ErrScoreExists
+	}
 	if sc.ID == 0 {
 		r.nextScoreID++
 		sc.ID = r.nextScoreID

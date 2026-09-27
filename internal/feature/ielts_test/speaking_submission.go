@@ -86,9 +86,5 @@ func (s *service) gradeSpeaking(ctx context.Context, test *Test, sub *Submission
 	if err != nil {
 		return fmt.Errorf("grade speaking: %w", err)
 	}
-	if _, err := s.repo.CreateScore(ctx, &Score{SubmissionID: sub.ID, OverallBand: &overall, Details: details}); err != nil {
-		return fmt.Errorf("create score: %w", err)
-	}
-	sub.Status = StatusGraded
-	return s.repo.UpdateSubmissionStatus(ctx, sub.ID, StatusGraded)
+	return s.recordScore(ctx, sub, &Score{SubmissionID: sub.ID, OverallBand: &overall, Details: details})
 }

@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/go-sql-driver/mysql"
 )
 
 const testColumns = `id, owner_id, skill, task_type, series, volume, test_number, content_data, thumbnail_url, source, is_current, xp_gain, created_at`
@@ -374,11 +376,22 @@ func (r *repository) ClaimNextForGrading(ctx context.Context, now, leaseCutoff t
 		return nil, fmt.Errorf("claim submission: %w", err)
 	}
 
-	if _, err := tx.ExecContext(ctx,
-		"UPDATE submissions SET status = ?, attempts = attempts + 1, claimed_at = ? WHERE id = ?",
-		StatusGrading, now, sub.ID,
-	); err != nil {
+	// The claim repeats the eligibility check, so it only lands if no one
+	// else claimed or settled the row since it was read: not every
+	// MySQL-compatible database honours SKIP LOCKED the same way (TiDB).
+	res, err := tx.ExecContext(ctx,
+		`UPDATE submissions SET status = ?, attempts = attempts + 1, claimed_at = ?
+		 WHERE id = ? AND ((status = ? AND (next_attempt_at IS NULL OR next_attempt_at <= ?))
+		    OR (status = ? AND claimed_at IS NOT NULL AND claimed_at < ?))`,
+		StatusGrading, now, sub.ID, StatusPending, now, StatusGrading, leaseCutoff,
+	)
+	if err != nil {
 		return nil, fmt.Errorf("mark submission claimed: %w", err)
+	}
+	if n, err := res.RowsAffected(); err != nil {
+		return nil, fmt.Errorf("mark submission claimed: %w", err)
+	} else if n == 0 {
+		return nil, nil // another worker got there first
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit claim: %w", err)
@@ -392,10 +405,12 @@ func (r *repository) ClaimNextForGrading(ctx context.Context, now, leaseCutoff t
 	return sub, nil
 }
 
+// RescheduleGrading and FailGrading only settle a submission still being
+// graded, so a late or duplicate run can never turn a graded one back.
 func (r *repository) RescheduleGrading(ctx context.Context, id uint64, cause string, nextAttemptAt time.Time) error {
 	_, err := r.db.ExecContext(ctx,
-		"UPDATE submissions SET status = ?, last_error = ?, next_attempt_at = ?, claimed_at = NULL WHERE id = ?",
-		StatusPending, truncateCause(cause), nextAttemptAt, id,
+		"UPDATE submissions SET status = ?, last_error = ?, next_attempt_at = ?, claimed_at = NULL WHERE id = ? AND status = ?",
+		StatusPending, truncateCause(cause), nextAttemptAt, id, StatusGrading,
 	)
 	if err != nil {
 		return fmt.Errorf("reschedule grading: %w", err)
@@ -405,8 +420,8 @@ func (r *repository) RescheduleGrading(ctx context.Context, id uint64, cause str
 
 func (r *repository) FailGrading(ctx context.Context, id uint64, cause string) error {
 	_, err := r.db.ExecContext(ctx,
-		"UPDATE submissions SET status = ?, last_error = ?, next_attempt_at = NULL, claimed_at = NULL WHERE id = ?",
-		StatusFailed, truncateCause(cause), id,
+		"UPDATE submissions SET status = ?, last_error = ?, next_attempt_at = NULL, claimed_at = NULL WHERE id = ? AND status = ?",
+		StatusFailed, truncateCause(cause), id, StatusGrading,
 	)
 	if err != nil {
 		return fmt.Errorf("fail grading: %w", err)
@@ -464,6 +479,9 @@ func (r *repository) CreateScore(ctx context.Context, sc *Score) (*Score, error)
 		"INSERT INTO scores (submission_id, overall_band, details, graded_at) VALUES (?, ?, ?, ?)",
 		sc.SubmissionID, sc.OverallBand, sc.Details, sc.GradedAt,
 	)
+	if isDuplicateKeyErr(err) {
+		return nil, ErrScoreExists
+	}
 	if err != nil {
 		return nil, fmt.Errorf("insert score: %w", err)
 	}
@@ -503,4 +521,9 @@ func (r *repository) GetScoreBySubmissionID(ctx context.Context, submissionID ui
 		sc.GradedAt = &gradedAt.Time
 	}
 	return &sc, nil
+}
+
+func isDuplicateKeyErr(err error) bool {
+	var mysqlErr *mysql.MySQLError
+	return errors.As(err, &mysqlErr) && mysqlErr.Number == 1062
 }
