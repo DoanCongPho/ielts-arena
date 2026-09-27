@@ -9,6 +9,7 @@ import { useSectionAudio } from '../lib/useSectionAudio';
 import { safeParse } from '../lib/safeParse';
 import { SKILL_CONFIG } from '../lib/skillConfig';
 import ScoreResult from '../components/ScoreResult/ScoreResult';
+import WritingAnswerReview from '../components/WritingAnswerReview/WritingAnswerReview';
 import SpeakingResult from '../components/SpeakingResult/SpeakingResult';
 import QuestionList from '../components/QuestionList/QuestionList';
 import { ReviewContext } from '../components/AnswerExplanation/ReviewContext';
@@ -129,7 +130,11 @@ export default function SubmissionDetailPage() {
                 {payload.mode === 'practice' ? 'Luyện tập' : 'Thi thử'} · {formatSeconds(payload.elapsed_seconds)}
               </p>
             )}
-            <p className="submission-answer-text">{payload?.text}</p>
+            {score ? (
+              <WritingAnswerReview text={payload?.text} corrections={safeParse(score.details)?.corrections} />
+            ) : (
+              <p className="submission-answer-text">{payload?.text}</p>
+            )}
             {notGradedMessage}
             {score && <ScoreResult score={score} />}
           </div>
