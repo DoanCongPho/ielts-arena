@@ -34,28 +34,37 @@ type AppConfig struct {
 	Assets       AssetsBucketConfig
 	OpenAIAPIKey string
 	OpenAIModel  string
-	// WritingModel grades writing; empty means OPENAI_MODEL. Grading is a
-	// judgement task, so a stronger model than the default is worth its
-	// cost at five or six calls per answer.
+	// WritingModel rates the writing criteria; empty means OPENAI_MODEL.
+	// A rough band is enough there.
 	WritingModel string
-	Grading      GradingConfig
-	Speaking     SpeakingConfig
+	// WritingReviewModel writes the corrections and model answer, which
+	// learners read closely; empty means gpt-5.
+	WritingReviewModel string
+	Grading            GradingConfig
+	Speaking           SpeakingConfig
 	// MediaDir holds recordings and examiner audio when no bucket is
 	// configured (local development).
 	MediaDir string
 }
 
-// defaultSpeakingModel judges speaking when SPEAKING_MODEL is unset.
-const defaultSpeakingModel = "gpt-5"
+// defaultWritingReviewModel writes the writing corrections and model
+// answer when WRITING_REVIEW_MODEL is unset.
+const defaultWritingReviewModel = "gpt-5"
+
+// defaultSpeakingReviewModel writes the teachers' part reviews when
+// SPEAKING_REVIEW_MODEL is unset.
+const defaultSpeakingReviewModel = "gpt-5"
 
 // SpeakingConfig tunes speaking grading and the examiner voice.
 type SpeakingConfig struct {
 	WhisperModel string
-	// JudgeModel rates the band descriptors and writes the Part 2 review;
-	// empty means gpt-5. Rating is a judgement task, and with a small
-	// group of students a reasoning model is worth its cost at four calls
-	// per test.
-	JudgeModel    string
+	// JudgeModel rates the band descriptors; empty means OPENAI_MODEL. A
+	// rough band is enough, and a reasoning model spends most of its cost
+	// thinking through every descriptor.
+	JudgeModel string
+	// ReviewModel writes the teachers' part reviews and model answers;
+	// empty means gpt-5. They are what students read closely.
+	ReviewModel   string
 	TTSModel      string
 	ExaminerVoice string
 	// ScorePronunciation rates Pronunciation as a criterion. Off (the
@@ -187,6 +196,7 @@ func loadFromMap(env map[string]string) (*Config, error) {
 	cfg.App.OpenAIAPIKey = get("OPENAI_API_KEY", "")
 	cfg.App.OpenAIModel = get("OPENAI_MODEL", "gpt-4o-mini")
 	cfg.App.WritingModel = get("WRITING_MODEL", cfg.App.OpenAIModel)
+	cfg.App.WritingReviewModel = get("WRITING_REVIEW_MODEL", defaultWritingReviewModel)
 
 	// Grading workers
 	gradingWorkers, err := getInt("GRADING_WORKERS", 2)
@@ -199,7 +209,7 @@ func loadFromMap(env map[string]string) (*Config, error) {
 		return nil, fmt.Errorf("GRADING_POLL_SECONDS: %w", err)
 	}
 	cfg.App.Grading.PollInterval = time.Duration(pollSeconds) * time.Second
-	jobTimeoutSeconds, err := getInt("GRADING_JOB_TIMEOUT_SECONDS", 90)
+	jobTimeoutSeconds, err := getInt("GRADING_JOB_TIMEOUT_SECONDS", 180)
 	if err != nil {
 		return nil, fmt.Errorf("GRADING_JOB_TIMEOUT_SECONDS: %w", err)
 	}
@@ -207,7 +217,8 @@ func loadFromMap(env map[string]string) (*Config, error) {
 
 	// Speaking
 	cfg.App.Speaking.WhisperModel = get("WHISPER_MODEL", "whisper-1")
-	cfg.App.Speaking.JudgeModel = get("SPEAKING_MODEL", defaultSpeakingModel)
+	cfg.App.Speaking.JudgeModel = get("SPEAKING_MODEL", cfg.App.OpenAIModel)
+	cfg.App.Speaking.ReviewModel = get("SPEAKING_REVIEW_MODEL", defaultSpeakingReviewModel)
 	cfg.App.Speaking.TTSModel = get("EXAMINER_TTS_MODEL", "gpt-4o-mini-tts")
 	cfg.App.Speaking.ExaminerVoice = get("EXAMINER_VOICE", "sage")
 	scorePron, err := getBool("SPEAKING_SCORE_PRONUNCIATION", false)

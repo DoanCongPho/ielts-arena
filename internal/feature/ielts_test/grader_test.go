@@ -127,9 +127,9 @@ func TestJudgeSystemPrompt(t *testing.T) {
 // fakeCompleter answers each grading job by its system prompt.
 type fakeCompleter struct {
 	mu     sync.Mutex
-	images map[string]string // job → image URL it was sent
-	models []string
-	fail   string // job to fail
+	images map[string]string               // job → image URL it was sent
+	params map[string]llm.CompletionParams // job → what it was sent with
+	fail   string                          // job to fail
 	band   int
 }
 
@@ -150,7 +150,7 @@ func (f *fakeCompleter) Complete(_ context.Context, system, _, imageURL string, 
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.images[job] = imageURL
-	f.models = append(f.models, params.Model)
+	f.params[job] = params
 	if job == f.fail {
 		return "", errors.New("boom")
 	}
@@ -164,8 +164,8 @@ func (f *fakeCompleter) Complete(_ context.Context, system, _, imageURL string, 
 }
 
 func TestGrade_RunsAJudgePerCriterion(t *testing.T) {
-	f := &fakeCompleter{images: map[string]string{}, band: 6}
-	g := NewOpenAIGrader(f, "strong-model", nil)
+	f := &fakeCompleter{images: map[string]string{}, params: map[string]llm.CompletionParams{}, band: 6}
+	g := NewOpenAIGrader(f, "judge-model", "review-model", nil)
 	got, err := g.Grade(context.Background(), GradeInput{
 		TaskType: "task1", Prompt: "Describe the chart.", ImageURL: "https://x/chart.png",
 		Answer: "Many people believes the chart shows growth.", NeedModelAnswer: true,
@@ -188,16 +188,25 @@ func TestGrade_RunsAJudgePerCriterion(t *testing.T) {
 			t.Errorf("%s got image %q, want %q", job, f.images[job], want)
 		}
 	}
-	for _, m := range f.models {
-		if m != "strong-model" {
-			t.Errorf("a call used model %q, want strong-model", m)
+	// Judges rate on the judge model; what learners read closely comes from
+	// the review model, thinking kept low.
+	for job, p := range f.params {
+		want := "judge-model"
+		if job == "corrections" || job == "model answer" {
+			want = "review-model"
+			if p.ReasoningEffort != "low" {
+				t.Errorf("%s reasoning effort = %q, want low", job, p.ReasoningEffort)
+			}
+		}
+		if p.Model != want {
+			t.Errorf("%s used model %q, want %s", job, p.Model, want)
 		}
 	}
 }
 
 func TestGrade_SkipsModelAnswerWhenTheTestHasASample(t *testing.T) {
-	f := &fakeCompleter{images: map[string]string{}, band: 7}
-	if _, err := NewOpenAIGrader(f, "", nil).Grade(context.Background(), GradeInput{TaskType: "task2", Answer: "essay"}); err != nil {
+	f := &fakeCompleter{images: map[string]string{}, params: map[string]llm.CompletionParams{}, band: 7}
+	if _, err := NewOpenAIGrader(f, "", "", nil).Grade(context.Background(), GradeInput{TaskType: "task2", Answer: "essay"}); err != nil {
 		t.Fatalf("Grade: %v", err)
 	}
 	if _, ok := f.images["model answer"]; ok {
@@ -207,13 +216,13 @@ func TestGrade_SkipsModelAnswerWhenTheTestHasASample(t *testing.T) {
 
 func TestGrade_FailsWhenAnyJobFails(t *testing.T) {
 	for _, job := range []string{criterionCoherence, "corrections"} {
-		f := &fakeCompleter{images: map[string]string{}, band: 6, fail: job}
-		if _, err := NewOpenAIGrader(f, "", nil).Grade(context.Background(), GradeInput{TaskType: "task2", Answer: "essay"}); err == nil {
+		f := &fakeCompleter{images: map[string]string{}, params: map[string]llm.CompletionParams{}, band: 6, fail: job}
+		if _, err := NewOpenAIGrader(f, "", "", nil).Grade(context.Background(), GradeInput{TaskType: "task2", Answer: "essay"}); err == nil {
 			t.Errorf("expected an error when %s fails", job)
 		}
 	}
-	f := &fakeCompleter{images: map[string]string{}, band: 10}
-	if _, err := NewOpenAIGrader(f, "", nil).Grade(context.Background(), GradeInput{TaskType: "task2", Answer: "essay"}); err == nil {
+	f := &fakeCompleter{images: map[string]string{}, params: map[string]llm.CompletionParams{}, band: 10}
+	if _, err := NewOpenAIGrader(f, "", "", nil).Grade(context.Background(), GradeInput{TaskType: "task2", Answer: "essay"}); err == nil {
 		t.Error("expected an error for a band above 9")
 	}
 }

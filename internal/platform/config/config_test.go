@@ -46,8 +46,8 @@ func TestLoadFromMapDefaults(t *testing.T) {
 	if cfg.App.Grading.PollInterval != 3*time.Second {
 		t.Errorf("Grading.PollInterval = %v, want 3s", cfg.App.Grading.PollInterval)
 	}
-	if cfg.App.Grading.JobTimeout != 90*time.Second {
-		t.Errorf("Grading.JobTimeout = %v, want 90s", cfg.App.Grading.JobTimeout)
+	if cfg.App.Grading.JobTimeout != 180*time.Second {
+		t.Errorf("Grading.JobTimeout = %v, want 180s", cfg.App.Grading.JobTimeout)
 	}
 }
 

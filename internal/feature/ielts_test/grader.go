@@ -67,10 +67,14 @@ type completer interface {
 // and its scores drift towards the middle of the scale. Judging and
 // correcting are deliberately low-temperature, to be consistent across
 // runs rather than creative.
+//
+// The corrections and the model answer are what learners read closely, so
+// they go to the review model; a reasoning model's thinking is kept low,
+// as it was most of their cost and time.
 var (
 	judgeParams       = llm.CompletionParams{Temperature: 0.1, MaxTokens: 3000}
-	correctionParams  = llm.CompletionParams{Temperature: 0.1, MaxTokens: 5000}
-	modelAnswerParams = llm.CompletionParams{Temperature: 0.4, MaxTokens: 1500}
+	correctionParams  = llm.CompletionParams{Temperature: 0.1, MaxTokens: 5000, ReasoningEffort: "low"}
+	modelAnswerParams = llm.CompletionParams{Temperature: 0.4, MaxTokens: 1500, ReasoningEffort: "low"}
 )
 
 // maxWritingCorrections bounds the correction list. It is high enough to
@@ -95,15 +99,21 @@ type descriptorCheck struct {
 
 type openAIGrader struct {
 	client       completer
-	model        string
+	judgeModel   string
+	reviewModel  string
 	resolveImage ImageResolver
 }
 
-// NewOpenAIGrader grades writing answers with model through client; an
-// empty model means the client's default. resolveImage may be nil when
-// every image_url is already absolute.
-func NewOpenAIGrader(client completer, model string, resolveImage ImageResolver) Grader {
-	return &openAIGrader{client: client, model: model, resolveImage: resolveImage}
+// NewOpenAIGrader grades writing answers through client: judgeModel rates
+// the criteria, reviewModel writes the corrections and model answer. An
+// empty model means the client's default, and an empty reviewModel means
+// judgeModel. resolveImage may be nil when every image_url is already
+// absolute.
+func NewOpenAIGrader(client completer, judgeModel, reviewModel string, resolveImage ImageResolver) Grader {
+	if reviewModel == "" {
+		reviewModel = judgeModel
+	}
+	return &openAIGrader{client: client, judgeModel: judgeModel, reviewModel: reviewModel, resolveImage: resolveImage}
 }
 
 func (g *openAIGrader) Grade(ctx context.Context, in GradeInput) (*GradingResult, error) {
@@ -189,8 +199,8 @@ func (g *openAIGrader) Grade(ctx context.Context, in GradeInput) (*GradingResult
 	return &result, nil
 }
 
-func (g *openAIGrader) complete(ctx context.Context, system, user, imageURL string, params llm.CompletionParams, out any) error {
-	params.Model = g.model
+func (g *openAIGrader) complete(ctx context.Context, model, system, user, imageURL string, params llm.CompletionParams, out any) error {
+	params.Model = model
 	raw, err := g.client.Complete(ctx, system, user, imageURL, params)
 	if err != nil {
 		return fmt.Errorf("llm: %w", err)
@@ -203,7 +213,7 @@ func (g *openAIGrader) complete(ctx context.Context, system, user, imageURL stri
 
 func (g *openAIGrader) judge(ctx context.Context, criterion string, in GradeInput, hasImage bool, imageURL string) (*CriterionScore, error) {
 	var v criterionVerdict
-	if err := g.complete(ctx, judgeSystemPrompt(in.TaskType, criterion, hasImage), answerPrompt(in), imageURL, judgeParams, &v); err != nil {
+	if err := g.complete(ctx, g.judgeModel, judgeSystemPrompt(in.TaskType, criterion, hasImage), answerPrompt(in), imageURL, judgeParams, &v); err != nil {
 		return nil, err
 	}
 	if v.Band < 0 || v.Band > 9 {
@@ -216,7 +226,7 @@ func (g *openAIGrader) correct(ctx context.Context, in GradeInput) ([]Correction
 	var out struct {
 		Corrections []Correction `json:"corrections"`
 	}
-	if err := g.complete(ctx, correctionSystemPrompt(in.TaskType), answerPrompt(in), "", correctionParams, &out); err != nil {
+	if err := g.complete(ctx, g.reviewModel, correctionSystemPrompt(in.TaskType), answerPrompt(in), "", correctionParams, &out); err != nil {
 		return nil, err
 	}
 	return out.Corrections, nil
@@ -227,7 +237,7 @@ func (g *openAIGrader) writeModelAnswer(ctx context.Context, in GradeInput, imag
 		ModelAnswer string `json:"model_answer"`
 	}
 	user := "Task prompt:\n" + in.Prompt
-	if err := g.complete(ctx, modelAnswerSystemPrompt(in.TaskType, imageURL != ""), user, imageURL, modelAnswerParams, &out); err != nil {
+	if err := g.complete(ctx, g.reviewModel, modelAnswerSystemPrompt(in.TaskType, imageURL != ""), user, imageURL, modelAnswerParams, &out); err != nil {
 		return "", err
 	}
 	if strings.TrimSpace(out.ModelAnswer) == "" {

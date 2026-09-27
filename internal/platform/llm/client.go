@@ -36,6 +36,10 @@ type CompletionParams struct {
 	Temperature float64
 	MaxTokens   int64
 	TopP        float64
+	// ReasoningEffort ("minimal", "low", "medium", "high") limits how long
+	// a reasoning model thinks, which is most of its cost and latency.
+	// Empty leaves the API default; other models ignore it.
+	ReasoningEffort string
 }
 
 // Complete sends system + user messages and returns the raw text response.
@@ -60,6 +64,9 @@ func (c *Client) Complete(ctx context.Context, system, user, imageURL string, pa
 	// Reasoning models reject sampling parameters, and their hidden
 	// reasoning counts against the token limit, so a cap sized for a
 	// visible answer would cut them off mid-thought.
+	if isReasoningModel(model) && params.ReasoningEffort != "" {
+		req.ReasoningEffort = openai.ReasoningEffort(params.ReasoningEffort)
+	}
 	if !isReasoningModel(model) {
 		if params.Temperature != 0 {
 			req.Temperature = openai.Float(params.Temperature)
