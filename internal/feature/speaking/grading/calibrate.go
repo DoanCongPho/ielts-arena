@@ -128,7 +128,7 @@ func RunCalibrateCmd(g *Grader, args []string, out io.Writer) int {
 			}
 		}
 		line := ""
-		for _, c := range criteria {
+		for _, c := range g.criteria {
 			got := details.Criteria[c].Score
 			want, ok := s.Bands[c]
 			if !ok {
@@ -163,7 +163,7 @@ func RunCalibrateCmd(g *Grader, args []string, out io.Writer) int {
 		pass = pass && rate >= calibrationTargetOverall
 		fmt.Fprintf(out, "overall within ±0.5: %d/%d (%.0f%%, target %.0f%%)\n", overallHit, overallN, 100*rate, 100*calibrationTargetOverall)
 	}
-	for _, c := range criteria {
+	for _, c := range g.criteria {
 		if critN[c] == 0 {
 			continue
 		}

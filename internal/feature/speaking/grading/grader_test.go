@@ -29,7 +29,7 @@ func TestGrade_AgainstDescriptorsWithCaps(t *testing.T) {
 	content := speakingtest.FullContent()
 	payload, audio := answerAll(content)
 	judge := &fakeJudge{band: 7}
-	g := New(audio, fakeASR{}, &fakePron{}, judge, Config{JudgeModel: "judge"})
+	g := New(audio, fakeASR{}, &fakePron{}, judge, Config{JudgeModel: "judge", ScorePronunciation: true})
 
 	d, overall, err := g.Grade(context.Background(), content, payload, false)
 	if err != nil {
@@ -62,7 +62,7 @@ func TestGrade_AgainstDescriptorsWithCaps(t *testing.T) {
 func TestGrade_PronunciationOutage(t *testing.T) {
 	content := speakingtest.FullContent()
 	payload, audio := answerAll(content)
-	g := New(audio, fakeASR{}, &fakePron{err: errors.New("pronunciation service unreachable")}, &fakeJudge{band: 6}, Config{})
+	g := New(audio, fakeASR{}, &fakePron{err: errors.New("pronunciation service unreachable")}, &fakeJudge{band: 6}, Config{ScorePronunciation: true})
 
 	// Before the last attempt the job fails, so it is retried.
 	if _, _, err := g.Grade(context.Background(), content, payload, false); !errors.Is(err, errPronunciationUnavailable) {
@@ -83,7 +83,7 @@ func TestGrade_PartPracticeIsIndicative(t *testing.T) {
 	content.Part1, content.Part3 = nil, nil
 	payload, audio := answerAll(content)
 	judge := &fakeJudge{band: 6}
-	g := New(audio, fakeASR{}, &fakePron{}, judge, Config{})
+	g := New(audio, fakeASR{}, &fakePron{}, judge, Config{ScorePronunciation: true})
 
 	d, _, err := g.Grade(context.Background(), content, payload, false)
 	if err != nil {
@@ -100,7 +100,7 @@ func TestGrade_PartPracticeIsIndicative(t *testing.T) {
 func TestGradeSpeaking_StoresTheDetailsAsJSON(t *testing.T) {
 	content := speakingtest.FullContent()
 	payload, audio := answerAll(content)
-	g := New(audio, fakeASR{}, &fakePron{}, &fakeJudge{band: 7}, Config{})
+	g := New(audio, fakeASR{}, &fakePron{}, &fakeJudge{band: 7}, Config{ScorePronunciation: true})
 
 	overall, raw, err := g.GradeSpeaking(context.Background(), content, payload, false)
 	if err != nil {
@@ -112,5 +112,28 @@ func TestGradeSpeaking_StoresTheDetailsAsJSON(t *testing.T) {
 	}
 	if overall != 6.5 || d.Criteria[CriterionLR].Score != 7 {
 		t.Errorf("overall %v, LR %v", overall, d.Criteria[CriterionLR].Score)
+	}
+}
+
+func TestGrade_WithoutPronunciationScoring(t *testing.T) {
+	content := speakingtest.FullContent()
+	payload, audio := answerAll(content)
+	judge := &fakeJudge{band: 7}
+	pron := &fakePron{}
+	g := New(audio, fakeASR{}, pron, judge, Config{})
+
+	d, overall, err := g.Grade(context.Background(), content, payload, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(judge.prompts) != 3 || pron.calls != 0 {
+		t.Errorf("judge called %d times, pronunciation service %d; want 3 and 0", len(judge.prompts), pron.calls)
+	}
+	if _, ok := d.Criteria[CriterionP]; ok || d.Pronunciation != nil {
+		t.Error("pronunciation was rated although scoring it is off")
+	}
+	// FC is capped to 5 by the short fake long turn: (5+7+7)/3 = 6.33 → 6.5.
+	if overall != 6.5 {
+		t.Errorf("overall = %v, want 6.5", overall)
 	}
 }

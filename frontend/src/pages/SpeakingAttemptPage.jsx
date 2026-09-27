@@ -157,8 +157,8 @@ export default function SpeakingAttemptPage() {
       const failed = (await Promise.all(uploads)).find(Boolean);
       if (failed) throw failed;
       const queued = await submitAnswer(Number(testId), { answers });
-      // Grading takes minutes (every answer is transcribed and scored for
-      // pronunciation), so the learner goes to their history and
+      // Grading takes minutes (every answer is transcribed and judged), so
+      // the learner goes to their history and
       // GradingNotifier tells them when the result is in.
       const label = MODE_TITLES[script.mode] || 'Speaking';
       watchGrading(queued.id, label);

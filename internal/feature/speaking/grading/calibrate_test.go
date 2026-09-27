@@ -22,7 +22,7 @@ func TestRunCalibrateCmd(t *testing.T) {
 	path := filepath.Join(dir, "manifest.json")
 	_ = os.WriteFile(path, []byte(manifest), 0o644)
 
-	g := New(nil, fakeASR{}, &fakePron{}, &fakeJudge{band: 7}, Config{})
+	g := New(nil, fakeASR{}, &fakePron{}, &fakeJudge{band: 7}, Config{ScorePronunciation: true})
 	var out strings.Builder
 	code := RunCalibrateCmd(g, []string{path}, &out)
 

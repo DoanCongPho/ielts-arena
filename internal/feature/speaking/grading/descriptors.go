@@ -1,6 +1,7 @@
 package grading
 
 // The four IELTS Speaking criteria, weighted equally in the overall band.
+// Pronunciation is rated only when Config.ScorePronunciation is set.
 const (
 	CriterionFC  = "Fluency and Coherence"
 	CriterionLR  = "Lexical Resource"

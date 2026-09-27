@@ -30,7 +30,7 @@ type descriptorCheck struct {
 
 var judgeParams = llm.CompletionParams{Temperature: 0.1, MaxTokens: 3500}
 
-// judgeAll runs the four criterion judges in parallel.
+// judgeAll runs the criterion judges in parallel.
 func (g *Grader) judgeAll(ctx context.Context, mode string, answers []answerTranscript, ev Evidence, pron *pronunciationSummary) (map[string]criterionVerdict, error) {
 	transcript := formatTranscript(answers)
 	out := map[string]criterionVerdict{}
@@ -39,7 +39,7 @@ func (g *Grader) judgeAll(ctx context.Context, mode string, answers []answerTran
 		mu       sync.Mutex
 		firstErr error
 	)
-	for _, c := range criteria {
+	for _, c := range g.criteria {
 		wg.Add(1)
 		go func(criterion string) {
 			defer wg.Done()

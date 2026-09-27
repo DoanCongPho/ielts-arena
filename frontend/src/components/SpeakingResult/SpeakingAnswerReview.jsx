@@ -50,8 +50,9 @@ function placeCorrections(words, corrections) {
 // SpeakingAnswerReview shows one answer: the recording, the transcript with
 // each word coloured by how clearly it was pronounced, grammar and word
 // choice errors struck through with their fix, and — for a clicked word —
-// what the candidate said next to the expected pronunciation.
-export default function SpeakingAnswerReview({ answer, pronWords, corrections, recordingUrl }) {
+// what the candidate said next to the expected pronunciation. Without
+// showPronunciation the words are plain text and only the corrections show.
+export default function SpeakingAnswerReview({ answer, showPronunciation = true, pronWords, corrections, recordingUrl }) {
   const audioRef = useRef(null);
   const stopAt = useRef(null);
   const [selected, setSelected] = useState(null);
@@ -107,6 +108,10 @@ export default function SpeakingAnswerReview({ answer, pronWords, corrections, r
       continue;
     }
     const w = words[i];
+    if (!showPronunciation) {
+      elements.push(w.word.trim(), ' ');
+      continue;
+    }
     const pw = byIndex.get(i);
     elements.push(
       <button
