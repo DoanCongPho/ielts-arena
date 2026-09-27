@@ -3,10 +3,15 @@ package ielts_test
 import (
 	"context"
 	"encoding/base64"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
+
+	"github/DoanCongPho/game-arena/internal/platform/llm"
 )
 
 // gradeWith builds a Task 2 grade scoring the four criteria as given.
@@ -96,22 +101,120 @@ func TestNormalizeResult_KeepsOnlyCorrectionsFoundInTheAnswer(t *testing.T) {
 	}
 }
 
-func TestBuildSystemPrompt(t *testing.T) {
-	t1 := buildSystemPrompt("task1", true, false)
-	for _, want := range []string{criterionTaskAchievement, "at least 150 words", "attached", "Vietnamese"} {
-		if !strings.Contains(t1, want) {
-			t.Errorf("Task 1 prompt is missing %q", want)
+func TestJudgeSystemPrompt(t *testing.T) {
+	ta := judgeSystemPrompt("task1", criterionTaskAchievement, true)
+	for _, want := range []string{criterionTaskAchievement, "at least 150 words", "attached", "Vietnamese", `"checks"`, "3: The response does not address"} {
+		if !strings.Contains(ta, want) {
+			t.Errorf("Task Achievement prompt is missing %q", want)
 		}
 	}
-	if strings.Contains(t1, criterionTaskResponse) || strings.Contains(t1, "model_answer") {
-		t.Error("Task 1 prompt with a stored sample must not ask for Task Response or a model answer")
+	if strings.Contains(ta, criterionGrammar) {
+		t.Error("a judge's prompt must carry only its own criterion")
 	}
 
-	t2 := buildSystemPrompt("task2", false, true)
-	for _, want := range []string{criterionTaskResponse, "at least 250 words", `"model_answer"`} {
-		if !strings.Contains(t2, want) {
-			t.Errorf("Task 2 prompt is missing %q", want)
+	// Word count and chart only matter to the content criterion.
+	gra := judgeSystemPrompt("task1", criterionGrammar, false)
+	if strings.Contains(gra, "at least 150 words") || strings.Contains(gra, "attached") {
+		t.Error("the grammar judge must not be told about length or the chart")
+	}
+
+	tr := judgeSystemPrompt("task2", criterionTaskResponse, false)
+	if !strings.Contains(tr, "at least 250 words") {
+		t.Error("Task Response prompt is missing the Task 2 length")
+	}
+}
+
+// fakeCompleter answers each grading job by its system prompt.
+type fakeCompleter struct {
+	mu     sync.Mutex
+	images map[string]string // job → image URL it was sent
+	models []string
+	fail   string // job to fail
+	band   int
+}
+
+func (f *fakeCompleter) Complete(_ context.Context, system, _, imageURL string, params llm.CompletionParams) (string, error) {
+	job := "judge"
+	switch {
+	case strings.Contains(system, "marking a learner"):
+		job = "corrections"
+	case strings.Contains(system, "model answer"):
+		job = "model answer"
+	default:
+		for _, c := range []string{criterionTaskAchievement, criterionTaskResponse, criterionCoherence, criterionLexical, criterionGrammar} {
+			if strings.Contains(system, "one criterion only: "+c) {
+				job = c
+			}
 		}
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.images[job] = imageURL
+	f.models = append(f.models, params.Model)
+	if job == f.fail {
+		return "", errors.New("boom")
+	}
+	switch job {
+	case "corrections":
+		return `{"corrections":[{"span":"people believes","issue":"grammar","suggestion":"people believe"}]}`, nil
+	case "model answer":
+		return `{"model_answer":"A model answer."}`, nil
+	}
+	return fmt.Sprintf(`{"checks":[],"band":%d,"feedback":"ok","improvements":["do x"]}`, f.band), nil
+}
+
+func TestGrade_RunsAJudgePerCriterion(t *testing.T) {
+	f := &fakeCompleter{images: map[string]string{}, band: 6}
+	g := NewOpenAIGrader(f, "strong-model", nil)
+	got, err := g.Grade(context.Background(), GradeInput{
+		TaskType: "task1", Prompt: "Describe the chart.", ImageURL: "https://x/chart.png",
+		Answer: "Many people believes the chart shows growth.", NeedModelAnswer: true,
+	})
+	if err != nil {
+		t.Fatalf("Grade: %v", err)
+	}
+	if len(got.Criteria) != 4 || got.Criteria[criterionGrammar].Score != 6 || got.Criteria[criterionLexical].Improvements[0] != "do x" {
+		t.Errorf("criteria = %+v", got.Criteria)
+	}
+	if len(got.Corrections) != 1 || got.ModelAnswer != "A model answer." {
+		t.Errorf("corrections = %+v, model answer = %q", got.Corrections, got.ModelAnswer)
+	}
+	// The chart goes to the content judge and the model answer only.
+	for job, want := range map[string]string{
+		criterionTaskAchievement: "https://x/chart.png", "model answer": "https://x/chart.png",
+		criterionCoherence: "", criterionLexical: "", criterionGrammar: "", "corrections": "",
+	} {
+		if f.images[job] != want {
+			t.Errorf("%s got image %q, want %q", job, f.images[job], want)
+		}
+	}
+	for _, m := range f.models {
+		if m != "strong-model" {
+			t.Errorf("a call used model %q, want strong-model", m)
+		}
+	}
+}
+
+func TestGrade_SkipsModelAnswerWhenTheTestHasASample(t *testing.T) {
+	f := &fakeCompleter{images: map[string]string{}, band: 7}
+	if _, err := NewOpenAIGrader(f, "", nil).Grade(context.Background(), GradeInput{TaskType: "task2", Answer: "essay"}); err != nil {
+		t.Fatalf("Grade: %v", err)
+	}
+	if _, ok := f.images["model answer"]; ok {
+		t.Error("a model answer was written although the test has a sample")
+	}
+}
+
+func TestGrade_FailsWhenAnyJobFails(t *testing.T) {
+	for _, job := range []string{criterionCoherence, "corrections"} {
+		f := &fakeCompleter{images: map[string]string{}, band: 6, fail: job}
+		if _, err := NewOpenAIGrader(f, "", nil).Grade(context.Background(), GradeInput{TaskType: "task2", Answer: "essay"}); err == nil {
+			t.Errorf("expected an error when %s fails", job)
+		}
+	}
+	f := &fakeCompleter{images: map[string]string{}, band: 10}
+	if _, err := NewOpenAIGrader(f, "", nil).Grade(context.Background(), GradeInput{TaskType: "task2", Answer: "essay"}); err == nil {
+		t.Error("expected an error for a band above 9")
 	}
 }
 
