@@ -284,15 +284,14 @@ func (s *service) gradeClaimed(ctx context.Context, sub *Submission) error {
 	jobCtx, cancel := context.WithTimeout(ctx, s.jobTimeout(test.Skill))
 	defer cancel()
 	var gradeErr error
-	switch test.Skill {
-	case "writing":
-		gradeErr = s.gradeSubmission(jobCtx, test, sub)
-	case "speaking":
-		gradeErr = s.gradeSpeaking(jobCtx, test, sub)
-	case "reading", "listening":
-		gradeErr = s.autoGradeSubmission(jobCtx, test, sub)
-	default:
-		gradeErr = fmt.Errorf("%w: no grader for skill %q", ErrUngradable, test.Skill)
+	// A retry of a grade whose score was already saved only has to settle
+	// the status: grading again would pay for the LLM twice and then
+	// collide with the saved score.
+	if _, err := s.repo.GetScoreBySubmissionID(ctx, sub.ID); err == nil {
+		sub.Status = StatusGraded
+		gradeErr = s.repo.UpdateSubmissionStatus(ctx, sub.ID, StatusGraded)
+	} else {
+		gradeErr = s.gradeBySkill(jobCtx, test, sub)
 	}
 	if gradeErr != nil {
 		return s.settleFailure(ctx, sub, gradeErr)
@@ -314,6 +313,32 @@ func (s *service) gradeClaimed(ctx context.Context, sub *Submission) error {
 	return nil
 }
 
+// gradeBySkill runs the grader for test's skill.
+func (s *service) gradeBySkill(ctx context.Context, test *Test, sub *Submission) error {
+	switch test.Skill {
+	case "writing":
+		return s.gradeSubmission(ctx, test, sub)
+	case "speaking":
+		return s.gradeSpeaking(ctx, test, sub)
+	case "reading", "listening":
+		return s.autoGradeSubmission(ctx, test, sub)
+	default:
+		return fmt.Errorf("%w: no grader for skill %q", ErrUngradable, test.Skill)
+	}
+}
+
+// recordScore stores a grade and marks the submission graded. A score that
+// is already there comes from an earlier run of this same grade (one that
+// timed out after saving, or a second worker): it is kept and the
+// submission is still marked graded, never failed over a duplicate.
+func (s *service) recordScore(ctx context.Context, sub *Submission, sc *Score) error {
+	if _, err := s.repo.CreateScore(ctx, sc); err != nil && !errors.Is(err, ErrScoreExists) {
+		return fmt.Errorf("create score: %w", err)
+	}
+	sub.Status = StatusGraded
+	return s.repo.UpdateSubmissionStatus(ctx, sub.ID, StatusGraded)
+}
+
 // settleFailure records a failed grading attempt: permanently for an
 // ungradable submission or one out of attempts, otherwise back on the
 // queue with exponential backoff.
@@ -327,18 +352,18 @@ func (s *service) settleFailure(ctx context.Context, sub *Submission, cause erro
 
 	permanent := errors.Is(cause, ErrUngradable) || sub.Attempts >= maxGradingAttempts
 	if permanent {
-		sub.Status = StatusFailed
 		if err := s.repo.FailGrading(writeCtx, sub.ID, cause.Error()); err != nil {
 			return fmt.Errorf("submission %d: settle failed: %w (original cause: %v)", sub.ID, err, cause)
 		}
+		sub.Status = StatusFailed
 		return fmt.Errorf("submission %d failed permanently on attempt %d: %w", sub.ID, sub.Attempts, cause)
 	}
 
 	delay := retryBaseDelay << (sub.Attempts - 1)
-	sub.Status = StatusPending
 	if err := s.repo.RescheduleGrading(writeCtx, sub.ID, cause.Error(), time.Now().Add(delay)); err != nil {
 		return fmt.Errorf("submission %d: reschedule failed: %w (original cause: %v)", sub.ID, err, cause)
 	}
+	sub.Status = StatusPending
 	return fmt.Errorf("submission %d attempt %d failed, retrying in %s: %w", sub.ID, sub.Attempts, delay, cause)
 }
 
@@ -386,16 +411,11 @@ func (s *service) gradeSubmission(ctx context.Context, test *Test, sub *Submissi
 	}
 
 	overallBand := result.OverallBand
-	if _, err := s.repo.CreateScore(ctx, &Score{
+	return s.recordScore(ctx, sub, &Score{
 		SubmissionID: sub.ID,
 		OverallBand:  &overallBand,
 		Details:      details,
-	}); err != nil {
-		return fmt.Errorf("create score: %w", err)
-	}
-
-	sub.Status = StatusGraded
-	return s.repo.UpdateSubmissionStatus(ctx, sub.ID, StatusGraded)
+	})
 }
 
 func (s *service) GetSubmissionByID(ctx context.Context, userID uint64, submissionID uint64) (*Submission, error) {

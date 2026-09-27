@@ -796,3 +796,99 @@ func TestService_GradeWriting_ModelAnswerSourceAndWordCount(t *testing.T) {
 		})
 	}
 }
+
+// raceGrader saves a score for the submission while "grading", the way a
+// second run of the same grade does when it finishes first.
+type raceGrader struct {
+	repo  *MockTestRepository
+	subID uint64
+	calls int
+}
+
+func (g *raceGrader) Grade(ctx context.Context, in GradeInput) (*GradingResult, error) {
+	g.calls++
+	band := 5.5
+	if _, err := g.repo.CreateScore(ctx, &Score{SubmissionID: g.subID, OverallBand: &band}); err != nil {
+		return nil, err
+	}
+	return writingGrade("task2", 7), nil
+}
+
+func seedWritingTest(t *testing.T, repo *MockTestRepository) *Test {
+	t.Helper()
+	test, err := repo.CreateTest(context.Background(), &Test{
+		Skill: "writing", TaskType: "task2", ContentData: mustMarshal(t, WritingContent{Prompt: "Discuss."}),
+	})
+	if err != nil {
+		t.Fatalf("seed test: %v", err)
+	}
+	return test
+}
+
+// A second run of a grade that another run already saved is graded, keeping
+// the saved score — not failed over the duplicate (production #186691).
+func TestService_GradeNextPending_DuplicateScoreKeepsTheGrade(t *testing.T) {
+	repo := NewMockTestRepository()
+	grader := &raceGrader{repo: repo, subID: 1}
+	svc := newTestService(repo, grader)
+	test := seedWritingTest(t, repo)
+
+	sub := submitAndGrade(t, svc, repo, 1, SubmitRequest{TestID: test.ID, Payload: mustMarshal(t, WritingPayload{Text: "My essay."})})
+
+	if sub.Status != StatusGraded || sub.LastError != "" {
+		t.Fatalf("status = %q, last error = %q; want graded, no error", sub.Status, sub.LastError)
+	}
+	if grader.calls != 1 {
+		t.Errorf("graded %d times, want once", grader.calls)
+	}
+	score, _ := repo.GetScoreBySubmissionID(context.Background(), sub.ID)
+	if score == nil || *score.OverallBand != 5.5 {
+		t.Errorf("score = %+v, want the one saved first", score)
+	}
+}
+
+// A retry of a grade whose score was saved (say the job timed out right
+// after) settles as graded without calling the grader again.
+func TestService_GradeNextPending_RetryWithSavedScoreSkipsTheGrader(t *testing.T) {
+	repo := NewMockTestRepository()
+	grader := &fakeGrader{err: errors.New("must not be called")}
+	svc := newTestService(repo, grader)
+	test := seedWritingTest(t, repo)
+	ctx := context.Background()
+
+	sub, err := svc.SubmitAnswer(ctx, 1, SubmitRequest{TestID: test.ID, Payload: mustMarshal(t, WritingPayload{Text: "My essay."})})
+	if err != nil {
+		t.Fatal(err)
+	}
+	band := 6.0
+	if _, err := repo.CreateScore(ctx, &Score{SubmissionID: sub.ID, OverallBand: &band}); err != nil {
+		t.Fatal(err)
+	}
+	drainGradingQueue(t, svc)
+
+	settled, _ := repo.GetSubmissionByID(ctx, sub.ID)
+	if settled.Status != StatusGraded {
+		t.Errorf("status = %q, want graded", settled.Status)
+	}
+	if grader.last.Answer != "" {
+		t.Error("the grader ran again for a submission that already had its score")
+	}
+}
+
+// A late failing run can't turn a graded submission back to pending or
+// failed.
+func TestRepository_SettleOnlyAppliesWhileGrading(t *testing.T) {
+	repo := NewMockTestRepository()
+	ctx := context.Background()
+	sub, _ := repo.CreateSubmission(ctx, &Submission{Status: StatusGraded})
+
+	if err := repo.RescheduleGrading(ctx, sub.ID, "late", time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.FailGrading(ctx, sub.ID, "late"); err != nil {
+		t.Fatal(err)
+	}
+	if sub.Status != StatusGraded || sub.LastError != "" {
+		t.Errorf("status = %q, last error = %q; a graded submission was settled again", sub.Status, sub.LastError)
+	}
+}

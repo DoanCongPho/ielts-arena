@@ -6,6 +6,9 @@ var (
 	ErrTestNotFound       = errors.New("test not found")
 	ErrSubmissionNotFound = errors.New("submission not found")
 	ErrScoreNotFound      = errors.New("score not found")
+	// ErrScoreExists: the submission already has its score, written by an
+	// earlier run of the same grade.
+	ErrScoreExists = errors.New("score already exists")
 	// ErrAnswerKeyLocked: the caller hasn't finished (had graded) an attempt
 	// at this test, so its answers and explanations stay hidden.
 	ErrAnswerKeyLocked = errors.New("the answer key is available once your attempt is graded")

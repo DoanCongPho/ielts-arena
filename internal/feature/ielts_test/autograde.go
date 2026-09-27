@@ -425,16 +425,11 @@ func (s *service) autoGradeSubmission(ctx context.Context, test *Test, sub *Subm
 	}
 
 	overallBand := bandFromRawScore(correct, total)
-	if _, err := s.repo.CreateScore(ctx, &Score{
+	return s.recordScore(ctx, sub, &Score{
 		SubmissionID: sub.ID,
 		OverallBand:  &overallBand,
 		Details:      details,
-	}); err != nil {
-		return fmt.Errorf("create score: %w", err)
-	}
-
-	sub.Status = StatusGraded
-	return s.repo.UpdateSubmissionStatus(ctx, sub.ID, StatusGraded)
+	})
 }
 
 func questionsFromContent(skill string, raw []byte) ([]gradableQuestion, error) {
