@@ -40,6 +40,9 @@ export default function SpeakingAttemptPage() {
   const [notes, setNotes] = useState('');
 
   const skipRef = useRef(null);
+  // skipSpeechRef cuts the examiner short while an introduction or
+  // hand-over (a "say" line) is playing.
+  const skipSpeechRef = useRef(null);
   const abortRef = useRef(null);
   const streamRef = useRef(null);
 
@@ -117,13 +120,35 @@ export default function SpeakingAttemptPage() {
     const answers = [];
     const uploads = [];
     let slot = 0;
+    // Set when the candidate skips an introduction: the "say" lines up to
+    // the next question are skipped with it.
+    let skippingIntro = false;
 
     try {
       for (let i = 0; i < script.lines.length; i++) {
         const line = script.lines[i];
+        if (line.kind !== 'say') skippingIntro = false;
+        else if (skippingIntro) continue;
         setIndex(i);
         setStage('speak');
-        await speakLine(line, abort.signal);
+
+        const lineAbort = new AbortController();
+        const forward = () => lineAbort.abort();
+        abort.signal.addEventListener('abort', forward, { once: true });
+        if (line.kind === 'say') {
+          skipSpeechRef.current = () => {
+            skippingIntro = true;
+            lineAbort.abort();
+          };
+        }
+        try {
+          await speakLine(line, lineAbort.signal);
+        } catch (err) {
+          if (abort.signal.aborted || !skippingIntro) throw err;
+        } finally {
+          abort.signal.removeEventListener('abort', forward);
+          skipSpeechRef.current = null;
+        }
 
         if (line.kind === 'cue_card') {
           setStage('prep');
@@ -237,6 +262,12 @@ export default function SpeakingAttemptPage() {
               <button type="button" className="speaking-toggle" onClick={() => setShowText((v) => !v)}>
                 {showText ? 'Ẩn câu hỏi' : 'Hiện câu hỏi'}
               </button>
+            </div>
+          )}
+
+          {stage === 'speak' && line.kind === 'say' && (
+            <div className="speaking-controls">
+              <Button variant="secondary" onClick={() => skipSpeechRef.current?.()}>Bỏ qua giới thiệu →</Button>
             </div>
           )}
 
