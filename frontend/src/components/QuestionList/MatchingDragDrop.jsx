@@ -1,6 +1,7 @@
 import AnswerExplanation from '../AnswerExplanation/AnswerExplanation';
 import { useState } from 'react';
 import HighlightableText from '../HighlightableText/HighlightableText';
+import FigureSplit from './FigureSplit';
 
 function optionLabel(opt) {
   return opt.id === opt.text ? opt.text : `${opt.id}. ${opt.text}`;
@@ -69,80 +70,81 @@ export default function MatchingDragDrop({ group, answers, onChange, disabled, r
   }
 
   return (
-    <div className="matching-dnd">
-      {group.map_image_url && <img className="choice-control-map" src={group.map_image_url} alt="Sơ đồ" />}
-      {bankOptions && renderBank(bankOptions)}
+    <FigureSplit images={group.map_image_url ? [group.map_image_url] : []} alt="Sơ đồ">
+      <div className="matching-dnd">
+        {bankOptions && renderBank(bankOptions)}
 
-      <div className="matching-dnd-questions">
-        {group.questions.map((q) => {
-          const order = q.question_order;
-          const result = results?.[order];
-          const options = bankOptions ? null : optionsFor(group, q);
-          const value = result ? result.submitted_answer?.[0] ?? '' : answers?.[order] ?? '';
-          const source = bankOptions || options;
-          const chosen = source?.find((o) => o.id === value);
-          const itemClass = result
-            ? `question-item ${result.correct ? 'question-item-correct' : 'question-item-incorrect'}`
-            : 'question-item';
-          const textKey = `q-${order}-text`;
+        <div className="matching-dnd-questions">
+          {group.questions.map((q) => {
+            const order = q.question_order;
+            const result = results?.[order];
+            const options = bankOptions ? null : optionsFor(group, q);
+            const value = result ? result.submitted_answer?.[0] ?? '' : answers?.[order] ?? '';
+            const source = bankOptions || options;
+            const chosen = source?.find((o) => o.id === value);
+            const itemClass = result
+              ? `question-item ${result.correct ? 'question-item-correct' : 'question-item-incorrect'}`
+              : 'question-item';
+            const textKey = `q-${order}-text`;
 
-          return (
-            <div key={order} id={`question-${order}`} className={itemClass}>
-              <p className="question-item-text">
-                <span className="question-item-number">Câu {order}</span>{' '}
-                <HighlightableText id={textKey} text={q.text} ranges={highlights?.[textKey]} onRemoveRange={onHighlightRemove} />
-              </p>
+            return (
+              <div key={order} id={`question-${order}`} className={itemClass}>
+                <p className="question-item-text">
+                  <span className="question-item-number">Câu {order}</span>{' '}
+                  <HighlightableText id={textKey} text={q.text} ranges={highlights?.[textKey]} onRemoveRange={onHighlightRemove} />
+                </p>
 
-              {!bankOptions && options && renderBank(options)}
+                {!bankOptions && options && renderBank(options)}
 
-              <div
-                className={`matching-drop-slot ${dragOverOrder === order ? 'matching-drop-slot-over' : ''} ${chosen ? 'matching-drop-slot-filled' : ''}`}
-                onDragOver={(e) => {
-                  if (disabled) return;
-                  e.preventDefault();
-                  setDragOverOrder(order);
-                }}
-                onDragLeave={() => setDragOverOrder((o) => (o === order ? null : o))}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setDragOverOrder(null);
-                  const optionId = e.dataTransfer.getData('text/plain');
-                  if (optionId) assign(order, optionId);
-                }}
-                onClick={() => {
-                  if (selectedChip) assign(order, selectedChip);
-                }}
-              >
-                {chosen ? (
-                  <span className="matching-drop-value">
-                    {optionLabel(chosen)}
-                    {!disabled && (
-                      <button
-                        type="button"
-                        className="matching-drop-clear"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          clear(order);
-                        }}
-                        aria-label="Bỏ đáp án"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </span>
-                ) : (
-                  <span className="matching-drop-placeholder">Kéo đáp án vào đây, hoặc bấm để chọn</span>
+                <div
+                  className={`matching-drop-slot ${dragOverOrder === order ? 'matching-drop-slot-over' : ''} ${chosen ? 'matching-drop-slot-filled' : ''}`}
+                  onDragOver={(e) => {
+                    if (disabled) return;
+                    e.preventDefault();
+                    setDragOverOrder(order);
+                  }}
+                  onDragLeave={() => setDragOverOrder((o) => (o === order ? null : o))}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragOverOrder(null);
+                    const optionId = e.dataTransfer.getData('text/plain');
+                    if (optionId) assign(order, optionId);
+                  }}
+                  onClick={() => {
+                    if (selectedChip) assign(order, selectedChip);
+                  }}
+                >
+                  {chosen ? (
+                    <span className="matching-drop-value">
+                      {optionLabel(chosen)}
+                      {!disabled && (
+                        <button
+                          type="button"
+                          className="matching-drop-clear"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            clear(order);
+                          }}
+                          aria-label="Bỏ đáp án"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </span>
+                  ) : (
+                    <span className="matching-drop-placeholder">Kéo đáp án vào đây, hoặc bấm để chọn</span>
+                  )}
+                </div>
+
+                {result && !result.correct && (
+                  <p className="question-item-correct-answer">Đáp án đúng: {(result.correct_answer || []).join(', ')}</p>
                 )}
+                {result && <AnswerExplanation order={order} />}
               </div>
-
-              {result && !result.correct && (
-                <p className="question-item-correct-answer">Đáp án đúng: {(result.correct_answer || []).join(', ')}</p>
-              )}
-              {result && <AnswerExplanation order={order} />}
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
-    </div>
+    </FigureSplit>
   );
 }

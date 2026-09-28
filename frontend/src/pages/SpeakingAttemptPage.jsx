@@ -247,7 +247,16 @@ export default function SpeakingAttemptPage() {
       {phase === 'running' && (
         <div className={`speaking-stage ${inPart2Talk ? 'speaking-stage-card' : ''}`}>
           {inPart2Talk && cueCard ? (
-            <CueCard text={cueCard.text} />
+            <>
+              <CueCard text={cueCard.text} />
+              {/* The notes stay in view during the talk, as on paper in the test. */}
+              {stage === 'record' && notes.trim() && (
+                <div className="speaking-notes-view">
+                  <p className="speaking-notes-view-label text-label">Ghi chú của bạn</p>
+                  <p className="speaking-notes-view-text">{notes}</p>
+                </div>
+              )}
+            </>
           ) : (
             <div className="speaking-examiner">
               <div className={`speaking-examiner-avatar ${stage === 'speak' ? 'speaking-examiner-talking' : ''}`} aria-hidden>

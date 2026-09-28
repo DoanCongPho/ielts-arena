@@ -138,13 +138,53 @@
   opacity: 0.7;
 }
 
-.choice-control-map,
-.plain-input-diagram {
+/* A group's map or diagrams beside its questions (FigureSplit). Stacked
+   by default; two columns once the group itself is wide enough, with the
+   picture sticking in view while the questions scroll. */
+.figure-split {
+  container-type: inline-size;
+}
+
+.figure-split-media {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.figure-split-img {
   display: block;
   max-width: 100%;
-  margin-bottom: var(--space-4);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-sm);
+  background: var(--surface-0);
+}
+
+.figure-split-body {
+  min-width: 0;
+}
+
+@container (min-width: 760px) {
+  .figure-split-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: var(--space-5);
+    align-items: start;
+  }
+
+  .figure-split-media {
+    position: sticky;
+    top: var(--space-4);
+    margin-bottom: 0;
+  }
+
+  /* Tall pictures shrink to fit the viewport, clear of the listening
+     page's player bar, so the whole map is visible at once. */
+  .figure-split-img {
+    max-height: calc(100vh - 160px);
+    width: auto;
+    object-fit: contain;
+  }
 }
 
 /* Structured completion types (summary/table/note/flow-chart/form) */

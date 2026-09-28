@@ -180,3 +180,27 @@
   margin: var(--space-2) 0;
   padding-left: var(--space-5);
 }
+
+/* The Part 2 notes, read-only while the candidate talks. */
+.speaking-notes-view {
+  width: 100%;
+  text-align: left;
+  background: var(--surface-0);
+  border: 1px dashed var(--hairline-strong);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+}
+
+.speaking-notes-view-label {
+  margin: 0 0 var(--space-2);
+}
+
+.speaking-notes-view-text {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink-900);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

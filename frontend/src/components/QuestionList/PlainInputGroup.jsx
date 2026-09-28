@@ -1,49 +1,48 @@
 import AnswerExplanation from '../AnswerExplanation/AnswerExplanation';
 import HighlightableText from '../HighlightableText/HighlightableText';
+import FigureSplit from './FigureSplit';
 
 // PlainInputGroup covers question_types where each question has its own
 // text prompt and a single free-text answer: sentence-completion,
 // short-answer, and diagram-label-completion (which additionally shows the
-// group's diagram images above the question list).
+// group's diagram images beside the question list).
 export default function PlainInputGroup({ group, answers, onChange, disabled, results, highlights, onHighlightRemove }) {
   const diagrams = [group.diagram_image_url, ...(group.diagram_image_urls || [])].filter(Boolean);
   return (
-    <div className="plain-input-group">
-      {diagrams.map((src, i) => (
-        <img key={src} className="plain-input-diagram" src={src} alt={`Sơ đồ ${i + 1}`} />
-      ))}
+    <FigureSplit images={diagrams} alt="Sơ đồ">
+      <div className="plain-input-group">
+        {group.questions.map((q) => {
+          const order = q.question_order;
+          const result = results?.[order];
+          const value = result ? result.submitted_answer?.[0] ?? '' : answers?.[order] ?? '';
+          const itemClass = result
+            ? `question-item ${result.correct ? 'question-item-correct' : 'question-item-incorrect'}`
+            : 'question-item';
+          const textKey = `q-${order}-text`;
 
-      {group.questions.map((q) => {
-        const order = q.question_order;
-        const result = results?.[order];
-        const value = result ? result.submitted_answer?.[0] ?? '' : answers?.[order] ?? '';
-        const itemClass = result
-          ? `question-item ${result.correct ? 'question-item-correct' : 'question-item-incorrect'}`
-          : 'question-item';
-        const textKey = `q-${order}-text`;
-
-        return (
-          <div key={order} id={`question-${order}`} className={itemClass}>
-            <p className="question-item-text">
-              <span className="question-item-number">Câu {order}</span>{' '}
-              <HighlightableText id={textKey} text={q.text} ranges={highlights?.[textKey]} onRemoveRange={onHighlightRemove} />
-              {group.word_limit ? <span className="question-item-hint"> (tối đa {group.word_limit} từ)</span> : null}
-            </p>
-            <input
-              type="text"
-              className="question-item-input"
-              value={value}
-              disabled={disabled}
-              onChange={(e) => onChange?.(order, e.target.value)}
-              placeholder="Nhập câu trả lời..."
-            />
-            {result && !result.correct && (
-              <p className="question-item-correct-answer">Đáp án đúng: {(result.correct_answer || []).join(', ')}</p>
-            )}
-            {result && <AnswerExplanation order={order} />}
-          </div>
-        );
-      })}
-    </div>
+          return (
+            <div key={order} id={`question-${order}`} className={itemClass}>
+              <p className="question-item-text">
+                <span className="question-item-number">Câu {order}</span>{' '}
+                <HighlightableText id={textKey} text={q.text} ranges={highlights?.[textKey]} onRemoveRange={onHighlightRemove} />
+                {group.word_limit ? <span className="question-item-hint"> (tối đa {group.word_limit} từ)</span> : null}
+              </p>
+              <input
+                type="text"
+                className="question-item-input"
+                value={value}
+                disabled={disabled}
+                onChange={(e) => onChange?.(order, e.target.value)}
+                placeholder="Nhập câu trả lời..."
+              />
+              {result && !result.correct && (
+                <p className="question-item-correct-answer">Đáp án đúng: {(result.correct_answer || []).join(', ')}</p>
+              )}
+              {result && <AnswerExplanation order={order} />}
+            </div>
+          );
+        })}
+      </div>
+    </FigureSplit>
   );
 }
