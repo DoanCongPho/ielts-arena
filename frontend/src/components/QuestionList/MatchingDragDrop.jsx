@@ -7,6 +7,17 @@ function optionLabel(opt) {
   return opt.id === opt.text ? opt.text : `${opt.id}. ${opt.text}`;
 }
 
+// isSingleUse reports whether each option answers at most one question.
+// allow_reuse says so when set; otherwise, as on the paper, a letter is
+// reusable only when the instructions say "more than once", or when there
+// are fewer letters than questions.
+function isSingleUse(group, bankOptions) {
+  if (group.allow_reuse != null) return !group.allow_reuse;
+  if (!bankOptions) return false;
+  if (/more than once/i.test(group.instructions || '')) return false;
+  return bankOptions.length >= group.questions.length;
+}
+
 function optionsFor(group, question) {
   if (group.question_type === 'map-plan-labelling') return group.location_key || [];
   if (question.options?.length) return question.options;
@@ -19,7 +30,7 @@ function optionsFor(group, question) {
 // draggable option chips, and one drop slot per question. Options can also
 // be assigned by clicking a chip (selecting it) then clicking a slot —
 // necessary on touch devices, where HTML5 drag-and-drop doesn't work well.
-export default function MatchingDragDrop({ group, answers, onChange, disabled, results, highlights, onHighlightRemove }) {
+export default function MatchingDragDrop({ group, answers, onChange, disabled, results, highlights, onHighlightRemove, skill }) {
   const [selectedChip, setSelectedChip] = useState(null);
   const [dragOverOrder, setDragOverOrder] = useState(null);
 
@@ -34,6 +45,7 @@ export default function MatchingDragDrop({ group, answers, onChange, disabled, r
       : null;
 
   const usedIds = new Set(group.questions.map((q) => answers?.[q.question_order]).filter(Boolean));
+  const singleUse = isSingleUse(group, bankOptions);
 
   function assign(order, optionId) {
     if (disabled) return;
@@ -50,14 +62,21 @@ export default function MatchingDragDrop({ group, answers, onChange, disabled, r
     return (
       <div className="matching-dnd-bank">
         {options.map((opt) => {
-          const usedElsewhere = group.allow_reuse === false && usedIds.has(opt.id);
+          // A chip already placed in a slot is struck through, so the ones
+          // left stand out. When each letter answers one question only, it
+          // can't be placed again: on the listening page, where the answers
+          // go in against the recording, it leaves the bank altogether.
+          // Reviews always show the whole bank.
+          const used = usedIds.has(opt.id);
+          const locked = used && singleUse;
+          if (locked && !disabled && skill === 'listening') return null;
           return (
             <button
               key={opt.id}
               type="button"
-              draggable={!disabled && !usedElsewhere}
-              disabled={disabled || usedElsewhere}
-              className={`matching-chip ${selectedChip === opt.id ? 'matching-chip-selected' : ''} ${usedElsewhere ? 'matching-chip-used' : ''}`}
+              draggable={!disabled && !locked}
+              disabled={disabled || locked}
+              className={`matching-chip ${selectedChip === opt.id ? 'matching-chip-selected' : ''} ${used ? 'matching-chip-used' : ''}`}
               onDragStart={(e) => e.dataTransfer.setData('text/plain', opt.id)}
               onClick={() => setSelectedChip((id) => (id === opt.id ? null : opt.id))}
             >

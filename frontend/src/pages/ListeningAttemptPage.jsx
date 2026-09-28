@@ -19,6 +19,7 @@ import QuestionNavBar from '../components/QuestionNavBar/QuestionNavBar';
 import Button from '../components/ui/Button/Button';
 import './PracticePage.css';
 import './WritingAttemptPage.css';
+import './ReadingAttemptPage.css';
 import './ListeningAttemptPage.css';
 
 export default function ListeningAttemptPage() {
@@ -136,9 +137,12 @@ export default function ListeningAttemptPage() {
   const activeGroups = activeSection?.question_groups || [];
   const allQuestions = sections.flatMap((s) => flattenQuestions(s.question_groups));
   const scoreResults = score ? safeParse(score.details)?.results : undefined;
+  // Review: the transcript and the marked answers scroll separately, as on
+  // the reading page, so neither has to be scrolled away to see the other.
+  const panes = !!score;
 
   return (
-    <div className="attempt-page attempt-page-focus">
+    <div className={`attempt-page attempt-page-focus ${panes ? 'reading-attempt-page' : ''}`}>
       <header className="attempt-header">
         <button type="button" className="attempt-back" onClick={() => confirmLeave() && navigate('/practice/listening')} aria-label="Về danh sách đề" title="Về danh sách đề">
           ←
@@ -149,8 +153,8 @@ export default function ListeningAttemptPage() {
       {/* Taking the test: one full-width question column (tables and notes
           need the room), with the player docked at the bottom. Review:
           two columns, player + transcript beside the marked answers. */}
-      <div className={`attempt-body ${inProgress ? 'listening-exam-layout' : ''}`} {...highlight.areaProps}>
-        <div className="attempt-prompt-panel">
+      <div className={`attempt-body ${inProgress ? 'listening-exam-layout' : ''} ${panes ? 'reading-attempt-body' : ''}`} {...highlight.areaProps}>
+        <div className={`attempt-prompt-panel ${panes ? 'reading-scroll-panel' : ''}`}>
           <h2>Listening — {SKILL_CONFIG.listening.taskTypeLabel(test.task_type)}</h2>
           {sections.length > 1 && (
             <nav className="skill-tabs attempt-multi-tabs">
@@ -184,7 +188,7 @@ export default function ListeningAttemptPage() {
           )}
         </div>
 
-        <div className="attempt-answer-panel">
+        <div className={`attempt-answer-panel ${panes ? 'reading-scroll-panel' : ''}`}>
           {score && <AutoGradeResult score={score} skill="listening" compact />}
 
           {gradeFailed && (

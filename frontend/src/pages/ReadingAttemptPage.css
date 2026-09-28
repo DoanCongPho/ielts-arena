@@ -1,6 +1,7 @@
-/* Two independently scrolling panes (passage / questions), like the real
-   IELTS on-screen test — overrides the shared .attempt-page's whole-page
-   scroll on desktop. Falls back to normal single-page scroll on mobile. */
+/* Two independently scrolling panes (passage or listening transcript /
+   questions), like the real IELTS on-screen test — overrides the shared
+   .attempt-page's whole-page scroll on desktop. Falls back to normal
+   single-page scroll on mobile. Reading and listening reviews use it. */
 .reading-attempt-page {
   display: flex;
   flex-direction: column;
