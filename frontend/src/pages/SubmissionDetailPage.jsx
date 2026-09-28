@@ -89,7 +89,7 @@ export default function SubmissionDetailPage() {
   );
 
   return (
-    <div className={`attempt-page attempt-page-focus ${skill === 'reading' ? 'reading-attempt-page' : ''}`}>
+    <div className={`attempt-page attempt-page-focus ${isAutoGraded ? 'reading-attempt-page' : ''}`}>
       <header className="attempt-header">
         <Button variant="secondary" onClick={() => navigate('/submissions')}>
           ← Bài đã làm
@@ -209,11 +209,11 @@ function MultiUnitReview({ skill, test, content, payload, score, notGradedMessag
     <div className="submission-multi-review">
       {score && <AutoGradeResult score={score} skill={skill} compact />}
 
-      {/* Reading reviews use the attempt page's two independently scrolling
-          panes, so the passage and the marked answers can be read side by
-          side. */}
-      <div className={`attempt-body ${isReading ? 'reading-attempt-body' : ''}`}>
-        <div className={`attempt-prompt-panel ${isReading ? 'reading-scroll-panel' : ''}`}>
+      {/* Two independently scrolling panes, so the passage or transcript
+          and the marked answers can be read side by side without
+          scrolling the whole page back and forth. */}
+      <div className="attempt-body reading-attempt-body">
+        <div className="attempt-prompt-panel reading-scroll-panel">
           <h2>{skill === 'reading' ? 'Reading' : 'Listening'} — {config.taskTypeLabel(test.task_type)}</h2>
 
           {units.length > 1 && (
@@ -253,7 +253,7 @@ function MultiUnitReview({ skill, test, content, payload, score, notGradedMessag
           )}
         </div>
 
-        <div className={`attempt-answer-panel ${isReading ? 'reading-scroll-panel' : ''}`}>
+        <div className="attempt-answer-panel reading-scroll-panel">
           <ReviewContext.Provider
             value={{
               answerKey: review.answerKey,

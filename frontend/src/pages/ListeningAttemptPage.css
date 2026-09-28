@@ -48,6 +48,12 @@
   background: var(--paper-200);
 }
 
+/* In review the page itself doesn't scroll (two panes do), so the dock
+   keeps its height under them. */
+.reading-attempt-page .listening-dock {
+  flex-shrink: 0;
+}
+
 .listening-dock-player {
   padding: var(--space-2) var(--space-4);
   background: var(--surface-0);

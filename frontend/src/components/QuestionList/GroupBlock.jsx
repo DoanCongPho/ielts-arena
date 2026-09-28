@@ -51,7 +51,7 @@ export default function GroupBlock({ group, answers, onChange, disabled, results
       </header>
 
       {CHOICE_TYPES.has(group.question_type) && <ChoiceControl {...controlProps} />}
-      {MATCHING_TYPES.has(group.question_type) && <MatchingDragDrop {...controlProps} />}
+      {MATCHING_TYPES.has(group.question_type) && <MatchingDragDrop {...controlProps} skill={skill} />}
       {PLAIN_INPUT_TYPES.has(group.question_type) && <PlainInputGroup {...controlProps} />}
       {STRUCTURED_TYPES.has(group.question_type) && <StructuredBlankGroup {...controlProps} />}
     </Card>

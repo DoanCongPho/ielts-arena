@@ -407,9 +407,16 @@
   border-color: var(--ink-900);
 }
 
+/* Already placed in a slot: faded and struck through, so the chips still
+   to place stand out. Not-allowed only when the group forbids reuse. */
 .matching-chip-used {
   background: var(--paper-50);
   color: var(--ink-400);
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.matching-chip-used:disabled {
   cursor: not-allowed;
 }
 
