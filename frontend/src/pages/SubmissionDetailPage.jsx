@@ -214,21 +214,37 @@ function MultiUnitReview({ skill, test, content, payload, score, notGradedMessag
           scrolling the whole page back and forth. */}
       <div className="attempt-body reading-attempt-body">
         <div className="attempt-prompt-panel reading-scroll-panel">
-          <h2>{skill === 'reading' ? 'Reading' : 'Listening'} — {config.taskTypeLabel(test.task_type)}</h2>
+          {/* Listening: the parts and the player stay put while the
+              transcript scrolls under them, so pausing doesn't mean
+              scrolling away from the line being read. */}
+          <div className={isReading ? '' : 'listening-review-head'}>
+            <h2>{skill === 'reading' ? 'Reading' : 'Listening'} — {config.taskTypeLabel(test.task_type)}</h2>
 
-          {units.length > 1 && (
-            <nav className="skill-tabs attempt-multi-tabs">
-              {units.map((u, i) => (
-                <button
-                  key={i}
-                  className={`skill-tab ${i === activeIndex ? 'active' : ''}`}
-                  onClick={() => handleSelectUnit(i)}
-                >
-                  {u.title || `${skill === 'reading' ? 'Passage' : 'Section'} ${i + 1}`}
-                </button>
-              ))}
-            </nav>
-          )}
+            {units.length > 1 && (
+              <nav className="skill-tabs attempt-multi-tabs">
+                {units.map((u, i) => (
+                  <button
+                    key={i}
+                    className={`skill-tab ${i === activeIndex ? 'active' : ''}`}
+                    onClick={() => handleSelectUnit(i)}
+                  >
+                    {u.title || `${skill === 'reading' ? 'Passage' : 'Section'} ${i + 1}`}
+                  </button>
+                ))}
+              </nav>
+            )}
+
+            {!isReading && (
+              <>
+                <div className="attempt-audio-panel">
+                  <audio className="attempt-audio-player" controls {...audio.audioProps} />
+                </div>
+                <p className="practice-status listening-review-range">
+                  Đoạn ghi âm: {formatSeconds(activeUnit?.section_start_time)} – {formatSeconds(activeUnit?.section_end_time)}
+                </p>
+              </>
+            )}
+          </div>
 
           {skill === 'reading' ? (
             <div className="attempt-passage-text">
@@ -241,15 +257,7 @@ function MultiUnitReview({ skill, test, content, payload, score, notGradedMessag
               ))}
             </div>
           ) : (
-            <>
-              <div className="attempt-audio-panel">
-                <audio className="attempt-audio-player" controls {...audio.audioProps} />
-              </div>
-              <p className="practice-status">
-                Đoạn ghi âm: {formatSeconds(activeUnit?.section_start_time)} – {formatSeconds(activeUnit?.section_end_time)}
-              </p>
-              <ListeningTranscript section={activeIndex} paragraphs={review.transcriptFor(activeIndex)} evidenceFor={review.evidenceFor} />
-            </>
+            <ListeningTranscript section={activeIndex} paragraphs={review.transcriptFor(activeIndex)} evidenceFor={review.evidenceFor} />
           )}
         </div>
 

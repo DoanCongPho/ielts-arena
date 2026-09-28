@@ -54,6 +54,30 @@
   margin-bottom: 0;
 }
 
+/* Listening review: the title, part tabs and player stick to the top of
+   the transcript pane while the transcript scrolls under them. The
+   negative margins pull the band over the pane's padding, so text never
+   shows above or beside it. */
+.listening-review-head {
+  position: sticky;
+  top: calc(-1 * var(--space-5));
+  z-index: 2;
+  margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-5)) 0;
+  padding: var(--space-5) var(--space-5) var(--space-2);
+  background: var(--surface-0);
+  border-bottom: 1px solid var(--hairline);
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+}
+
+.listening-review-head .attempt-audio-panel {
+  padding: var(--space-3) 0 var(--space-2);
+}
+
+.listening-review-head .listening-review-range {
+  padding: 0;
+  margin: 0;
+}
+
 .reading-passage-title {
   text-align: center;
   font-family: var(--font-ui);

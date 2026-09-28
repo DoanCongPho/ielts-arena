@@ -140,6 +140,25 @@ export default function ListeningAttemptPage() {
   // Review: the transcript and the marked answers scroll separately, as on
   // the reading page, so neither has to be scrolled away to see the other.
   const panes = !!score;
+  const heading = (
+    <>
+      <h2>Listening — {SKILL_CONFIG.listening.taskTypeLabel(test.task_type)}</h2>
+      {sections.length > 1 && (
+        <nav className="skill-tabs attempt-multi-tabs">
+          {sections.map((s, i) => (
+            <button
+              key={i}
+              className={`skill-tab ${i === activeIndex ? 'active' : ''}`}
+              onClick={() => handleSelectSection(i, s.section_start_time)}
+              disabled={submitting}
+            >
+              {s.title || `Section ${i + 1}`}
+            </button>
+          ))}
+        </nav>
+      )}
+    </>
+  );
 
   return (
     <div className={`attempt-page attempt-page-focus ${panes ? 'reading-attempt-page' : ''}`}>
@@ -155,27 +174,21 @@ export default function ListeningAttemptPage() {
           two columns, player + transcript beside the marked answers. */}
       <div className={`attempt-body ${inProgress ? 'listening-exam-layout' : ''} ${panes ? 'reading-attempt-body' : ''}`} {...highlight.areaProps}>
         <div className={`attempt-prompt-panel ${panes ? 'reading-scroll-panel' : ''}`}>
-          <h2>Listening — {SKILL_CONFIG.listening.taskTypeLabel(test.task_type)}</h2>
-          {sections.length > 1 && (
-            <nav className="skill-tabs attempt-multi-tabs">
-              {sections.map((s, i) => (
-                <button
-                  key={i}
-                  className={`skill-tab ${i === activeIndex ? 'active' : ''}`}
-                  onClick={() => handleSelectSection(i, s.section_start_time)}
-                  disabled={submitting}
-                >
-                  {s.title || `Section ${i + 1}`}
-                </button>
-              ))}
-            </nav>
-          )}
           {inProgress ? (
-            <p className="reading-highlight-hint listening-exam-hint">Bôi đen câu hỏi để tô đậm — bấm vào phần đã tô để bỏ.</p>
+            <>
+              {heading}
+              <p className="reading-highlight-hint listening-exam-hint">Bôi đen câu hỏi để tô đậm — bấm vào phần đã tô để bỏ.</p>
+            </>
           ) : (
             <>
-              <div className="attempt-audio-panel">
-                <audio className="attempt-audio-player" controls {...audio.audioProps} />
+              {/* The parts and the player stay put while the transcript
+                  scrolls under them, so pausing doesn't mean scrolling
+                  away from the line being read. */}
+              <div className="listening-review-head">
+                {heading}
+                <div className="attempt-audio-panel">
+                  <audio className="attempt-audio-player" controls {...audio.audioProps} />
+                </div>
               </div>
               <ListeningTranscript
                 section={activeIndex}
