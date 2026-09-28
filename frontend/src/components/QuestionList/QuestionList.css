@@ -314,33 +314,19 @@
   color: var(--surface-0);
 }
 
-.gap-select-wrapper {
-  display: inline-block;
-  vertical-align: middle;
-}
-
-.gap-input,
-.dropdown-trigger.gap-select {
-  display: inline-block;
-  width: 150px;
-  padding: 4px 8px;
-  background: var(--surface-0);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-sm);
-  color: var(--ink-900);
-  font-family: var(--font-ui);
-  font-size: 15px;
-  vertical-align: middle;
-}
-
 /* Free-text blanks are an underline, like the answer line on paper. */
 .gap-input {
+  display: inline-block;
   width: 140px;
   padding: 2px 4px;
   background: transparent;
   border: none;
   border-bottom: 1.5px solid var(--ink-400);
   border-radius: 0;
+  color: var(--ink-900);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  vertical-align: middle;
 }
 
 .gap-input:focus {
@@ -348,20 +334,34 @@
   border-bottom-color: var(--listening-600);
 }
 
-.gap-input:disabled,
-.dropdown-trigger.gap-select:disabled {
+.gap-input:disabled {
   background: var(--paper-50);
   color: var(--ink-700);
 }
 
-.dropdown-trigger.gap-select.gap-correct {
-  border-color: var(--success-600);
-  border-width: 2px;
+/* A word-list gap: a slot in the sentence to drop a word into (ChipBank).
+   It takes the matching slot's states (over, filled). */
+.gap-drop-slot {
+  display: inline-flex;
+  align-items: center;
+  min-width: 140px;
+  min-height: 32px;
+  padding: 2px 8px;
+  vertical-align: middle;
+  background: var(--surface-0);
+  border: 2px dashed var(--hairline);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  cursor: pointer;
 }
 
-.dropdown-trigger.gap-select.gap-incorrect {
-  border-color: var(--error-600);
-  border-width: 2px;
+.gap-drop-slot.gap-correct {
+  border: 2px solid var(--success-600);
+}
+
+.gap-drop-slot.gap-incorrect {
+  border: 2px solid var(--error-600);
 }
 
 .gap-input.gap-correct {
@@ -385,7 +385,15 @@
   border-radius: var(--radius-sm);
 }
 
+/* Chips are spans (Safari won't drag a <button>), so they need the
+   button behaviour spelled out: no text selection, and draggable in
+   WebKit. */
 .matching-chip {
+  display: inline-flex;
+  align-items: center;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: element;
   padding: var(--space-2) var(--space-3);
   background: var(--surface-0);
   border: 1px solid var(--hairline);
@@ -408,7 +416,7 @@
 }
 
 /* Already placed in a slot: faded and struck through, so the chips still
-   to place stand out. Not-allowed only when the group forbids reuse. */
+   to place stand out. Not-allowed only when it can't be placed again. */
 .matching-chip-used {
   background: var(--paper-50);
   color: var(--ink-400);
@@ -416,8 +424,15 @@
   opacity: 0.6;
 }
 
-.matching-chip-used:disabled {
+.matching-chip-inactive {
   cursor: not-allowed;
+}
+
+.matching-chip:focus-visible,
+.matching-drop-slot:focus-visible,
+.gap-drop-slot:focus-visible {
+  outline: 2px solid var(--ink-900);
+  outline-offset: 2px;
 }
 
 .matching-dnd-questions {

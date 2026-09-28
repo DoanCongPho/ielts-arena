@@ -1,22 +1,8 @@
 import AnswerExplanation from '../AnswerExplanation/AnswerExplanation';
-import { useState } from 'react';
 import HighlightableText from '../HighlightableText/HighlightableText';
+import { ChipBank, DropSlot } from './ChipBank';
+import { isSingleUse, useChipPicker } from './chipPicker';
 import FigureSplit from './FigureSplit';
-
-function optionLabel(opt) {
-  return opt.id === opt.text ? opt.text : `${opt.id}. ${opt.text}`;
-}
-
-// isSingleUse reports whether each option answers at most one question.
-// allow_reuse says so when set; otherwise, as on the paper, a letter is
-// reusable only when the instructions say "more than once", or when there
-// are fewer letters than questions.
-function isSingleUse(group, bankOptions) {
-  if (group.allow_reuse != null) return !group.allow_reuse;
-  if (!bankOptions) return false;
-  if (/more than once/i.test(group.instructions || '')) return false;
-  return bankOptions.length >= group.questions.length;
-}
 
 function optionsFor(group, question) {
   if (group.question_type === 'map-plan-labelling') return group.location_key || [];
@@ -26,13 +12,10 @@ function optionsFor(group, question) {
 
 // MatchingDragDrop covers every single-answer "match a prompt to one item
 // from a shared list" question_type (matching-headings/information/
-// features/sentence-endings, matching, map-plan-labelling): a word bank of
-// draggable option chips, and one drop slot per question. Options can also
-// be assigned by clicking a chip (selecting it) then clicking a slot —
-// necessary on touch devices, where HTML5 drag-and-drop doesn't work well.
+// features/sentence-endings, matching, map-plan-labelling): a bank of
+// option chips, and one drop slot per question (see ChipBank).
 export default function MatchingDragDrop({ group, answers, onChange, disabled, results, highlights, onHighlightRemove, skill }) {
-  const [selectedChip, setSelectedChip] = useState(null);
-  const [dragOverOrder, setDragOverOrder] = useState(null);
+  const picker = useChipPicker({ disabled, onChange });
 
   // All questions in the group share one option pool when using
   // shared_options/location_key; matching-sentence-endings may instead give
@@ -45,53 +28,22 @@ export default function MatchingDragDrop({ group, answers, onChange, disabled, r
       : null;
 
   const usedIds = new Set(group.questions.map((q) => answers?.[q.question_order]).filter(Boolean));
-  const singleUse = isSingleUse(group, bankOptions);
-
-  function assign(order, optionId) {
-    if (disabled) return;
-    onChange?.(order, optionId);
-    setSelectedChip(null);
-  }
-
-  function clear(order) {
-    if (disabled) return;
-    onChange?.(order, '');
-  }
-
-  function renderBank(options) {
-    return (
-      <div className="matching-dnd-bank">
-        {options.map((opt) => {
-          // A chip already placed in a slot is struck through, so the ones
-          // left stand out. When each letter answers one question only, it
-          // can't be placed again: on the listening page, where the answers
-          // go in against the recording, it leaves the bank altogether.
-          // Reviews always show the whole bank.
-          const used = usedIds.has(opt.id);
-          const locked = used && singleUse;
-          if (locked && !disabled && skill === 'listening') return null;
-          return (
-            <button
-              key={opt.id}
-              type="button"
-              draggable={!disabled && !locked}
-              disabled={disabled || locked}
-              className={`matching-chip ${selectedChip === opt.id ? 'matching-chip-selected' : ''} ${used ? 'matching-chip-used' : ''}`}
-              onDragStart={(e) => e.dataTransfer.setData('text/plain', opt.id)}
-              onClick={() => setSelectedChip((id) => (id === opt.id ? null : opt.id))}
-            >
-              {optionLabel(opt)}
-            </button>
-          );
-        })}
-      </div>
-    );
-  }
+  const bank = (options) => (
+    <ChipBank
+      options={options}
+      picker={picker}
+      usedIds={usedIds}
+      singleUse={isSingleUse(group, bankOptions)}
+      // On the listening page, where the answers go in against the
+      // recording, a placed single-use option leaves the bank altogether.
+      removeUsed={skill === 'listening'}
+    />
+  );
 
   return (
     <FigureSplit images={group.map_image_url ? [group.map_image_url] : []} alt="Sơ đồ">
       <div className="matching-dnd">
-        {bankOptions && renderBank(bankOptions)}
+        {bankOptions && bank(bankOptions)}
 
         <div className="matching-dnd-questions">
           {group.questions.map((q) => {
@@ -113,47 +65,9 @@ export default function MatchingDragDrop({ group, answers, onChange, disabled, r
                   <HighlightableText id={textKey} text={q.text} ranges={highlights?.[textKey]} onRemoveRange={onHighlightRemove} />
                 </p>
 
-                {!bankOptions && options && renderBank(options)}
+                {!bankOptions && options && bank(options)}
 
-                <div
-                  className={`matching-drop-slot ${dragOverOrder === order ? 'matching-drop-slot-over' : ''} ${chosen ? 'matching-drop-slot-filled' : ''}`}
-                  onDragOver={(e) => {
-                    if (disabled) return;
-                    e.preventDefault();
-                    setDragOverOrder(order);
-                  }}
-                  onDragLeave={() => setDragOverOrder((o) => (o === order ? null : o))}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    setDragOverOrder(null);
-                    const optionId = e.dataTransfer.getData('text/plain');
-                    if (optionId) assign(order, optionId);
-                  }}
-                  onClick={() => {
-                    if (selectedChip) assign(order, selectedChip);
-                  }}
-                >
-                  {chosen ? (
-                    <span className="matching-drop-value">
-                      {optionLabel(chosen)}
-                      {!disabled && (
-                        <button
-                          type="button"
-                          className="matching-drop-clear"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            clear(order);
-                          }}
-                          aria-label="Bỏ đáp án"
-                        >
-                          ×
-                        </button>
-                      )}
-                    </span>
-                  ) : (
-                    <span className="matching-drop-placeholder">Kéo đáp án vào đây, hoặc bấm để chọn</span>
-                  )}
-                </div>
+                <DropSlot order={order} chosen={chosen} picker={picker} placeholder="Kéo đáp án vào đây, hoặc bấm để chọn" />
 
                 {result && !result.correct && (
                   <p className="question-item-correct-answer">Đáp án đúng: {(result.correct_answer || []).join(', ')}</p>

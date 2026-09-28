@@ -77,8 +77,8 @@ export const PLAIN_TYPES = new Set(['sentence-completion', 'short-answer', 'diag
 // positional "{{gap}}" inside the group's shared structure.
 export const STRUCTURED_TYPES = new Set(['summary-completion', 'table-completion', 'note-completion', 'flow-chart-completion', 'form-completion']);
 
-// Types where the group provides a fixed answer vocabulary (shown as a
-// dropdown) rather than free per-question options.
+// Types where the group provides a fixed answer vocabulary (a bank of
+// chips to drag into place) rather than free per-question options.
 export const SHARED_OPTIONS_TYPES = new Set([
   'matching-headings',
   'matching-information',

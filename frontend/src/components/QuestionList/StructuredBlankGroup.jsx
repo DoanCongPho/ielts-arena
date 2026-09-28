@@ -1,13 +1,14 @@
 import AnswerExplanation from '../AnswerExplanation/AnswerExplanation';
 import HighlightableText from '../HighlightableText/HighlightableText';
-import Dropdown from './Dropdown';
+import { ChipBank, DropSlot } from './ChipBank';
+import { isSingleUse, useChipPicker } from './chipPicker';
 import { resolveGapCells, resolveGapLines, resolveMarkedLines } from './gapText';
 
 // GapControl renders one blank as its question number in a badge followed
-// by the answer field: a Dropdown populated from the group's word bank
-// when summary-completion has one, otherwise a free-text <input> drawn as
-// an underline, like the paper test.
-function GapControl({ question, answers, onChange, disabled, results, hasWordBank, wordBank }) {
+// by the answer field: a slot to drop a word into when summary-completion
+// has a word list (the bank sits above the text, see ChipBank), otherwise
+// a free-text <input> drawn as an underline, like the paper test.
+function GapControl({ question, answers, onChange, disabled, results, wordBank, picker }) {
   const order = question.question_order;
   const result = results?.[order];
   const value = result ? result.submitted_answer?.[0] ?? '' : answers?.[order] ?? '';
@@ -16,16 +17,15 @@ function GapControl({ question, answers, onChange, disabled, results, hasWordBan
   return (
     <span className="gap-field">
       <span className={`gap-number ${stateClass}`}>{order}</span>
-      {hasWordBank ? (
-        <Dropdown
+      {wordBank ? (
+        <DropSlot
           id={`question-${order}`}
-          wrapperClassName="gap-select-wrapper"
-          triggerClassName={`gap-select ${stateClass}`}
-          value={value}
-          disabled={disabled}
-          options={wordBank || []}
-          placeholder="Chọn"
-          onChange={(v) => onChange?.(order, v)}
+          order={order}
+          chosen={wordBank.find((o) => o.id === value)}
+          picker={picker}
+          inline
+          stateClass={stateClass}
+          placeholder="Kéo từ vào"
         />
       ) : (
         <input
@@ -85,14 +85,16 @@ function MarkedLines({ lines, shared, keyPrefix }) {
 // flow-chart-completion, and form-completion. The i-th "{{gap}}" marker
 // found in the structure (in document order) is answered by the i-th
 // entry in group.questions — see gapText.js.
-export default function StructuredBlankGroup({ group, answers, onChange, disabled, results, highlights, onHighlightRemove }) {
+export default function StructuredBlankGroup({ group, answers, onChange, disabled, results, highlights, onHighlightRemove, skill }) {
+  const picker = useChipPicker({ disabled, onChange });
+  const wordBank = group.has_word_bank && group.word_bank?.length ? group.word_bank : null;
   const shared = {
     answers,
     onChange,
     disabled,
     results,
-    hasWordBank: group.has_word_bank,
-    wordBank: group.word_bank,
+    wordBank,
+    picker,
     highlights,
     onHighlightRemove,
   };
@@ -103,6 +105,16 @@ export default function StructuredBlankGroup({ group, answers, onChange, disable
 
   return (
     <div className="structured-blank-group">
+      {wordBank && (
+        <ChipBank
+          options={wordBank}
+          picker={picker}
+          usedIds={new Set(group.questions.map((q) => answers?.[q.question_order]).filter(Boolean))}
+          singleUse={isSingleUse(group, wordBank)}
+          removeUsed={skill === 'listening'}
+        />
+      )}
+
       {group.question_type === 'summary-completion' && (
         <div className="structured-text">
           <MarkedLines lines={resolveMarkedLines(String(group.summary_text ?? '').split('\n'), group.questions)} shared={shared} keyPrefix={key('summary')} />
