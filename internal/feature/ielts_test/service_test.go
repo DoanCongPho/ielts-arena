@@ -892,3 +892,32 @@ func TestRepository_SettleOnlyAppliesWhileGrading(t *testing.T) {
 		t.Errorf("status = %q, last error = %q; a graded submission was settled again", sub.Status, sub.LastError)
 	}
 }
+
+// The history names the book a test is from, e.g. Cambridge 16 Test 2.
+func TestService_GetListSubmission_NamesTheBook(t *testing.T) {
+	repo := NewMockTestRepository()
+	svc := newTestService(repo, &fakeGrader{})
+	ctx := context.Background()
+	book, _ := repo.CreateTest(ctx, &Test{Skill: "reading", TaskType: "test2", Series: "cambridge", Volume: 16, TestNumber: 2})
+	custom, _ := repo.CreateTest(ctx, &Test{Skill: "writing", TaskType: "task2"})
+	for _, id := range []uint64{book.ID, custom.ID} {
+		if _, err := repo.CreateSubmission(ctx, &Submission{UserID: 1, TestID: id, Status: StatusPending, SubmittedAt: time.Now()}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	resp, err := svc.GetListSubmission(ctx, 1, ListSubmissionRequest{Page: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range resp.Data {
+		got := [3]any{s.TestSeries, s.TestVolume, s.TestNumber}
+		want := [3]any{"", 0, 0}
+		if s.TestID == book.ID {
+			want = [3]any{"cambridge", 16, 2}
+		}
+		if got != want {
+			t.Errorf("test %d: series/volume/number = %v, want %v", s.TestID, got, want)
+		}
+	}
+}

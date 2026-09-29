@@ -2,7 +2,7 @@ import AnswerExplanation from '../AnswerExplanation/AnswerExplanation';
 import HighlightableText from '../HighlightableText/HighlightableText';
 import { ChipBank, DropSlot } from './ChipBank';
 import { isSingleUse, useChipPicker } from './chipPicker';
-import { resolveGapCells, resolveGapLines, resolveMarkedLines } from './gapText';
+import { inferMarkup, resolveGapCells, resolveGapLines, resolveMarkedLines } from './gapText';
 
 // GapControl renders one blank as its question number in a badge followed
 // by the answer field: a slot to drop a word into when summary-completion
@@ -117,14 +117,22 @@ export default function StructuredBlankGroup({ group, answers, onChange, disable
 
       {group.question_type === 'summary-completion' && (
         <div className="structured-text">
-          <MarkedLines lines={resolveMarkedLines(String(group.summary_text ?? '').split('\n'), group.questions)} shared={shared} keyPrefix={key('summary')} />
+          <MarkedLines
+            lines={resolveMarkedLines(inferMarkup(String(group.summary_text ?? '').split('\n'), { title: true }), group.questions)}
+            shared={shared}
+            keyPrefix={key('summary')}
+          />
         </div>
       )}
 
       {group.question_type === 'note-completion' && group.note_structure && (
         <div className="structured-note">
           {group.note_structure.title && <h4 className="structured-title">{plainText(group.note_structure.title, key('title'))}</h4>}
-          <MarkedLines lines={resolveMarkedLines(group.note_structure.items, group.questions)} shared={shared} keyPrefix={key('note')} />
+          <MarkedLines
+            lines={resolveMarkedLines(inferMarkup(group.note_structure.items, { title: !group.note_structure.title }), group.questions)}
+            shared={shared}
+            keyPrefix={key('note')}
+          />
         </div>
       )}
 
@@ -139,7 +147,11 @@ export default function StructuredBlankGroup({ group, answers, onChange, disable
       {group.question_type === 'form-completion' && group.form_structure && (
         <div className="structured-form">
           {group.form_structure.title && <h4 className="structured-title">{plainText(group.form_structure.title, key('title'))}</h4>}
-          <MarkedLines lines={resolveMarkedLines(group.form_structure.fields, group.questions)} shared={shared} keyPrefix={key('form')} />
+          <MarkedLines
+            lines={resolveMarkedLines(inferMarkup(group.form_structure.fields, { headings: false }), group.questions)}
+            shared={shared}
+            keyPrefix={key('form')}
+          />
         </div>
       )}
 

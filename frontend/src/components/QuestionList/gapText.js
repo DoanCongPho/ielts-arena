@@ -42,6 +42,67 @@ export function parseLine(raw) {
   return { kind: 'text', level: 0, text: s };
 }
 
+const BULLET_MARKUP = /^\t*- /;
+const BULLET_CHAR = /^[●•▪◦]\s*/;
+const SUB_BULLET_CHAR = /^[–—]\s+/;
+
+function words(s) {
+  return s.split(/\s+/).filter(Boolean).length;
+}
+
+// inferMarkup adds the light markup parseLine reads to structure lines
+// imported without it (many scraped tests are plain lines), so their
+// headings and bullets show as on the paper. Lines already using "- "
+// bullets are left alone. The rules are conservative, as a wrong heading
+// (a sentence in bold) reads worse than a missing one:
+//   - "●"/"•" start a bullet, and "–" a bullet one level deeper;
+//   - with `title`, a short first line with no gap is the title;
+//   - with `headings`, a gap-less line is a heading when it ends in ":",
+//     when a bullet follows it, or when it is a label of a few words
+//     ("Introduction", "Wave energy");
+//   - when the lines have no bullet characters of their own, the lines
+//     under a heading ending in ":" are its bullets.
+// Forms pass no `headings`: their "Name Louise Taylor" lines look like
+// labels but aren't.
+export function inferMarkup(lines, { title = false, headings = true } = {}) {
+  const src = (lines || []).map((l) => String(l ?? ''));
+  if (src.some((l) => BULLET_MARKUP.test(l))) return src;
+
+  const trimmed = src.map((l) => l.trim());
+  const isBullet = (t) => BULLET_CHAR.test(t) || SUB_BULLET_CHAR.test(t);
+  const hasBulletChars = trimmed.some(isBullet);
+  const gapless = (t) => !t.includes(GAP_MARKER);
+  const unpunctuated = (t) => !/[.?!]$/.test(t);
+  const colonHeading = (t) => gapless(t) && words(t) <= 12 && /:$/.test(t);
+  const nextIsBullet = (i) => {
+    const next = trimmed.slice(i + 1).find(Boolean);
+    return next != null && isBullet(next);
+  };
+  // A colon inside the line makes it a "Label: value" pair, not a heading.
+  const isHeading = (t, i) =>
+    headings &&
+    gapless(t) &&
+    unpunctuated(t) &&
+    words(t) <= 12 &&
+    !/:(?!$)/.test(t) &&
+    (/:$/.test(t) || nextIsBullet(i) || (words(t) <= 4 && !/[:\d…]/.test(t)));
+  const colonBullets = headings && !hasBulletChars && trimmed.some(colonHeading);
+
+  let underColonHeading = false;
+  return src.map((line, i) => {
+    const t = trimmed[i];
+    if (!t || t.startsWith('## ')) return line;
+    if (BULLET_CHAR.test(t)) return `- ${t.replace(BULLET_CHAR, '')}`;
+    if (SUB_BULLET_CHAR.test(t)) return `\t- ${t.replace(SUB_BULLET_CHAR, '')}`;
+    if (i === 0 && title && gapless(t) && unpunctuated(t) && words(t) <= 12) return `## ${t}`;
+    if (isHeading(t, i)) {
+      underColonHeading = colonBullets && /:$/.test(t);
+      return `## ${t}`;
+    }
+    return underColonHeading ? `- ${t}` : line;
+  });
+}
+
 // resolveMarkedLines parses each line's markup, then numbers its gaps in
 // order (as resolveGapLines): [{kind, level, segments}] per line.
 export function resolveMarkedLines(lines, questions) {

@@ -59,8 +59,13 @@ type SubmissionSummary struct {
 	TestSkill    string
 	TestTaskType string
 	TestXPGain   int
-	OverallBand  *float64
-	GradedAt     *time.Time
+	// TestSeries/TestVolume/TestNumber place the test in a book, as on
+	// Test; TestSeries is "" outside any series.
+	TestSeries  string
+	TestVolume  int
+	TestNumber  int
+	OverallBand *float64
+	GradedAt    *time.Time
 }
 
 type Score struct {

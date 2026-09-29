@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { isSettled, listSubmissions } from '../lib/api';
 import { SETTLED_EVENT } from '../lib/gradingWatch';
+import { seriesLabel } from '../lib/skillConfig';
 import Button from '../components/ui/Button/Button';
 import SkillTag from '../components/ui/SkillTag/SkillTag';
 import StatusBadge from '../components/ui/StatusBadge/StatusBadge';
@@ -126,7 +127,7 @@ export default function SubmissionsPage() {
           >
             <SkillTag skill={sub.test_skill} className="submission-row-skill">
               {SKILL_LABEL[sub.test_skill] || sub.test_skill}
-              {sub.test_task_type ? ` · ${sub.test_task_type}` : ''}
+              {testName(sub) ? ` · ${testName(sub)}` : ''}
             </SkillTag>
             <span className="submission-row-date text-data-sm">{formatDate(sub.submitted_at)}</span>
             <span className="submission-row-band text-data-sm">
@@ -159,4 +160,12 @@ function formatDate(iso) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+// testName names the test a submission answered: its book and number
+// ("Cambridge 16 · Test 2") when it has one, else its task type.
+function testName(sub) {
+  const book = seriesLabel({ series: sub.test_series, volume: sub.test_volume });
+  if (!book) return sub.test_task_type;
+  return sub.test_number ? `${book} · Test ${sub.test_number}` : book;
 }

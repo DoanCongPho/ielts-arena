@@ -240,7 +240,7 @@ func (r *repository) HasSubmissions(ctx context.Context, testID uint64) (bool, e
 func (r *repository) GetListSubmission(ctx context.Context, userID uint64, limit, offset int) ([]SubmissionSummary, int, error) {
 	rows, err := r.db.QueryContext(ctx,
 		`SELECT s.id, s.user_id, s.test_id, s.payload, s.status, s.submitted_at,
-		        t.skill, t.task_type, t.xp_gain,
+		        t.skill, t.task_type, t.xp_gain, t.series, t.volume, t.test_number,
 		        sc.overall_band, sc.graded_at,
 		        COUNT(*) OVER()
 		 FROM submissions s
@@ -264,14 +264,18 @@ func (r *repository) GetListSubmission(ctx context.Context, userID uint64, limit
 		var sm SubmissionSummary
 		var overallBand sql.NullFloat64
 		var gradedAt sql.NullTime
+		var series testSeries
 		if err := rows.Scan(
 			&sm.ID, &sm.UserID, &sm.TestID, &sm.Payload, &sm.Status, &sm.SubmittedAt,
-			&sm.TestSkill, &sm.TestTaskType, &sm.TestXPGain,
+			&sm.TestSkill, &sm.TestTaskType, &sm.TestXPGain, &series.series, &series.volume, &series.testNumber,
 			&overallBand, &gradedAt,
 			&total,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan submission summary: %w", err)
 		}
+		sm.TestSeries = series.series.String
+		sm.TestVolume = int(series.volume.Int64)
+		sm.TestNumber = int(series.testNumber.Int64)
 		if overallBand.Valid {
 			sm.OverallBand = &overallBand.Float64
 		}

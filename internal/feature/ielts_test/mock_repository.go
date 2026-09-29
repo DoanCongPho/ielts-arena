@@ -108,12 +108,15 @@ func (r *MockTestRepository) GetListSubmission(ctx context.Context, userID uint6
 			gradedAt = score.GradedAt
 		}
 		summaries = append(summaries, SubmissionSummary{
-			*s,
-			test.Skill,
-			test.TaskType,
-			test.XPGain,
-			overallBand,
-			gradedAt,
+			Submission:   *s,
+			TestSkill:    test.Skill,
+			TestTaskType: test.TaskType,
+			TestXPGain:   test.XPGain,
+			TestSeries:   test.Series,
+			TestVolume:   test.Volume,
+			TestNumber:   test.TestNumber,
+			OverallBand:  overallBand,
+			GradedAt:     gradedAt,
 		})
 	}
 

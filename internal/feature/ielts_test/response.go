@@ -73,16 +73,21 @@ type ListSubmissionResponse struct {
 // list — it folds in the test's skill/task_type and the score's overall_band
 // (if graded yet) so the list page doesn't need per-row follow-up requests.
 type SubmissionSummaryResponse struct {
-	ID           uint64          `json:"id"`
-	TestID       uint64          `json:"test_id"`
-	TestSkill    string          `json:"test_skill"`
-	TestTaskType string          `json:"test_task_type"`
-	TestXPGain   int             `json:"test_xp_gain"`
-	Payload      json.RawMessage `json:"payload"`
-	Status       string          `json:"status"`
-	SubmittedAt  string          `json:"submitted_at"`
-	OverallBand  *float64        `json:"overall_band"`
-	GradedAt     *string         `json:"graded_at"`
+	ID           uint64 `json:"id"`
+	TestID       uint64 `json:"test_id"`
+	TestSkill    string `json:"test_skill"`
+	TestTaskType string `json:"test_task_type"`
+	TestXPGain   int    `json:"test_xp_gain"`
+	// TestSeries/TestVolume/TestNumber name the book the test is from
+	// ("cambridge", 16, 2); omitted for a test outside any series.
+	TestSeries  string          `json:"test_series,omitempty"`
+	TestVolume  int             `json:"test_volume,omitempty"`
+	TestNumber  int             `json:"test_number,omitempty"`
+	Payload     json.RawMessage `json:"payload"`
+	Status      string          `json:"status"`
+	SubmittedAt string          `json:"submitted_at"`
+	OverallBand *float64        `json:"overall_band"`
+	GradedAt    *string         `json:"graded_at"`
 }
 
 func newSubmissionSummaryResponse(sm SubmissionSummary) SubmissionSummaryResponse {
@@ -92,6 +97,9 @@ func newSubmissionSummaryResponse(sm SubmissionSummary) SubmissionSummaryRespons
 		TestSkill:    sm.TestSkill,
 		TestTaskType: sm.TestTaskType,
 		TestXPGain:   sm.TestXPGain,
+		TestSeries:   sm.TestSeries,
+		TestVolume:   sm.TestVolume,
+		TestNumber:   sm.TestNumber,
 		Payload:      json.RawMessage(sm.Payload),
 		Status:       sm.Status,
 		SubmittedAt:  sm.SubmittedAt.Format(timeLayout),
