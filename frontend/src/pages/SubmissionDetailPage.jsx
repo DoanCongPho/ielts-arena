@@ -6,6 +6,7 @@ import { forgetGrading } from '../lib/gradingWatch';
 import { flattenQuestions } from '../lib/answerUtils';
 import { useEvidenceReview } from '../lib/useEvidenceReview';
 import { useSectionAudio } from '../lib/useSectionAudio';
+import { useTextHighlights } from '../lib/useTextHighlights';
 import { safeParse } from '../lib/safeParse';
 import { SKILL_CONFIG } from '../lib/skillConfig';
 import ScoreResult from '../components/ScoreResult/ScoreResult';
@@ -17,6 +18,7 @@ import HighlightableText from '../components/HighlightableText/HighlightableText
 import ListeningTranscript from '../components/ListeningTranscript/ListeningTranscript';
 import AutoGradeResult from '../components/AutoGradeResult/AutoGradeResult';
 import QuestionNavBar from '../components/QuestionNavBar/QuestionNavBar';
+import HighlightToolbar from '../components/HighlightToolbar/HighlightToolbar';
 import Button from '../components/ui/Button/Button';
 import './PracticePage.css';
 import './WritingAttemptPage.css';
@@ -166,6 +168,10 @@ function MultiUnitReview({ skill, test, content, payload, score, notGradedMessag
   const config = SKILL_CONFIG[skill];
   const isReading = skill === 'reading';
   const review = useEvidenceReview(test.id, !!score, units, setActiveIndex);
+  // Highlighting works in a review as while taking the test: the passage
+  // or transcript, the questions and their instructions, per passage or
+  // section.
+  const highlight = useTextHighlights(activeIndex);
 
   useEffect(() => {
     if (pendingScrollOrder == null) return;
@@ -212,7 +218,7 @@ function MultiUnitReview({ skill, test, content, payload, score, notGradedMessag
       {/* Two independently scrolling panes, so the passage or transcript
           and the marked answers can be read side by side without
           scrolling the whole page back and forth. */}
-      <div className="attempt-body reading-attempt-body">
+      <div className="attempt-body reading-attempt-body" {...highlight.areaProps}>
         <div className="attempt-prompt-panel reading-scroll-panel">
           {/* Listening: the parts and the player stay put while the
               transcript scrolls under them, so pausing doesn't mean
@@ -252,12 +258,24 @@ function MultiUnitReview({ skill, test, content, payload, score, notGradedMessag
               {(activeUnit?.paragraphs || []).map((p, pi) => (
                 <p key={`${activeIndex}-${pi}`} id={`passage-${activeIndex}-p-${pi}`}>
                   {p.label && <strong>{p.label}. </strong>}
-                  <HighlightableText id={`p-${pi}`} text={p.text} evidence={review.evidenceFor(activeIndex, pi)} />
+                  <HighlightableText
+                    id={`p-${pi}`}
+                    text={p.text}
+                    ranges={highlight.ranges[`p-${pi}`]}
+                    evidence={review.evidenceFor(activeIndex, pi)}
+                    onRemoveRange={highlight.remove}
+                  />
                 </p>
               ))}
             </div>
           ) : (
-            <ListeningTranscript section={activeIndex} paragraphs={review.transcriptFor(activeIndex)} evidenceFor={review.evidenceFor} />
+            <ListeningTranscript
+              section={activeIndex}
+              paragraphs={review.transcriptFor(activeIndex)}
+              evidenceFor={review.evidenceFor}
+              ranges={highlight.ranges}
+              onRemoveRange={highlight.remove}
+            />
           )}
         </div>
 
@@ -275,6 +293,8 @@ function MultiUnitReview({ skill, test, content, payload, score, notGradedMessag
               answers={payload?.answers}
               results={scoreResults}
               disabled
+              highlights={highlight.ranges}
+              onHighlightRemove={highlight.remove}
               skill={skill}
             />
           </ReviewContext.Provider>
@@ -291,6 +311,8 @@ function MultiUnitReview({ skill, test, content, payload, score, notGradedMessag
           onJump={handleJumpToQuestion}
         />
       )}
+
+      <HighlightToolbar selection={highlight.selection} onApply={highlight.apply} toolbarRef={highlight.toolbarRef} />
     </div>
   );
 }
