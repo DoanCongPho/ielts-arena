@@ -201,7 +201,7 @@ function MultiUnitReview({ skill, test, content, payload, score, notGradedMessag
     const i = unitOf(order);
     if (i === -1) return;
     const question = allQuestions.find((q) => q.question_order === order);
-    handleSelectUnit(i, question?.timestamp_hint);
+    handleSelectUnit(i, review.listenAt(order) ?? question?.timestamp_hint);
     audio.play();
   }
 

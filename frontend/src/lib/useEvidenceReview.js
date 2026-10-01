@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getAnswerKey } from './api';
 import { evidenceRanges } from './evidence';
+import { estimateTime, hasQuestionTimes } from './listeningAudio';
 
 // useEvidenceReview powers a graded review: once `enabled` it loads the
 // test's answer key (explanations + evidence, and for listening each
@@ -71,5 +72,24 @@ export function useEvidenceReview(testId, enabled, units, selectUnit) {
     return transcripts?.[unit] || null;
   }
 
-  return { answerKey, locate, evidenceFor, transcriptFor };
+  // listenAt(order) is where to replay question `order` from, in seconds
+  // into its section's recording: its own timestamp_hint when the section
+  // has real ones, else estimated from where its evidence sits in the
+  // transcript. Null when neither is known.
+  function listenAt(order) {
+    const unit = units.findIndex((u) =>
+      (u.question_groups || []).some((g) => g.questions.some((q) => q.question_order === order)),
+    );
+    if (unit === -1) return null;
+    const section = units[unit];
+    const question = section.question_groups.flatMap((g) => g.questions).find((q) => q.question_order === order);
+    if (hasQuestionTimes(section)) return question.timestamp_hint;
+    const ranges = evidenceRanges(textOf(unit), answerKey?.[order]?.evidence);
+    const found = Object.keys(ranges).map(Number);
+    if (found.length === 0) return question.timestamp_hint ?? null;
+    const paragraph = Math.min(...found);
+    return estimateTime(section, textOf(unit), paragraph, ranges[paragraph][0].start) ?? question.timestamp_hint ?? null;
+  }
+
+  return { answerKey, locate, evidenceFor, transcriptFor, listenAt };
 }

@@ -7,13 +7,14 @@ export function optionLabel(opt) {
 }
 
 // isSingleUse reports whether each option answers at most one question.
-// allow_reuse says so when set; otherwise, as on the paper, an option is
-// reusable only when the instructions say "more than once", or when there
-// are fewer options than questions.
+// The instructions decide first: "You may use any letter more than once"
+// is copied from the paper, while allow_reuse is set by the importer and
+// sometimes contradicts it. Then allow_reuse, when set; otherwise an option
+// is reusable only when there are fewer options than questions.
 export function isSingleUse(group, options) {
+  if (/more than once/i.test(group.instructions || '')) return false;
   if (group.allow_reuse != null) return !group.allow_reuse;
   if (!options) return false;
-  if (/more than once/i.test(group.instructions || '')) return false;
   return options.length >= group.questions.length;
 }
 

@@ -91,7 +91,7 @@ export default function ListeningAttemptPage() {
     );
     if (i === -1) return;
     const question = allQuestions.find((q) => q.question_order === order);
-    handleSelectSection(i, question?.timestamp_hint ?? sections[i]?.section_start_time);
+    handleSelectSection(i, review.listenAt(order) ?? question?.timestamp_hint ?? sections[i]?.section_start_time);
     audio.play();
   }
 

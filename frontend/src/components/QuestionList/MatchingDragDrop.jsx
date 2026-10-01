@@ -3,6 +3,7 @@ import HighlightableText from '../HighlightableText/HighlightableText';
 import { ChipBank, DropSlot } from './ChipBank';
 import { isSingleUse, useChipPicker } from './chipPicker';
 import FigureSplit from './FigureSplit';
+import MatchingGrid from './MatchingGrid';
 
 function optionsFor(group, question) {
   if (group.question_type === 'map-plan-labelling') return group.location_key || [];
@@ -27,13 +28,31 @@ export default function MatchingDragDrop({ group, answers, onChange, disabled, r
       ? group.location_key || []
       : null;
 
+  const singleUse = isSingleUse(group, bankOptions);
+  // Letters that may be used more than once go in a grid, as on the paper
+  // (a map keeps its chips: they are placed on the picture's labels).
+  if (bankOptions && !singleUse && group.question_type !== 'map-plan-labelling') {
+    return (
+      <MatchingGrid
+        group={group}
+        options={bankOptions}
+        answers={answers}
+        onChange={onChange}
+        disabled={disabled}
+        results={results}
+        highlights={highlights}
+        onHighlightRemove={onHighlightRemove}
+      />
+    );
+  }
+
   const usedIds = new Set(group.questions.map((q) => answers?.[q.question_order]).filter(Boolean));
   const bank = (options) => (
     <ChipBank
       options={options}
       picker={picker}
       usedIds={usedIds}
-      singleUse={isSingleUse(group, bankOptions)}
+      singleUse={singleUse}
       // On the listening page, where the answers go in against the
       // recording, a placed single-use option leaves the bank altogether.
       removeUsed={skill === 'listening'}
