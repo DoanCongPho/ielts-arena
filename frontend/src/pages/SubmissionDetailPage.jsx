@@ -19,6 +19,8 @@ import ListeningTranscript from '../components/ListeningTranscript/ListeningTran
 import AutoGradeResult from '../components/AutoGradeResult/AutoGradeResult';
 import QuestionNavBar from '../components/QuestionNavBar/QuestionNavBar';
 import HighlightToolbar from '../components/HighlightToolbar/HighlightToolbar';
+import VocabPanel from '../components/VocabPanel/VocabPanel';
+import { testSource } from '../lib/vocab';
 import Button from '../components/ui/Button/Button';
 import './PracticePage.css';
 import './WritingAttemptPage.css';
@@ -171,7 +173,7 @@ function MultiUnitReview({ skill, test, content, payload, score, notGradedMessag
   // Highlighting works in a review as while taking the test: the passage
   // or transcript, the questions and their instructions, per passage or
   // section.
-  const highlight = useTextHighlights(activeIndex);
+  const highlight = useTextHighlights(activeIndex, { storageKey: `vocab:${test.id}` });
 
   useEffect(() => {
     if (pendingScrollOrder == null) return;
@@ -280,6 +282,7 @@ function MultiUnitReview({ skill, test, content, payload, score, notGradedMessag
         </div>
 
         <div className="attempt-answer-panel reading-scroll-panel">
+          <VocabPanel words={highlight.words} onRemove={highlight.removeWord} source={testSource(test, isReading ? 'Reading' : 'Listening')} />
           <ReviewContext.Provider
             value={{
               answerKey: review.answerKey,
@@ -312,7 +315,12 @@ function MultiUnitReview({ skill, test, content, payload, score, notGradedMessag
         />
       )}
 
-      <HighlightToolbar selection={highlight.selection} onApply={highlight.apply} toolbarRef={highlight.toolbarRef} />
+      <HighlightToolbar
+        selection={highlight.selection}
+        onApply={highlight.apply}
+        toolbarRef={highlight.toolbarRef}
+        label="🖍 Tô đậm · lưu từ"
+      />
     </div>
   );
 }

@@ -13,6 +13,8 @@ import AutoGradeResult from '../components/AutoGradeResult/AutoGradeResult';
 import QuestionNavBar from '../components/QuestionNavBar/QuestionNavBar';
 import HighlightableText from '../components/HighlightableText/HighlightableText';
 import HighlightToolbar from '../components/HighlightToolbar/HighlightToolbar';
+import VocabPanel from '../components/VocabPanel/VocabPanel';
+import { testSource } from '../lib/vocab';
 import Button from '../components/ui/Button/Button';
 import './PracticePage.css';
 import './WritingAttemptPage.css';
@@ -34,7 +36,9 @@ export default function ReadingAttemptPage() {
 
   // Text highlighting anywhere in either panel (passage paragraphs, group
   // instructions, question text), per passage.
-  const highlight = useTextHighlights(activeIndex);
+  // In the review, highlights are kept for the test and become the
+  // learner's vocabulary list (VocabPanel).
+  const highlight = useTextHighlights(activeIndex, { storageKey: score ? `vocab:${testId}` : null });
 
   // Set after clicking a QuestionNavBar pill for a question in a different
   // passage — the target element doesn't exist until the passage switch
@@ -163,6 +167,7 @@ export default function ReadingAttemptPage() {
 
         <div className="attempt-answer-panel reading-scroll-panel">
           {score && <AutoGradeResult score={score} skill="reading" compact />}
+          {score && <VocabPanel words={highlight.words} onRemove={highlight.removeWord} source={testSource(test, 'Reading')} />}
 
           {gradeFailed && (
             <div className="attempt-result">
@@ -207,7 +212,12 @@ export default function ReadingAttemptPage() {
         />
       )}
 
-      <HighlightToolbar selection={highlight.selection} onApply={highlight.apply} toolbarRef={highlight.toolbarRef} />
+      <HighlightToolbar
+        selection={highlight.selection}
+        onApply={highlight.apply}
+        toolbarRef={highlight.toolbarRef}
+        label={score ? '🖍 Tô đậm · lưu từ' : undefined}
+      />
     </div>
   );
 }

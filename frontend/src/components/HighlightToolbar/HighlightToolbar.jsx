@@ -2,7 +2,8 @@ import './HighlightToolbar.css';
 
 // HighlightToolbar is the floating "Tô đậm" button over a text selection
 // (see useTextHighlights).
-export default function HighlightToolbar({ selection, onApply, toolbarRef }) {
+// A review labels it as saving the word to the vocabulary list.
+export default function HighlightToolbar({ selection, onApply, toolbarRef, label = '🖍 Tô đậm' }) {
   if (!selection) return null;
   return (
     <button
@@ -12,7 +13,7 @@ export default function HighlightToolbar({ selection, onApply, toolbarRef }) {
       style={{ left: selection.x, top: selection.y }}
       onClick={onApply}
     >
-      🖍 Tô đậm
+      {label}
     </button>
   );
 }

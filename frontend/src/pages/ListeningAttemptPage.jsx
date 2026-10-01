@@ -13,6 +13,8 @@ import { ReviewContext } from '../components/AnswerExplanation/ReviewContext';
 import ListeningTranscript from '../components/ListeningTranscript/ListeningTranscript';
 import ListeningExamPlayer from '../components/ListeningExamPlayer/ListeningExamPlayer';
 import HighlightToolbar from '../components/HighlightToolbar/HighlightToolbar';
+import VocabPanel from '../components/VocabPanel/VocabPanel';
+import { testSource } from '../lib/vocab';
 import { totalSeconds } from '../lib/listeningAudio';
 import AutoGradeResult from '../components/AutoGradeResult/AutoGradeResult';
 import QuestionNavBar from '../components/QuestionNavBar/QuestionNavBar';
@@ -60,7 +62,9 @@ export default function ListeningAttemptPage() {
   const review = useEvidenceReview(testId, !!score, sections, setActiveIndex);
   // Highlight question text, instructions and (in review) the transcript,
   // per section — as on the reading page.
-  const highlight = useTextHighlights(activeIndex);
+  // In the review, highlights are kept for the test and become the
+  // learner's vocabulary list (VocabPanel).
+  const highlight = useTextHighlights(activeIndex, { storageKey: score ? `vocab:${testId}` : null });
 
   useEffect(() => {
     if (pendingScrollOrder == null) return;
@@ -203,6 +207,7 @@ export default function ListeningAttemptPage() {
 
         <div className={`attempt-answer-panel ${panes ? 'reading-scroll-panel' : ''}`}>
           {score && <AutoGradeResult score={score} skill="listening" compact />}
+          {score && <VocabPanel words={highlight.words} onRemove={highlight.removeWord} source={testSource(test, 'Listening')} />}
 
           {gradeFailed && (
             <div className="attempt-result">
@@ -257,7 +262,12 @@ export default function ListeningAttemptPage() {
         )}
       </div>
 
-      <HighlightToolbar selection={highlight.selection} onApply={highlight.apply} toolbarRef={highlight.toolbarRef} />
+      <HighlightToolbar
+        selection={highlight.selection}
+        onApply={highlight.apply}
+        toolbarRef={highlight.toolbarRef}
+        label={score ? '🖍 Tô đậm · lưu từ' : undefined}
+      />
     </div>
   );
 }
