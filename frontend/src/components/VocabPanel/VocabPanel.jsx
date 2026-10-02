@@ -78,8 +78,8 @@ export default function VocabPanel({ words, onRemove, source }) {
               .
             </li>
             <li>
-              Lưu nội dung CSV nó trả về thành file <code>tu-vung.csv</code> (cột: {VOCAB_COLUMNS.join(', ')}). Kiểm tra nhanh
-              nghĩa và phiên âm trước khi học.
+              Tải file <code>tu-vung.csv</code> nó tạo ra (cột: {VOCAB_COLUMNS.join(', ')}). Kiểm tra nhanh nghĩa và phiên âm
+              trước khi học.
             </li>
             <li>
               Trên{' '}

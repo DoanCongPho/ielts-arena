@@ -85,7 +85,9 @@ Quy tắc cho từng cột:
 - Ví dụ: một câu tiếng Anh mới, ngắn và tự nhiên (không chép lại câu gốc).
 - Ghi chú: 1-2 từ đồng nghĩa hoặc collocation hay đi kèm.
 
-Mỗi từ một dòng, mọi ô đặt trong dấu ngoặc kép. Chỉ trả về nội dung CSV trong một khối code, không giải thích gì thêm.
+Mỗi từ một dòng, mọi ô đặt trong dấu ngoặc kép, mã hoá UTF-8.
+
+Trả về kết quả dưới dạng một FILE tải về được tên tu-vung.csv (dùng công cụ tạo file hoặc chạy code của bạn), không dán nội dung CSV vào câu trả lời. Chỉ khi bạn không tạo được file mới trả về nội dung CSV trong một khối code. Không cần giải thích gì thêm.
 
 Danh sách từ:
 ${list}`;
