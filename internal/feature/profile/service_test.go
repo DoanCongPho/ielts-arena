@@ -40,7 +40,7 @@ func newTestService(xp int) (Service, *progression.MockRepository) {
 	users := &fakeUserRepo{user: &auth.User{ID: 1, Name: "Learner", ImageURL: "/avatar.png"}}
 	progRepo := progression.NewMockRepository()
 	progRepo.Seed(1, xp)
-	return NewService(users, progression.NewService(progRepo)), progRepo
+	return NewService(users, progression.NewService(progRepo), nil), progRepo
 }
 
 // The response is a join of two sources; this checks both halves land in
@@ -76,7 +76,7 @@ func TestGetProfileJoinsIdentityAndProgression(t *testing.T) {
 
 func TestGetProfileUserNotFound(t *testing.T) {
 	users := &fakeUserRepo{}
-	svc := NewService(users, progression.NewService(progression.NewMockRepository()))
+	svc := NewService(users, progression.NewService(progression.NewMockRepository()), nil)
 
 	if _, err := svc.GetProfile(context.Background(), 99); !errors.Is(err, auth.ErrUserNotFound) {
 		t.Errorf("expected ErrUserNotFound, got %v", err)

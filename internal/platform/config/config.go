@@ -24,7 +24,10 @@ type AppConfig struct {
 	Env         string
 	Port        int
 	AutoMigrate bool
-	SecretKey   []byte
+	// ShopForceSeason puts a season's shop items on sale whatever the
+	// date ("christmas"). For local testing only; empty in production.
+	ShopForceSeason string
+	SecretKey       []byte
 	// AllowedOrigins is empty for the default same-origin deployment (the
 	// SPA and this API behind one nginx). Set it only when the browser
 	// loads the frontend from a different origin than this API.
@@ -151,6 +154,7 @@ func loadFromMap(env map[string]string) (*Config, error) {
 	}
 	cfg := &Config{}
 	cfg.App.Env = get("APP_ENV", "development")
+	cfg.App.ShopForceSeason = get("SHOP_FORCE_SEASON", "")
 	AutoMigrate, err := getBool("AUTO_MIGRATE", true)
 	if err != nil {
 		return nil, fmt.Errorf("AUTO MIGRATE: %w", err)

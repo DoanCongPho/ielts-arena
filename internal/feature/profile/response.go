@@ -13,6 +13,11 @@ type ProfileResponse struct {
 	CurrentLevelXP int    `json:"current_level_xp"`
 	XPToNextLevel  int    `json:"xp_to_next_level"`
 	ImageURL       string `json:"image_url"`
+	// From the shop: XP left to spend (lifetime XP minus purchases) and
+	// the items being worn, by catalog ID.
+	XPBalance      int     `json:"xp_balance"`
+	EquippedAvatar *string `json:"equipped_avatar"`
+	EquippedFrame  *string `json:"equipped_frame"`
 }
 
 // newProfileResponse joins the two halves of a user. Every progression

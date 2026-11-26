@@ -14,6 +14,7 @@ import (
 	"github/DoanCongPho/game-arena/internal/feature/ielts_test"
 	"github/DoanCongPho/game-arena/internal/feature/profile"
 	"github/DoanCongPho/game-arena/internal/feature/progression"
+	"github/DoanCongPho/game-arena/internal/feature/shop"
 	speakingapi "github/DoanCongPho/game-arena/internal/feature/speaking/api"
 	"github/DoanCongPho/game-arena/internal/feature/speaking/examiner"
 	"github/DoanCongPho/game-arena/internal/feature/speaking/grading"
@@ -171,8 +172,19 @@ func main() {
 	})
 	examiner.Start(workerCtx)
 
+	// --shop--
+	// Spending XP on avatars and frames. SHOP_FORCE_SEASON opens a
+	// season's items out of season, for trying the shop locally.
+	var shopOpts []shop.Option
+	if s := cfg.App.ShopForceSeason; s != "" {
+		shopOpts = append(shopOpts, shop.WithOpenSeasons(shop.Season(s)))
+		log.Printf("shop: season %q forced open", s)
+	}
+	shopSvc := shop.NewService(shop.NewRepository(plat.DB), shopOpts...)
+	shop.NewHandler(shopSvc).MountRoutes(api)
+
 	// --profile--
-	profileSvc := profile.NewService(authRepo, progSvc)
+	profileSvc := profile.NewService(authRepo, progSvc, shopSvc)
 	// mounted on /api subrouter, RequireAuth already applies
 	profile.NewHandler(profileSvc).MountRoutes(api)
 
