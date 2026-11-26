@@ -71,5 +71,27 @@
      rebuilt ProfileHud's actual rendered height and update this once. */
   --layout-fixed-hud-offset: 176px;
 
+  /* Christmas palette — the seasonal theme and the XP shop's items draw
+     with these, so they're defined whether or not the theme is on. */
+  --xmas-red-600: #c0392b;
+  --xmas-red-800: #8e1f1a;
+  --xmas-red-fill: #fbe9e7;
+  --xmas-green-600: #2e7d4f;
+  --xmas-green-800: #1b5136;
+  --xmas-green-fill: #e4f1e8;
+  --xmas-gold-500: #e0b44c;
+  --xmas-brown-600: #7a4b2a;
+  --xmas-snow-glow: rgba(160, 190, 220, 0.6);
+  --xmas-night: #14324a;
+  --xmas-skin: #f3cfa9;
+  --xmas-ice: #bfe0f5;
+
   color-scheme: light;
+}
+
+/* The Christmas theme (lib/seasonalTheme.js, ChristmasLayer) re-points a
+   few base tokens; everything else follows from them. */
+:root[data-theme='christmas'] {
+  --paper-50: #f3f6f8;
+  --gradient-primary: linear-gradient(135deg, var(--xmas-green-600), var(--xmas-green-800));
 }

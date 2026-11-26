@@ -1,0 +1,130 @@
+/* Width of the switch plus its gap — pages' header rows keep this much
+   clear on the right (see .practice-top .practice-header). */
+:root {
+  --theme-switch-room: 156px;
+}
+
+.theme-switch {
+  position: fixed;
+  /* Level with the middle of the ProfileHud, i.e. the pages' title row. */
+  top: calc(var(--space-6) + (var(--profile-hud-height, 44px) - 44px) / 2);
+  right: var(--space-6);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 44px;
+  padding: 4px var(--space-3) 4px 4px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-full);
+  background: var(--surface-0);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--font-ui);
+  cursor: pointer;
+  transition: box-shadow 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+}
+
+.theme-switch:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-1px);
+}
+
+.theme-switch:focus-visible {
+  outline: 2px solid var(--listening-500);
+  outline-offset: 2px;
+}
+
+.theme-switch-on {
+  border-color: var(--xmas-green-600);
+}
+
+/* === Track and knob === */
+.theme-switch-track {
+  position: relative;
+  width: 64px;
+  height: 34px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, var(--xmas-ice), var(--paper-200));
+  box-shadow: inset 0 1px 3px rgba(22, 35, 63, 0.18);
+  overflow: hidden;
+  transition: background 0.3s ease;
+}
+
+.theme-switch-on .theme-switch-track {
+  background: linear-gradient(135deg, var(--xmas-green-600), var(--xmas-night));
+}
+
+.theme-switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--surface-0);
+  box-shadow: 0 2px 4px rgba(22, 35, 63, 0.25);
+  transition: transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.theme-switch-on .theme-switch-knob {
+  transform: translateX(30px);
+}
+
+.theme-switch-knob .xmas-ornament {
+  width: 22px;
+  height: 22px;
+}
+
+/* Off: a plain sun. */
+.theme-switch-sun {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--xmas-gold-500);
+  box-shadow: 0 0 0 3px var(--gold-100);
+}
+
+/* Snowflakes appear in the track once it's on. */
+.theme-switch-flake {
+  position: absolute;
+  color: var(--surface-0);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.theme-switch-flake-a {
+  top: 5px;
+  left: 8px;
+}
+
+.theme-switch-flake-b {
+  bottom: 5px;
+  left: 18px;
+}
+
+.theme-switch-on .theme-switch-flake {
+  opacity: 0.9;
+}
+
+.theme-switch-text {
+  min-width: 44px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-700);
+  text-align: left;
+}
+
+.theme-switch-on .theme-switch-text {
+  color: var(--xmas-red-800);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-switch-knob,
+  .theme-switch-track,
+  .theme-switch-flake {
+    transition: none;
+  }
+}

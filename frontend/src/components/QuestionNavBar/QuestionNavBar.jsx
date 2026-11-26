@@ -1,5 +1,4 @@
-import { useRef } from 'react';
-import { isAnswered, questionNumberLabel } from '../../lib/answerUtils';
+import { flattenQuestions, isAnswered, questionNumberLabel } from '../../lib/answerUtils';
 import BandMeter from '../ui/BandMeter/BandMeter';
 import './QuestionNavBar.css';
 
@@ -11,24 +10,45 @@ import './QuestionNavBar.css';
 // navigable instead of losing the strip the moment it's submitted.
 // Counts are in marks, like the score: a question with `span` > 1 (a
 // "choose TWO" multi-select) counts per key picked / per point earned.
-export default function QuestionNavBar({ questions, answers, results, onJump }) {
-  const stripRef = useRef(null);
-  const sorted = [...questions].sort((a, b) => a.question_order - b.question_order);
+//
+// `units` are the test's passages (reading) or sections (listening). The
+// numbers are grouped by part, each with its own count; every part keeps
+// its numbers and their state on show, so any question is one click away,
+// and the part on screen (`activeUnit`) is highlighted. A part's name
+// jumps to its first question.
+export default function QuestionNavBar({ units, activeUnit = 0, answers, results, onJump }) {
   const isReview = !!results;
   const spanOf = (q) => q.span || 1;
-  const totalMarks = sorted.reduce((n, q) => n + spanOf(q), 0);
-  const correctCount = sorted.reduce((n, q) => {
-    const r = results?.[q.question_order];
-    return n + (r ? r.points ?? (r.correct ? spanOf(q) : 0) : 0);
-  }, 0);
-  const answeredCount = sorted.reduce((n, q) => {
-    const a = answers?.[q.question_order];
-    if (!isAnswered(a)) return n;
-    return n + (Array.isArray(a) ? Math.min(a.length, spanOf(q)) : 1);
-  }, 0);
 
-  function scrollStrip(direction) {
-    stripRef.current?.scrollBy({ left: direction * 240, behavior: 'smooth' });
+  const parts = (units || []).map((u, i) => ({
+    label: `Part ${i + 1}`,
+    questions: flattenQuestions(u.question_groups).sort((a, b) => a.question_order - b.question_order),
+  }));
+
+  function tally(questions) {
+    let total = 0;
+    let answered = 0;
+    let correct = 0;
+    for (const q of questions) {
+      const span = spanOf(q);
+      total += span;
+      const r = results?.[q.question_order];
+      if (r) correct += r.points ?? (r.correct ? span : 0);
+      const a = answers?.[q.question_order];
+      if (isAnswered(a)) answered += Array.isArray(a) ? Math.min(a.length, span) : 1;
+    }
+    return { total, done: isReview ? correct : answered };
+  }
+
+  const overall = tally(parts.flatMap((p) => p.questions));
+
+  function pillClass(order) {
+    if (isReview) {
+      const r = results?.[order];
+      if (!r) return '';
+      return r.correct ? 'question-nav-pill-correct' : 'question-nav-pill-incorrect';
+    }
+    return isAnswered(answers?.[order]) ? 'question-nav-pill-done' : '';
   }
 
   return (
@@ -36,47 +56,48 @@ export default function QuestionNavBar({ questions, answers, results, onJump }) 
       <div className="question-nav-bar-status">
         <span className="question-nav-bar-label text-label">Câu hỏi</span>
         <span className="question-nav-bar-count text-data-sm">
-          {isReview ? `Đúng ${correctCount}/${totalMarks}` : `Đã làm ${answeredCount}/${totalMarks}`}
+          {isReview ? `Đúng ${overall.done}/${overall.total}` : `Đã làm ${overall.done}/${overall.total}`}
         </span>
-        <BandMeter
-          value={isReview ? correctCount : answeredCount}
-          max={totalMarks || 1}
-          className="question-nav-bar-meter"
-        />
+        <BandMeter value={overall.done} max={overall.total || 1} className="question-nav-bar-meter" />
       </div>
 
-      <button type="button" className="question-nav-bar-arrow" onClick={() => scrollStrip(-1)} aria-label="Cuộn trái">
-        ‹
-      </button>
-
-      <div className="question-nav-bar-strip" ref={stripRef}>
-        {sorted.map((q) => {
-          const order = q.question_order;
-          const stateClass = isReview
-            ? results?.[order]
-              ? results[order].correct
-                ? 'question-nav-pill-correct'
-                : 'question-nav-pill-incorrect'
-              : ''
-            : isAnswered(answers?.[order])
-              ? 'question-nav-pill-done'
-              : '';
+      <div className="question-nav-bar-parts">
+        {parts.map((part, i) => {
+          const { total, done } = tally(part.questions);
+          const first = part.questions[0];
+          const complete = !isReview && total > 0 && done === total;
           return (
-            <button
-              key={order}
-              type="button"
-              className={`question-nav-pill ${stateClass}`}
-              onClick={() => onJump(order)}
+            <div
+              key={part.label}
+              className={`question-nav-part ${i === activeUnit ? 'question-nav-part-active' : ''}`}
             >
-              {questionNumberLabel(order, spanOf(q))}
-            </button>
+              <button
+                type="button"
+                className={`question-nav-part-head ${complete ? 'question-nav-part-complete' : ''}`}
+                onClick={() => first && onJump(first.question_order)}
+                title={`Chuyển sang ${part.label}`}
+              >
+                <span className="question-nav-part-label">{part.label}</span>
+                <span className="question-nav-part-count text-data-sm">
+                  {done}/{total}
+                </span>
+              </button>
+              <div className="question-nav-part-pills">
+                {part.questions.map((q) => (
+                  <button
+                    key={q.question_order}
+                    type="button"
+                    className={`question-nav-pill ${pillClass(q.question_order)}`}
+                    onClick={() => onJump(q.question_order)}
+                  >
+                    {questionNumberLabel(q.question_order, spanOf(q))}
+                  </button>
+                ))}
+              </div>
+            </div>
           );
         })}
       </div>
-
-      <button type="button" className="question-nav-bar-arrow" onClick={() => scrollStrip(1)} aria-label="Cuộn phải">
-        ›
-      </button>
     </nav>
   );
 }

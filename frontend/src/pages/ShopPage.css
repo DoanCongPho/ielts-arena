@@ -1,0 +1,119 @@
+/* === Balance and current look === */
+.shop-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-5) var(--space-6);
+  margin-bottom: var(--space-5);
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background: linear-gradient(135deg, var(--xmas-green-800), var(--xmas-night));
+  color: var(--surface-0);
+  box-shadow: var(--shadow-sm);
+}
+
+.shop-hero-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  max-width: 520px;
+}
+
+.shop-hero-label {
+  color: var(--xmas-ice);
+}
+
+.shop-hero-balance {
+  font-family: var(--font-data);
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--xmas-gold-500);
+}
+
+.shop-hero-note {
+  color: var(--paper-200);
+}
+
+.shop-hero-holly {
+  position: absolute;
+  right: var(--space-5);
+  top: 50%;
+  transform: translateY(-50%) rotate(12deg);
+  opacity: 0.9;
+}
+
+.shop-tabs {
+  margin-bottom: var(--space-5);
+}
+
+.shop-notice {
+  color: var(--success-600);
+  font-weight: 600;
+}
+
+/* === Item grid === */
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-5);
+}
+
+.shop-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-4) var(--space-4);
+  text-align: center;
+  background: var(--surface-0);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.shop-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+}
+
+.shop-card-equipped {
+  border-color: var(--xmas-green-600);
+  box-shadow: 0 0 0 2px var(--xmas-green-fill), var(--shadow-sm);
+}
+
+.shop-card-season {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--xmas-red-fill);
+  color: var(--xmas-red-800);
+}
+
+.shop-card-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 136px;
+  height: 136px;
+  margin-bottom: var(--space-2);
+  border-radius: var(--radius-full);
+  background: radial-gradient(circle, var(--xmas-green-fill) 0 55%, transparent 56%);
+}
+
+.shop-card-name {
+  color: var(--ink-900);
+}
+
+.shop-card-price {
+  color: var(--gold-600);
+  margin-bottom: var(--space-2);
+}
+
+.shop-card .ui-button {
+  width: 100%;
+}

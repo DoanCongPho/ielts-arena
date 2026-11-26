@@ -1,0 +1,49 @@
+.ui-avatar {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.ui-avatar-portrait {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--ink-900);
+  color: var(--surface-0);
+  font-weight: 600;
+}
+
+/* The frame's art leaves a circle of radius 36/100 for the portrait. */
+.ui-avatar-framed .ui-avatar-portrait {
+  width: 72%;
+  height: 72%;
+}
+
+.ui-avatar-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ui-avatar-frame {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* frame-lights: the bulbs twinkle in turn. */
+.shop-frame-bulb {
+  animation: xmas-twinkle 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shop-frame-bulb {
+    animation: none;
+  }
+}

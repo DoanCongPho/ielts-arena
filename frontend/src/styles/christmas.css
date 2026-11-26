@@ -1,0 +1,188 @@
+/* The Christmas theme's page styling. Everything here is scoped to
+   :root[data-theme='christmas'] (set by ChristmasLayer), so with the theme
+   off the app looks exactly as without this file. Colors come from the
+   --xmas-* tokens in tokens.css. */
+
+/* === Page backdrop: a pale winter sky with a faint snowflake pattern === */
+:root[data-theme='christmas'] .practice-page,
+:root[data-theme='christmas'] .dashboard-page,
+:root[data-theme='christmas'] .auth-page {
+  background:
+    radial-gradient(circle at 12% 18%, var(--surface-0) 0 2px, transparent 3px) 0 0 / 120px 120px,
+    radial-gradient(circle at 68% 62%, var(--surface-0) 0 1.5px, transparent 2.5px) 0 0 / 90px 90px,
+    linear-gradient(180deg, var(--xmas-green-fill) 0%, var(--paper-50) 360px);
+  background-attachment: local, local, local;
+}
+
+:root[data-theme='christmas'] .practice-top {
+  background: linear-gradient(180deg, var(--xmas-green-fill), var(--paper-50));
+  border-bottom-color: var(--xmas-green-600);
+}
+
+:root[data-theme='christmas'] .practice-top .practice-header {
+  margin-bottom: var(--space-2);
+}
+
+.practice-garland {
+  margin: 0 calc(var(--space-6) * -1) var(--space-3);
+}
+
+:root[data-theme='christmas'] .practice-header h1 {
+  color: var(--xmas-red-800);
+}
+
+/* === Skill tabs and filters === */
+:root[data-theme='christmas'] .skill-tabs {
+  border-color: var(--xmas-green-600);
+}
+
+:root[data-theme='christmas'] .skill-tab.active,
+:root[data-theme='christmas'] .task-filter-pill.active {
+  background: var(--gradient-primary);
+  border-color: var(--xmas-green-800);
+  color: var(--surface-0);
+  box-shadow: inset 0 -3px 0 var(--xmas-red-600);
+}
+
+:root[data-theme='christmas'] .task-filter-pill:not(.active):hover {
+  border-color: var(--xmas-green-600);
+}
+
+/* === Book headings === */
+:root[data-theme='christmas'] .test-group-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--xmas-green-800);
+}
+
+/* === Test cards: a candy-cane edge, a ribbon, an ornament === */
+:root[data-theme='christmas'] .test-card {
+  position: relative;
+  min-height: 112px;
+  border-color: var(--hairline);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+:root[data-theme='christmas'] .test-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 5px;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--xmas-red-600) 0 8px,
+    var(--surface-0) 8px 16px
+  );
+}
+
+/* A ribbon tied across the top-left corner. */
+:root[data-theme='christmas'] .test-card::after {
+  content: '';
+  position: absolute;
+  top: 14px;
+  left: -34px;
+  width: 110px;
+  height: 14px;
+  background: var(--xmas-gold-500);
+  box-shadow: 0 1px 2px rgba(22, 35, 63, 0.18);
+  transform: rotate(-45deg);
+  opacity: 0.9;
+}
+
+:root[data-theme='christmas'] .test-card:hover {
+  border-color: var(--xmas-green-600);
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+
+:root[data-theme='christmas'] .test-card-body {
+  position: relative;
+  z-index: 1;
+  padding-left: var(--space-4);
+}
+
+.test-card-ornament {
+  position: absolute;
+  right: var(--space-4);
+  top: 50%;
+  transform: translateY(-50%) rotate(-6deg);
+  opacity: 0.92;
+  transform-origin: 50% 0;
+  transition: transform 0.3s ease;
+}
+
+.test-card:hover .test-card-ornament {
+  animation: xmas-swing 0.9s ease-in-out;
+}
+
+@keyframes xmas-swing {
+  0%,
+  100% {
+    transform: translateY(-50%) rotate(-6deg);
+  }
+  30% {
+    transform: translateY(-50%) rotate(8deg);
+  }
+  65% {
+    transform: translateY(-50%) rotate(-10deg);
+  }
+}
+
+/* The XP chip becomes a gift tag: a notched end with a string hole. */
+:root[data-theme='christmas'] .test-card-xp-chip {
+  position: relative;
+  padding: 3px 10px 3px 16px;
+  color: var(--xmas-red-800);
+  background: var(--xmas-red-fill);
+  border: 1px dashed var(--xmas-red-600);
+  border-radius: 2px 6px 6px 2px;
+  clip-path: polygon(8px 0, 100% 0, 100% 100%, 8px 100%, 0 50%);
+}
+
+:root[data-theme='christmas'] .test-card-xp-chip::before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: 50%;
+  background: var(--xmas-red-600);
+}
+
+/* === Dashboard === */
+:root[data-theme='christmas'] .dashboard-column {
+  position: relative;
+  z-index: 2;
+}
+
+:root[data-theme='christmas'] .dashboard-tag {
+  color: var(--xmas-red-600);
+}
+
+:root[data-theme='christmas'] .dashboard-nav-item:hover {
+  border-color: var(--xmas-green-600);
+}
+
+/* === Sign-in === */
+:root[data-theme='christmas'] .auth-card-wrapper {
+  position: relative;
+  z-index: 2;
+}
+
+:root[data-theme='christmas'] .auth-card-header h1 {
+  color: var(--xmas-red-800);
+}
+
+/* === Submissions === */
+:root[data-theme='christmas'] .submission-row:hover {
+  background: var(--xmas-green-fill);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .test-card:hover .test-card-ornament {
+    animation: none;
+  }
+}

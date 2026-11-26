@@ -165,6 +165,25 @@ export function getProfile() {
   return request('/api/profile');
 }
 
+// --- XP shop ---
+
+// getShop returns {xp_balance, equipped_avatar, equipped_frame, items:
+// [{id, kind, name, price, season, owned, equipped, on_sale}]}.
+export function getShop() {
+  return request('/api/shop');
+}
+
+// purchaseItem spends XP on an item; resolves to the updated shop.
+export function purchaseItem(itemId) {
+  return request('/api/shop/purchase', { method: 'POST', body: JSON.stringify({ item_id: itemId }) });
+}
+
+// equipItem wears an owned item in its slot ('avatar' | 'frame'); an empty
+// itemId takes off what's there. Resolves to the updated shop.
+export function equipItem(kind, itemId) {
+  return request('/api/shop/equip', { method: 'POST', body: JSON.stringify({ kind, item_id: itemId || '' }) });
+}
+
 // --- Speaking ---
 
 // getSpeakingScript returns the examiner's script for a speaking test:

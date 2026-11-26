@@ -44,3 +44,14 @@
   background: var(--paper-50);
   border-color: var(--ink-400);
 }
+
+.ui-button-danger {
+  background: var(--error-600);
+  color: var(--surface-0);
+  box-shadow: var(--shadow-sm);
+}
+
+.ui-button-danger:hover:not(:disabled) {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-1px);
+}

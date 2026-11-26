@@ -33,41 +33,86 @@
   width: 90px;
 }
 
-.question-nav-bar-arrow {
+/* === Parts: every part shows its numbers; the one on screen stands out === */
+.question-nav-bar-parts {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding: 2px;
+}
+
+.question-nav-bar-parts::-webkit-scrollbar {
+  height: 4px;
+}
+
+.question-nav-part {
   flex-shrink: 0;
-  width: 22px;
-  height: 22px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 3px var(--space-2) 3px 3px;
   border: 1px solid var(--hairline);
   border-radius: var(--radius-sm);
   background: var(--surface-0);
-  color: var(--ink-900);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1;
+}
+
+.question-nav-part-active {
+  border-color: var(--ink-400);
+  background: var(--paper-50);
+  box-shadow: inset 0 -2px 0 var(--ink-900);
+}
+
+.question-nav-part-head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  padding: 1px var(--space-2);
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-700);
+  font-family: var(--font-ui);
+  line-height: 1.15;
   cursor: pointer;
 }
 
-.question-nav-bar-arrow:hover {
-  background: var(--paper-50);
+.question-nav-part-head:hover {
+  background: var(--paper-200);
 }
 
-.question-nav-bar-strip {
+.question-nav-part-label {
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.question-nav-part-active .question-nav-part-label {
+  color: var(--ink-900);
+}
+
+.question-nav-part-count {
+  font-size: 10px;
+  color: var(--ink-400);
+}
+
+.question-nav-part-complete .question-nav-part-count {
+  color: var(--success-600);
+}
+
+.question-nav-part-pills {
   display: flex;
-  gap: var(--space-2);
-  overflow-x: auto;
-  scroll-behavior: smooth;
-  padding: 3px 2px;
-}
-
-.question-nav-bar-strip::-webkit-scrollbar {
-  height: 4px;
+  gap: 3px;
 }
 
 .question-nav-pill {
   flex-shrink: 0;
-  min-width: 24px;
-  height: 24px;
-  padding: 0 4px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 3px;
   border: 1px solid var(--hairline);
   border-radius: var(--radius-sm);
   background: var(--surface-0);

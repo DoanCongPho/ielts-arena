@@ -1,0 +1,142 @@
+/* === Snowfall === */
+.xmas-snow {
+  position: fixed;
+  inset: 0;
+  z-index: 900; /* over the pages, under the ProfileHud and dialogs */
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.xmas-flake {
+  position: absolute;
+  top: -12px;
+  border-radius: 50%;
+  background: var(--surface-0);
+  box-shadow: 0 0 4px var(--xmas-snow-glow);
+  animation-name: xmas-snowfall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+@keyframes xmas-snowfall {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(var(--flake-drift), 52vh, 0);
+  }
+  100% {
+    transform: translate3d(0, 104vh, 0);
+  }
+}
+
+/* === Ornaments === */
+.xmas-ornament {
+  display: block;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+/* === Garland (string of lights) === */
+.xmas-garland {
+  position: relative;
+  height: 22px;
+  pointer-events: none;
+}
+
+.xmas-garland-wire {
+  position: absolute;
+  inset: 0 0 auto;
+  width: 100%;
+  height: 12px;
+}
+
+.xmas-bulb {
+  position: absolute;
+  top: 7px;
+  width: 8px;
+  height: 12px;
+  margin-left: -4px;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: var(--bulb-color);
+  box-shadow: 0 0 8px 1px var(--bulb-color);
+  animation: xmas-twinkle 1.6s ease-in-out infinite;
+  animation-delay: var(--bulb-delay);
+}
+
+.xmas-bulb::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: 2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 1px;
+  background: var(--xmas-green-800);
+}
+
+@keyframes xmas-twinkle {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+    box-shadow: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xmas-snow {
+    display: none;
+  }
+
+  .xmas-bulb {
+    animation: none;
+  }
+}
+
+/* === Scenery along the bottom (dashboard, sign-in) === */
+.xmas-scenery {
+  position: fixed;
+  inset: auto 0 0;
+  height: 190px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.xmas-scenery-ground {
+  position: absolute;
+  inset: auto 0 0;
+  height: 34px;
+  background: var(--surface-0);
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  box-shadow: 0 -6px 18px var(--xmas-snow-glow);
+}
+
+.xmas-scenery-side {
+  position: absolute;
+  bottom: 18px;
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+}
+
+.xmas-scenery-left {
+  left: var(--space-5);
+}
+
+.xmas-scenery-right {
+  right: var(--space-5);
+}
+
+.xmas-scenery-side .xmas-ornament + .xmas-ornament {
+  margin-left: -18px;
+}
+
+@media (max-width: 900px) {
+  .xmas-scenery {
+    display: none;
+  }
+}

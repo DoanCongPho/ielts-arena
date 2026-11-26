@@ -2,6 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import Card from '../components/ui/Card/Card';
 import IconChip from '../components/ui/IconChip/IconChip';
 import { isAdmin, clearUserRole } from '../lib/auth';
+import { ChristmasScenery } from '../components/ChristmasLayer/ChristmasLayer';
+import { useChristmasTheme } from '../lib/seasonalTheme';
 import './DashboardPage.css';
 
 const SKILL_NAV = [
@@ -13,6 +15,7 @@ const SKILL_NAV = [
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const { active: christmas } = useChristmasTheme();
 
   function handleLogout() {
     localStorage.removeItem('access_token');
@@ -26,7 +29,9 @@ export default function DashboardPage() {
       <div className="dashboard-column">
         <span className="dashboard-tag text-label">IELTS Arena</span>
         <h1 className="text-display-sm">Dashboard</h1>
-        <p className="dashboard-subtitle text-body">Welcome back. Ready to practice?</p>
+        <p className="dashboard-subtitle text-body">
+          {christmas ? 'Giáng sinh an lành! Luyện một đề trước khi mở quà nhé?' : 'Welcome back. Ready to practice?'}
+        </p>
 
         <nav className="dashboard-nav-list">
           {SKILL_NAV.map(({ skill, title, subtitle, path }) => (
@@ -62,6 +67,21 @@ export default function DashboardPage() {
             </span>
           </Card>
 
+          <Card
+            as="button"
+            type="button"
+            interactive
+            padding="default"
+            className="dashboard-nav-item"
+            onClick={() => navigate('/shop')}
+          >
+            <IconChip icon="gift" size={52} />
+            <span className="dashboard-nav-text">
+              <span className="dashboard-nav-title text-h2">Đổi XP</span>
+              <span className="dashboard-nav-subtitle text-body">Avatar và viền Giáng sinh</span>
+            </span>
+          </Card>
+
           {isAdmin() && (
             <Card
               as="button"
@@ -94,6 +114,7 @@ export default function DashboardPage() {
           </Card>
         </nav>
       </div>
+      <ChristmasScenery />
     </div>
   );
 }

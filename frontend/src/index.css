@@ -1,5 +1,6 @@
 @import './styles/tokens.css';
 @import './styles/typography.css';
+@import './styles/christmas.css';
 
 * {
   box-sizing: border-box;

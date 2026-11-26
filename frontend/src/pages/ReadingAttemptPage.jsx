@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { getScore, getTest, submitAnswer, waitForGrading } from '../lib/api';
-import { flattenQuestions } from '../lib/answerUtils';
+import { answeredDetail } from '../lib/answerUtils';
 import { safeParse } from '../lib/safeParse';
 import { ATTEMPT_SECONDS, useCountdown, useLeaveGuard } from '../lib/useAttemptSession';
 import { useTextHighlights } from '../lib/useTextHighlights';
@@ -22,7 +22,6 @@ import './ReadingAttemptPage.css';
 
 export default function ReadingAttemptPage() {
   const { testId } = useParams();
-  const navigate = useNavigate();
 
   const [test, setTest] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -57,7 +56,10 @@ export default function ReadingAttemptPage() {
 
   const inProgress = !!test && !score && !gradeFailed;
   const remaining = useCountdown(ATTEMPT_SECONDS, inProgress, handleTimeUp);
-  const confirmLeave = useLeaveGuard(inProgress);
+  const { requestLeave, leaveDialog } = useLeaveGuard(inProgress, {
+    backTo: '/practice/reading',
+    detail: answeredDetail(passages, answers),
+  });
   const review = useEvidenceReview(testId, !!score, passages, setActiveIndex);
 
   // Runs after a QuestionNavBar jump: if the target question is in a
@@ -115,13 +117,12 @@ export default function ReadingAttemptPage() {
 
   const activePassage = passages[activeIndex];
   const activeGroups = activePassage?.question_groups || [];
-  const allQuestions = passages.flatMap((p) => flattenQuestions(p.question_groups));
   const scoreResults = score ? safeParse(score.details)?.results : undefined;
 
   return (
     <div className="attempt-page reading-attempt-page attempt-page-focus">
       <header className="attempt-header">
-        <button type="button" className="attempt-back" onClick={() => confirmLeave() && navigate('/practice/reading')} aria-label="Về danh sách đề" title="Về danh sách đề">
+        <button type="button" className="attempt-back" onClick={requestLeave} aria-label="Về danh sách đề" title="Về danh sách đề">
           ←
         </button>
         <span className={`attempt-timer ${inProgress && remaining <= 5 * 60 ? 'attempt-timer-low' : ''}`}>{formatTime(remaining)}</span>
@@ -205,7 +206,8 @@ export default function ReadingAttemptPage() {
 
       {!gradeFailed && (
         <QuestionNavBar
-          questions={allQuestions}
+          units={passages}
+          activeUnit={activeIndex}
           answers={answers}
           results={scoreResults}
           onJump={handleJumpToQuestion}
@@ -218,6 +220,8 @@ export default function ReadingAttemptPage() {
         toolbarRef={highlight.toolbarRef}
         label={score ? '🖍 Tô đậm · lưu từ' : undefined}
       />
+
+      {leaveDialog}
     </div>
   );
 }

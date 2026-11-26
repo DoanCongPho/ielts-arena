@@ -308,7 +308,8 @@ function MultiUnitReview({ skill, test, content, payload, score, notGradedMessag
 
       {allQuestions.length > 0 && (
         <QuestionNavBar
-          questions={allQuestions}
+          units={units}
+          activeUnit={activeIndex}
           answers={payload?.answers}
           results={scoreResults}
           onJump={handleJumpToQuestion}

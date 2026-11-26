@@ -81,12 +81,14 @@ export default function SubmissionsPage() {
 
   return (
     <div className="practice-page">
-      <header className="practice-header">
-        <h1 className="text-h1">Bài đã làm</h1>
-        <Button variant="secondary" onClick={() => navigate('/dashboard')}>
-          ← Dashboard
-        </Button>
-      </header>
+      <div className="practice-top">
+        <header className="practice-header">
+          <h1 className="text-h1">Bài đã làm</h1>
+          <Button variant="secondary" onClick={() => navigate('/dashboard')}>
+            ← Dashboard
+          </Button>
+        </header>
+      </div>
 
       {justSubmitted && (
         <div className={`submission-notice ${justSubmittedDone ? 'submission-notice-done' : ''}`}>

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import ProfileHud from './components/ProfileHud/ProfileHud';
 import GradingNotifier from './components/GradingNotifier/GradingNotifier';
+import ChristmasLayer from './components/ChristmasLayer/ChristmasLayer';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
@@ -13,17 +14,19 @@ import SpeakingComposerPage from './pages/SpeakingComposerPage';
 import SubmissionsPage from './pages/SubmissionsPage';
 import SubmissionDetailPage from './pages/SubmissionDetailPage';
 import CreateTestPage from './pages/CreateTestPage';
+import ShopPage from './pages/ShopPage';
 import { isAdmin } from './lib/auth';
 
-// `focus` hides the ProfileHud — used on attempt pages and the review of
-// a submission, where the test takes the whole screen and the candidate
-// navigates away on their own.
+// `focus` hides the ProfileHud and the seasonal theme — used on attempt
+// pages and the review of a submission, where the test takes the whole
+// screen and the candidate navigates away on their own.
 function PrivateRoute({ children, focus = false }) {
   const token = localStorage.getItem('access_token');
   if (!token) return <Navigate to="/login" replace />;
   return (
     <>
       {!focus && <ProfileHud />}
+      {!focus && <ChristmasLayer />}
       {children}
     </>
   );
@@ -40,6 +43,7 @@ function AdminRoute({ children }) {
   return (
     <>
       <ProfileHud />
+      <ChristmasLayer />
       {children}
     </>
   );
@@ -49,8 +53,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/login" element={<><ChristmasLayer /><LoginPage /></>} />
+        <Route path="/register" element={<><ChristmasLayer /><RegisterPage /></>} />
         <Route path="/dashboard" element={
           <PrivateRoute>
             <DashboardPage />
@@ -89,6 +93,11 @@ export default function App() {
         <Route path="/practice/speaking/:testId" element={
           <PrivateRoute focus>
             <SpeakingAttemptPage />
+          </PrivateRoute>
+        } />
+        <Route path="/shop" element={
+          <PrivateRoute>
+            <ShopPage />
           </PrivateRoute>
         } />
         <Route path="/submissions" element={

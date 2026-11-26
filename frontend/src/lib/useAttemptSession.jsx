@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import ConfirmDialog from '../components/ui/ConfirmDialog/ConfirmDialog';
 
 // Reading attempts get a fixed time allowance, as does a writing task of
 // unknown type.
@@ -11,7 +13,7 @@ export const WRITING_SECONDS = { task1: 20 * 60, task2: 40 * 60 };
 // answers once the last part has played.
 export const LISTENING_CHECK_SECONDS = 2 * 60;
 
-const LEAVE_MESSAGE = 'Bài làm chưa nộp sẽ bị mất. Bạn có chắc muốn rời trang?';
+const LEAVE_MESSAGE = 'Bài làm chưa nộp sẽ bị mất.';
 
 // useCountdown counts down from totalSeconds while `running`, and calls
 // onExpire once when it reaches zero. It measures against the wall clock
@@ -75,21 +77,29 @@ export function useElapsed(running) {
 }
 
 // useLeaveGuard stops an in-progress attempt from being left by accident —
-// a trackpad swipe-back, the browser Back button, a reload or closing the
-// tab. While `active`:
+// the page's back arrow, a trackpad swipe-back, the browser Back button, a
+// reload or closing the tab. While `active`:
 //   - horizontal overscroll is disabled, so a two-finger swipe doesn't start
 //     the browser's back gesture in the first place;
 //   - an extra history entry for the current page is pushed, so Back lands
-//     on it instead of leaving, and the user is asked to confirm; confirming
-//     goes back for real, cancelling re-arms the trap;
-//   - reload/close shows the browser's native "leave site?" prompt.
-// It returns confirmLeave() for in-app exits (e.g. the page's back arrow):
-// true if it's fine to navigate away.
-export function useLeaveGuard(active) {
+//     on it instead of leaving; the trap is re-armed at once and the leave
+//     dialog opens;
+//   - reload/close shows the browser's native "leave site?" prompt (the
+//     only thing a browser allows there).
+// It returns requestLeave(), for in-app exits (the back arrow): it goes to
+// `backTo` straight away when nothing is in progress, and otherwise opens
+// the dialog; and leaveDialog, the element the page renders.
+// `detail` is the dialog's body, e.g. how many questions are answered.
+export function useLeaveGuard(active, { backTo, detail } = {}) {
+  const navigate = useNavigate();
   const leaving = useRef(false);
+  const [asking, setAsking] = useState(false);
 
   useEffect(() => {
-    if (!active) return;
+    if (!active) {
+      setAsking(false);
+      return;
+    }
 
     const root = document.documentElement;
     const prevOverscroll = root.style.overscrollBehaviorX;
@@ -101,12 +111,8 @@ export function useLeaveGuard(active) {
 
     function onPopState() {
       if (leaving.current) return;
-      if (window.confirm(LEAVE_MESSAGE)) {
-        leaving.current = true;
-        window.history.back();
-      } else {
-        window.history.pushState(window.history.state, '', window.location.href);
-      }
+      window.history.pushState(window.history.state, '', window.location.href);
+      setAsking(true);
     }
 
     function onBeforeUnload(e) {
@@ -123,5 +129,32 @@ export function useLeaveGuard(active) {
     };
   }, [active]);
 
-  return useCallback(() => !active || window.confirm(LEAVE_MESSAGE), [active]);
+  const leave = useCallback(() => {
+    leaving.current = true;
+    setAsking(false);
+    // Replace the trap entry, so Back from the list doesn't land on it.
+    navigate(backTo, { replace: active });
+  }, [navigate, backTo, active]);
+
+  const requestLeave = useCallback(() => {
+    if (active) setAsking(true);
+    else leave();
+  }, [active, leave]);
+
+  const leaveDialog = (
+    <ConfirmDialog
+      open={asking}
+      title="Thoát bài làm?"
+      confirmLabel="Thoát"
+      cancelLabel="Làm tiếp"
+      danger
+      onConfirm={leave}
+      onCancel={() => setAsking(false)}
+    >
+      {detail && <p>{detail}</p>}
+      <p>{LEAVE_MESSAGE}</p>
+    </ConfirmDialog>
+  );
+
+  return { requestLeave, leaveDialog };
 }

@@ -49,6 +49,15 @@ const ICON_PATHS = {
       <path d="M5 12h14" />
     </>
   ),
+  gift: (
+    <>
+      <rect x="4" y="10" width="16" height="10" rx="1.5" />
+      <path d="M3 7.5h18v2.5H3z" />
+      <path d="M12 7.5V20" />
+      <path d="M12 7.5c-1.5-3-5-3.5-5-1.2 0 1.4 2.6 1.2 5 1.2z" />
+      <path d="M12 7.5c1.5-3 5-3.5 5-1.2 0 1.4-2.6 1.2-5 1.2z" />
+    </>
+  ),
 };
 
 // A colored, iconified identity chip. Skill icons (reading/listening/

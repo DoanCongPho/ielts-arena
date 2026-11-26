@@ -26,3 +26,19 @@ export function questionNumberLabel(order, span = 1) {
 export function flattenQuestions(groups) {
   return (groups || []).flatMap((g) => g.questions.map((q) => ({ ...q, span: questionSpan(g) })));
 }
+
+// answeredDetail says how far an attempt has got ("Bạn đã làm 12/40
+// câu."), counted in marks like QuestionNavBar, for the leave dialog.
+// `units` are passages or sections; null before anything is answered.
+export function answeredDetail(units, answers) {
+  const questions = (units || []).flatMap((u) => flattenQuestions(u.question_groups));
+  let total = 0;
+  let done = 0;
+  for (const q of questions) {
+    const span = q.span || 1;
+    total += span;
+    const a = answers?.[q.question_order];
+    if (isAnswered(a)) done += Array.isArray(a) ? Math.min(a.length, span) : 1;
+  }
+  return done ? `Bạn đã làm ${done}/${total} câu.` : null;
+}

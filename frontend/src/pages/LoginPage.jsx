@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Card from '../components/ui/Card/Card';
 import Button from '../components/ui/Button/Button';
 import { API_BASE } from '../lib/api';
+import { ChristmasScenery } from '../components/ChristmasLayer/ChristmasLayer';
 import './AuthPage.css';
 
 function EyeIcon({ open }) {
@@ -121,6 +122,7 @@ export default function LoginPage() {
           <Link to="/register">Register</Link>
         </p>
       </Card>
+      <ChristmasScenery />
     </div>
   );
 }

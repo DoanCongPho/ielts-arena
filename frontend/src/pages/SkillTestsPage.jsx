@@ -7,12 +7,18 @@ import Button from '../components/ui/Button/Button';
 import SkillTag from '../components/ui/SkillTag/SkillTag';
 import Card from '../components/ui/Card/Card';
 import CustomSpeakingList from '../components/CustomSpeakingList/CustomSpeakingList';
+import { Bauble, Bell, Garland, GiftBox, HollySprig, PineTree } from '../components/ChristmasLayer/ornaments';
+import { useChristmasTheme } from '../lib/seasonalTheme';
 import './PracticePage.css';
+
+// The ornaments a test card rotates through, by test number.
+const CARD_ORNAMENTS = [PineTree, GiftBox, Bauble, Bell];
 
 export default function SkillTestsPage() {
   const navigate = useNavigate();
   const { skill } = useParams();
   const config = SKILL_CONFIG[skill];
+  const { active: christmas } = useChristmasTheme();
 
   const [taskFilter, setTaskFilter] = useState('all');
   const [page, setPage] = useState(1);
@@ -61,54 +67,61 @@ export default function SkillTestsPage() {
   // The API already applied the filter; this page shows what it returned.
   const groups = groupBySeries(tests);
 
-  // Inside a book the test number is what tells cards apart ("Test 3").
+  // Inside a book the test number is what tells cards apart ("Test 3");
+  // a Writing test has two cards, so they also name the task.
   function cardLabel(t) {
-    return t.test_number ? `Test ${t.test_number}` : config.taskTypeLabel(t.task_type);
+    if (!t.test_number) return config.taskTypeLabel(t.task_type);
+    if (skill === 'writing') return `Test ${t.test_number} · ${config.taskTypeLabel(t.task_type)}`;
+    return `Test ${t.test_number}`;
   }
 
   return (
     <div className="practice-page">
-      <header className="practice-header">
-        <h1 className="text-h1">IELTS Arena</h1>
-        <Button variant="secondary" onClick={() => navigate('/dashboard')}>
-          ← Dashboard
-        </Button>
-      </header>
+      <div className="practice-top">
+        <header className="practice-header">
+          <h1 className="text-h1">IELTS Arena</h1>
+          <Button variant="secondary" onClick={() => navigate('/dashboard')}>
+            ← Dashboard
+          </Button>
+        </header>
 
-      <nav className="skill-tabs">
-        {SKILLS.map((s) => {
-          const sConfig = SKILL_CONFIG[s.key];
-          return (
+        {christmas && <Garland bulbs={24} className="practice-garland" />}
+
+        <nav className="skill-tabs">
+          {SKILLS.map((s) => {
+            const sConfig = SKILL_CONFIG[s.key];
+            return (
+              <button
+                key={s.key}
+                className={
+                  `skill-tab ${s.key === skill ? 'active' : ''}` +
+                  (!sConfig?.enabled ? ' skill-tab-coming-soon' : '')
+                }
+                disabled={!sConfig?.enabled}
+                title={!sConfig?.enabled ? 'Sắp ra mắt' : undefined}
+                onClick={() => navigate(`/practice/${s.key}`)}
+              >
+                {s.label}
+                {sConfig?.comingSoon && <span className="skill-tab-badge text-label">Soon</span>}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="task-filters">
+          {config.taskFilters.map((f) => (
             <button
-              key={s.key}
-              className={
-                `skill-tab ${s.key === skill ? 'active' : ''}` +
-                (!sConfig?.enabled ? ' skill-tab-coming-soon' : '')
-              }
-              disabled={!sConfig?.enabled}
-              title={!sConfig?.enabled ? 'Sắp ra mắt' : undefined}
-              onClick={() => navigate(`/practice/${s.key}`)}
+              key={f.key}
+              className={`task-filter-pill ${taskFilter === f.key ? 'active' : ''}`}
+              onClick={() => {
+                setTaskFilter(f.key);
+                setPage(1);
+              }}
             >
-              {s.label}
-              {sConfig?.comingSoon && <span className="skill-tab-badge text-label">Soon</span>}
+              {f.label}
             </button>
-          );
-        })}
-      </nav>
-
-      <div className="task-filters">
-        {config.taskFilters.map((f) => (
-          <button
-            key={f.key}
-            className={`task-filter-pill ${taskFilter === f.key ? 'active' : ''}`}
-            onClick={() => {
-              setTaskFilter(f.key);
-              setPage(1);
-            }}
-          >
-            {f.label}
-          </button>
-        ))}
+          ))}
+        </div>
       </div>
 
       {skill === 'speaking' && <CustomSpeakingList />}
@@ -122,11 +135,17 @@ export default function SkillTestsPage() {
 
       {groups.map((g) => (
         <section key={g.key} className="test-group">
-          {g.label && <h2 className="test-group-title text-h3">{g.label}</h2>}
+          {g.label && (
+            <h2 className="test-group-title text-h3">
+              {christmas && <HollySprig size={28} />}
+              {g.label}
+            </h2>
+          )}
           <div className="test-grid">
-            {g.tests.map((t) => {
+            {g.tests.map((t, i) => {
               const content = safeParse(t.content_data);
               const summary = config.cardSummary(content);
+              const Ornament = CARD_ORNAMENTS[(t.test_number || i) % CARD_ORNAMENTS.length];
               return (
                 <Card
                   key={t.id}
@@ -134,6 +153,11 @@ export default function SkillTestsPage() {
                   className="test-card"
                   onClick={() => navigate(config.attemptPath(t.id))}
                 >
+                  {christmas && (
+                    <span className="test-card-ornament" aria-hidden="true">
+                      <Ornament size={76} />
+                    </span>
+                  )}
                   {t.thumbnail_url && (
                     <div className="test-card-media">
                       <img className="test-card-thumb" src={t.thumbnail_url} alt="" />

@@ -67,7 +67,9 @@ export default function SpeakingAttemptPage() {
     return () => clearInterval(id);
   }, [stage, phase]);
 
-  const confirmLeave = useLeaveGuard(phase === 'running' || phase === 'submitting');
+  const { requestLeave, leaveDialog } = useLeaveGuard(phase === 'running' || phase === 'submitting', {
+    backTo: '/practice/speaking',
+  });
 
   // waitFor resolves after `seconds`, or earlier when the candidate clicks
   // the stage's button (skipRef). `display` is the target shown on the
@@ -216,7 +218,7 @@ export default function SpeakingAttemptPage() {
         <button
           type="button"
           className="attempt-back"
-          onClick={() => confirmLeave() && navigate('/practice/speaking')}
+          onClick={requestLeave}
           aria-label="Về danh sách đề"
           title="Về danh sách đề"
         >
@@ -326,6 +328,8 @@ export default function SpeakingAttemptPage() {
           {error && <p className="practice-status practice-error">{error}</p>}
         </div>
       )}
+
+      {leaveDialog}
     </div>
   );
 }

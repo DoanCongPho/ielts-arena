@@ -54,7 +54,10 @@ export default function WritingAttemptPage() {
   const inProgress = !!test && !!mode && !submitting;
   const remaining = useCountdown(allowance, inProgress && timed, handleTimeUp);
   const elapsed = useElapsed(inProgress);
-  const confirmLeave = useLeaveGuard(inProgress);
+  const { requestLeave, leaveDialog } = useLeaveGuard(inProgress, {
+    backTo: '/practice/writing',
+    detail: text.trim() ? `Bạn đã viết ${text.trim().split(/\s+/).length} từ.` : null,
+  });
 
   function start(chosen) {
     saveMode(chosen);
@@ -123,7 +126,7 @@ export default function WritingAttemptPage() {
   return (
     <div className="attempt-page attempt-page-focus">
       <header className="attempt-header">
-        <button type="button" className="attempt-back" onClick={() => confirmLeave() && navigate('/practice/writing')} aria-label="Về danh sách đề" title="Về danh sách đề">
+        <button type="button" className="attempt-back" onClick={requestLeave} aria-label="Về danh sách đề" title="Về danh sách đề">
           ←
         </button>
         {timed ? (
@@ -166,6 +169,8 @@ export default function WritingAttemptPage() {
           <p className="attempt-submit-hint">Nộp xong bạn không cần chờ: bài được chấm ngầm và bạn sẽ được báo khi có kết quả.</p>
         </div>
       </div>
+
+      {leaveDialog}
     </div>
   );
 }

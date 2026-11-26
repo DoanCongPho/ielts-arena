@@ -2,7 +2,9 @@
   position: fixed;
   inset: 0;
   display: flex;
-  align-items: center;
+  /* Centred with auto margins on the column, not align-items, so a list
+     taller than the window scrolls from its top instead of being cut. */
+  align-items: flex-start;
   justify-content: center;
   background: var(--paper-50);
   overflow: auto;
@@ -10,6 +12,8 @@
 }
 
 .dashboard-column {
+  margin: auto 0;
+  padding-bottom: var(--space-6);
   display: flex;
   flex-direction: column;
   align-items: center;

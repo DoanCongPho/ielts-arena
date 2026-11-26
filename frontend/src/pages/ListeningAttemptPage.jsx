@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { getScore, getTest, submitAnswer, waitForGrading } from '../lib/api';
-import { flattenQuestions } from '../lib/answerUtils';
+import { answeredDetail, flattenQuestions } from '../lib/answerUtils';
 import { safeParse } from '../lib/safeParse';
 import { LISTENING_CHECK_SECONDS, useCountdown, useLeaveGuard } from '../lib/useAttemptSession';
 import { SKILL_CONFIG } from '../lib/skillConfig';
@@ -26,7 +26,6 @@ import './ListeningAttemptPage.css';
 
 export default function ListeningAttemptPage() {
   const { testId } = useParams();
-  const navigate = useNavigate();
 
   const [test, setTest] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -57,7 +56,10 @@ export default function ListeningAttemptPage() {
 
   const inProgress = !!test && !score && !gradeFailed;
   const remaining = useCountdown(totalSeconds(content) + LISTENING_CHECK_SECONDS, inProgress && started, handleTimeUp);
-  const confirmLeave = useLeaveGuard(inProgress);
+  const { requestLeave, leaveDialog } = useLeaveGuard(inProgress, {
+    backTo: '/practice/listening',
+    detail: answeredDetail(sections, answers),
+  });
   const audio = useSectionAudio(content, activeIndex);
   const review = useEvidenceReview(testId, !!score, sections, setActiveIndex);
   // Highlight question text, instructions and (in review) the transcript,
@@ -167,7 +169,7 @@ export default function ListeningAttemptPage() {
   return (
     <div className={`attempt-page attempt-page-focus ${panes ? 'reading-attempt-page' : ''}`}>
       <header className="attempt-header">
-        <button type="button" className="attempt-back" onClick={() => confirmLeave() && navigate('/practice/listening')} aria-label="Về danh sách đề" title="Về danh sách đề">
+        <button type="button" className="attempt-back" onClick={requestLeave} aria-label="Về danh sách đề" title="Về danh sách đề">
           ←
         </button>
         <span className={`attempt-timer ${inProgress && remaining <= 5 * 60 ? 'attempt-timer-low' : ''}`}>{formatTime(remaining)}</span>
@@ -254,7 +256,8 @@ export default function ListeningAttemptPage() {
         )}
         {!gradeFailed && (
           <QuestionNavBar
-            questions={allQuestions}
+            units={sections}
+            activeUnit={activeIndex}
             answers={answers}
             results={scoreResults}
             onJump={handleJumpToQuestion}
@@ -268,6 +271,8 @@ export default function ListeningAttemptPage() {
         toolbarRef={highlight.toolbarRef}
         label={score ? '🖍 Tô đậm · lưu từ' : undefined}
       />
+
+      {leaveDialog}
     </div>
   );
 }

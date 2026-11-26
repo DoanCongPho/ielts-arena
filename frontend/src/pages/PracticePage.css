@@ -4,7 +4,40 @@
   overflow-y: auto;
   background: var(--paper-50);
   color: var(--ink-900);
-  padding: var(--layout-fixed-hud-offset) var(--space-6) var(--space-7);
+  padding: 0 var(--space-6) var(--space-7);
+}
+
+/* The page's head (title, skill tabs, filters) stays pinned while the
+   list scrolls under it. It starts level with the fixed ProfileHud, and
+   the title row sits to the HUD's right (ProfileHud publishes its size as
+   --profile-hud-height / --profile-hud-right), so nothing slides under
+   the HUD. */
+.practice-top {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  margin: 0 calc(var(--space-6) * -1) var(--space-6);
+  padding: var(--space-6) var(--space-6) var(--space-4);
+  background: var(--paper-50);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.practice-top .practice-header {
+  min-height: var(--profile-hud-height, 0px);
+  padding-left: max(0px, calc(var(--profile-hud-right, 0px) - var(--space-6) + var(--space-5)));
+  /* Keep clear of the fixed ThemeSwitch in the top-right corner. */
+  padding-right: var(--theme-switch-room, 0px);
+  padding-bottom: 0;
+  border-bottom: none;
+  margin-bottom: var(--space-4);
+}
+
+.practice-top .skill-tabs {
+  margin-bottom: var(--space-4);
+}
+
+.practice-top .task-filters {
+  margin-bottom: 0;
 }
 
 .practice-header {
