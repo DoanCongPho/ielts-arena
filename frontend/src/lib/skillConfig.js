@@ -7,25 +7,32 @@ export const SKILLS = [
   { key: 'speaking', label: 'Speaking' },
 ];
 
-const SERIES_NAMES = { cambridge: 'Cambridge' };
+const SERIES_NAMES = { cambridge: 'Cambridge', actual: 'Đề thi thật' };
 
 // A filter's `query` is sent to GET /api/tests, which filters before it
 // paginates — so a filter always sees every matching test, not just the
 // ones on the current page.
 //
-// Filters shared by skills whose tests come from books: "Cambridge" keeps
-// tests in a series, "Khác" keeps the rest.
+// Filters shared by skills whose tests come from books: "Cambridge" and
+// "Đề thi thật" (real exams recalled by candidates) keep that series,
+// "Khác" keeps the rest.
 const SERIES_FILTERS = [
   { key: 'all', label: 'Tất cả', query: {} },
   { key: 'cambridge', label: 'Cambridge', query: { series: 'cambridge' } },
+  { key: 'actual', label: 'Đề thi thật', query: { series: 'actual' } },
   { key: 'other', label: 'Khác', query: { series: 'none' } },
 ];
 
 // seriesLabel names the book a test belongs to ("Cambridge 20"), or null
-// for a test outside any series.
+// for a test outside any series. A real exam's volume is the month it was
+// sat, as YYYYMM ("Đề thi thật 09/2026").
 export function seriesLabel(test) {
   if (!test.series) return null;
   const name = SERIES_NAMES[test.series] || test.series;
+  if (test.series === 'actual' && test.volume > 100000) {
+    const month = String(test.volume % 100).padStart(2, '0');
+    return `${name} ${month}/${Math.floor(test.volume / 100)}`;
+  }
   return test.volume ? `${name} ${test.volume}` : name;
 }
 

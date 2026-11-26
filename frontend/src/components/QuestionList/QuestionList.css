@@ -372,6 +372,14 @@
   border-bottom: 2px solid var(--error-600);
 }
 
+/* The right answer, shown after a wrong blank. */
+.gap-correct-answer {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--success-600);
+}
+
 /* Matching drag-and-drop (matching-*, map-plan-labelling) — interaction
    chrome, deliberately neutral rather than skill-colored. */
 .matching-dnd-bank {

@@ -172,10 +172,11 @@ func (r *repository) GetListTest(ctx context.Context, skill string, f TestFilter
 	}
 	args = append(args, limit, offset)
 	rows, err := r.db.QueryContext(ctx,
-		// Books first, newest volume first, tests in book order, so one
-		// book's tests stay contiguous across pages; then everything else.
+		// Books first, newest volume first, tests in book order (Task 1
+		// before Task 2 within a test), so one book's tests stay contiguous
+		// across pages; then everything else.
 		"SELECT "+testColumns+", COUNT(*) OVER() FROM tests WHERE "+where+" "+
-			"ORDER BY series IS NULL, series, volume DESC, test_number, created_at DESC LIMIT ? OFFSET ?",
+			"ORDER BY series IS NULL, series, volume DESC, test_number, task_type, created_at DESC LIMIT ? OFFSET ?",
 		args...,
 	)
 	if err != nil {

@@ -1,7 +1,7 @@
 import AnswerExplanation from '../AnswerExplanation/AnswerExplanation';
 import HighlightableText from '../HighlightableText/HighlightableText';
 import { ChipBank, DropSlot } from './ChipBank';
-import { isSingleUse, useChipPicker } from './chipPicker';
+import { isSingleUse, optionLabel, useChipPicker } from './chipPicker';
 import { inferMarkup, resolveGapCells, resolveGapLines, resolveMarkedLines } from './gapText';
 
 // GapControl renders one blank as its question number in a badge followed
@@ -13,6 +13,17 @@ function GapControl({ question, answers, onChange, disabled, results, wordBank, 
   const result = results?.[order];
   const value = result ? result.submitted_answer?.[0] ?? '' : answers?.[order] ?? '';
   const stateClass = result ? (result.correct ? 'gap-correct' : 'gap-incorrect') : '';
+  // A wrong blank shows the right answer right after it; a word-list
+  // answer is an option id, so it is shown as that option's label.
+  const correctAnswer =
+    result && !result.correct
+      ? (result.correct_answer || [])
+          .map((a) => {
+            const opt = wordBank?.find((o) => o.id === a);
+            return opt ? optionLabel(opt) : a;
+          })
+          .join(' / ')
+      : '';
 
   return (
     <span className="gap-field">
@@ -38,6 +49,7 @@ function GapControl({ question, answers, onChange, disabled, results, wordBank, 
           onChange={(e) => onChange?.(order, e.target.value)}
         />
       )}
+      {correctAnswer && <span className="gap-correct-answer">→ {correctAnswer}</span>}
     </span>
   );
 }

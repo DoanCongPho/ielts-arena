@@ -2,6 +2,8 @@
 // learner pastes into ChatGPT, Claude or Gemini to get it back as a CSV
 // for luyentu.com (columns as its import screen names them).
 
+import { seriesLabel } from './skillConfig';
+
 export const VOCAB_COLUMNS = ['Từ vựng', 'Phiên âm', 'Nghĩa', 'Loại từ', 'Ví dụ', 'Ghi chú'];
 
 // cleanWord trims the punctuation a selection tends to catch at its edges.
@@ -64,8 +66,7 @@ export function collectWords(highlights, texts) {
 // 16 Reading Test 2", or just the skill outside a series.
 export function testSource(test, skillLabel) {
   if (!test?.series) return `bài ${skillLabel}`;
-  const book = test.series === 'cambridge' ? 'Cambridge' : test.series;
-  return [`${book}${test.volume ? ` ${test.volume}` : ''}`, skillLabel, test.test_number ? `Test ${test.test_number}` : ''].filter(Boolean).join(' ');
+  return [seriesLabel(test), skillLabel, test.test_number ? `Test ${test.test_number}` : ''].filter(Boolean).join(' ');
 }
 
 // buildVocabPrompt is the instruction for an LLM to fill in the columns
