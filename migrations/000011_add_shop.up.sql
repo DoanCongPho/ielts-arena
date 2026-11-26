@@ -1,10 +1,12 @@
 -- The XP shop. Lifetime XP (users.xp) still decides the level; buying
 -- spends from a separate tally, so a purchase never costs a level. The
 -- spendable balance is xp - xp_spent.
-ALTER TABLE users
-    ADD COLUMN xp_spent INT NOT NULL DEFAULT 0 AFTER xp,
-    ADD COLUMN equipped_avatar VARCHAR(64) NULL AFTER image_url,
-    ADD COLUMN equipped_frame VARCHAR(64) NULL AFTER equipped_avatar;
+--
+-- One column per ALTER: TiDB (production) rejects a multi-column ALTER
+-- whose AFTER clause names a column added by the same statement.
+ALTER TABLE users ADD COLUMN xp_spent INT NOT NULL DEFAULT 0 AFTER xp;
+ALTER TABLE users ADD COLUMN equipped_avatar VARCHAR(64) NULL AFTER image_url;
+ALTER TABLE users ADD COLUMN equipped_frame VARCHAR(64) NULL AFTER equipped_avatar;
 
 -- One row per item a user owns. The primary key makes buying the same
 -- item twice impossible, whatever the request timing.
