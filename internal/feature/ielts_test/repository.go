@@ -170,6 +170,10 @@ func (r *repository) GetListTest(ctx context.Context, skill string, f TestFilter
 		where += " AND series = ?"
 		args = append(args, f.Series)
 	}
+	if f.Volume > 0 {
+		where += " AND volume = ?"
+		args = append(args, f.Volume)
+	}
 	args = append(args, limit, offset)
 	rows, err := r.db.QueryContext(ctx,
 		// Books first, newest volume first, tests in book order (Task 1

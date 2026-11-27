@@ -13,14 +13,14 @@ const SERIES_NAMES = { cambridge: 'Cambridge', actual: 'Đề thi thật', vol: 
 // paginates — so a filter always sees every matching test, not just the
 // ones on the current page.
 //
-// Filters shared by skills whose tests come from books: "Cambridge",
-// "Đề thi thật" (real exams recalled by candidates) and "VOL" (the IELTS
-// Recent Actual Tests volumes) keep that series, "Khác" keeps the rest.
+// Filters shared by skills whose tests come from books: "Cambridge" and
+// "VOL" (the IELTS Recent Actual Tests volumes) keep that series, "Khác"
+// keeps the rest. A filter with `volumes` also offers one pill per volume,
+// sent as ?volume=N.
 const SERIES_FILTERS = [
   { key: 'all', label: 'Tất cả', query: {} },
   { key: 'cambridge', label: 'Cambridge', query: { series: 'cambridge' } },
-  { key: 'actual', label: 'Đề thi thật', query: { series: 'actual' } },
-  { key: 'vol', label: 'VOL', query: { series: 'vol' } },
+  { key: 'vol', label: 'VOL', query: { series: 'vol' }, volumes: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] },
   { key: 'other', label: 'Khác', query: { series: 'none' } },
 ];
 

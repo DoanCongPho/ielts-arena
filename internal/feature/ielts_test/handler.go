@@ -49,10 +49,11 @@ func (h *Handler) listTestsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	q := r.URL.Query()
 	page, _ := strconv.Atoi(q.Get("page"))
+	volume, _ := strconv.Atoi(q.Get("volume"))
 
 	resp, err := h.svc.GetListTest(r.Context(), skill, ListTestRequest{
 		Page:       page,
-		TestFilter: TestFilter{TaskType: q.Get("task_type"), Series: q.Get("series")},
+		TestFilter: TestFilter{TaskType: q.Get("task_type"), Series: q.Get("series"), Volume: volume},
 	})
 	if err != nil {
 		httpx.WriteInternalError(w, "ielts_test.list_tests", err)

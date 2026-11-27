@@ -53,6 +53,9 @@ func (r *MockTestRepository) GetListTest(ctx context.Context, skill string, f Te
 		if (f.Series == SeriesNone && t.Series != "") || (f.Series != "" && f.Series != SeriesNone && t.Series != f.Series) {
 			continue
 		}
+		if f.Volume > 0 && t.Volume != f.Volume {
+			continue
+		}
 		filtered = append(filtered, *t)
 	}
 	sort.Slice(filtered, func(i, j int) bool { return filtered[i].ID < filtered[j].ID })

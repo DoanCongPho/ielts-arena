@@ -145,7 +145,7 @@ async function request(path, options = {}, retry = true) {
 }
 
 // listTests fetches one page of official tests. filter narrows them on the
-// server ({task_type, series}), so pagination counts only matching tests.
+// server ({task_type, series, volume}), so pagination counts only matching tests.
 export function listTests(skill, page = 1, filter = {}) {
   const params = new URLSearchParams({ skill, page: String(page) });
   for (const [k, v] of Object.entries(filter)) {

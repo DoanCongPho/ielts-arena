@@ -734,6 +734,35 @@ func TestService_GetListTest_FiltersInTheQuery(t *testing.T) {
 	}
 }
 
+func TestService_GetListTest_FiltersByVolume(t *testing.T) {
+	repo := NewMockTestRepository()
+	svc := newTestService(repo, &fakeGrader{})
+	ctx := context.Background()
+	for vol := 1; vol <= 3; vol++ {
+		for n := 1; n <= 2; n++ {
+			_, _ = repo.CreateTest(ctx, &Test{Skill: "reading", TaskType: "test1", Series: "vol", Volume: vol, TestNumber: n, ContentData: []byte(`{}`)})
+		}
+	}
+	_, _ = repo.CreateTest(ctx, &Test{Skill: "reading", TaskType: "test1", Series: "cambridge", Volume: 2, TestNumber: 1, ContentData: []byte(`{}`)})
+
+	resp, err := svc.GetListTest(ctx, "reading", ListTestRequest{Page: 1, TestFilter: TestFilter{Series: "vol", Volume: 2}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.Pagination.Total != 2 {
+		t.Fatalf("vol 2: total %d, want 2", resp.Pagination.Total)
+	}
+	for _, tr := range resp.Data {
+		if tr.Series != "vol" || tr.Volume != 2 {
+			t.Errorf("filter let through %s %d", tr.Series, tr.Volume)
+		}
+	}
+	all, _ := svc.GetListTest(ctx, "reading", ListTestRequest{Page: 1, TestFilter: TestFilter{Series: "vol"}})
+	if all.Pagination.Total != 6 {
+		t.Errorf("no volume: total %d, want 6", all.Pagination.Total)
+	}
+}
+
 func TestService_GradeWriting_ModelAnswerSourceAndWordCount(t *testing.T) {
 	cases := []struct {
 		name       string

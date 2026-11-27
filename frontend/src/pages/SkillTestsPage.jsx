@@ -21,6 +21,8 @@ export default function SkillTestsPage() {
   const { active: christmas } = useChristmasTheme();
 
   const [taskFilter, setTaskFilter] = useState('all');
+  // 0 = every volume of the selected series.
+  const [volume, setVolume] = useState(0);
   const [page, setPage] = useState(1);
   const [tests, setTests] = useState([]);
   const [pagination, setPagination] = useState(null);
@@ -32,11 +34,15 @@ export default function SkillTestsPage() {
   // doesn't linger and hide everything.
   useEffect(() => {
     setTaskFilter('all');
+    setVolume(0);
     setPage(1);
   }, [skill]);
 
   const activeFilter = config?.taskFilters?.find((f) => f.key === taskFilter);
-  const filterQuery = JSON.stringify(activeFilter?.query || {});
+  const filterQuery = JSON.stringify({
+    ...(activeFilter?.query || {}),
+    ...(activeFilter?.volumes && volume ? { volume } : {}),
+  });
 
   useEffect(() => {
     if (!config?.enabled) return;
@@ -115,6 +121,7 @@ export default function SkillTestsPage() {
               className={`task-filter-pill ${taskFilter === f.key ? 'active' : ''}`}
               onClick={() => {
                 setTaskFilter(f.key);
+                setVolume(0);
                 setPage(1);
               }}
             >
@@ -122,6 +129,23 @@ export default function SkillTestsPage() {
             </button>
           ))}
         </div>
+
+        {activeFilter?.volumes && (
+          <div className="task-filters volume-filters">
+            {[0, ...activeFilter.volumes].map((v) => (
+              <button
+                key={v}
+                className={`task-filter-pill ${volume === v ? 'active' : ''}`}
+                onClick={() => {
+                  setVolume(v);
+                  setPage(1);
+                }}
+              >
+                {v ? `${activeFilter.label} ${v}` : `Tất cả ${activeFilter.label}`}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {skill === 'speaking' && <CustomSpeakingList />}
