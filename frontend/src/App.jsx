@@ -3,6 +3,7 @@ import ProfileHud from './components/ProfileHud/ProfileHud';
 import GradingNotifier from './components/GradingNotifier/GradingNotifier';
 import ChristmasLayer from './components/ChristmasLayer/ChristmasLayer';
 import ServerWakeBanner from './components/ServerWakeBanner/ServerWakeBanner';
+import MusicPlayer from './components/MusicPlayer/MusicPlayer';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
@@ -126,6 +127,7 @@ export default function App() {
       </Routes>
       <GradingNotifier />
       <ServerWakeBanner />
+      <MusicPlayer />
     </BrowserRouter>
   );
 }
