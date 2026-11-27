@@ -167,7 +167,7 @@ export default function ListeningAttemptPage() {
   );
 
   return (
-    <div className={`attempt-page attempt-page-focus ${panes ? 'reading-attempt-page' : ''}`}>
+    <div className={`attempt-page attempt-page-focus ${panes ? 'reading-attempt-page' : ''} ${inProgress ? 'listening-exam-page' : ''}`}>
       <header className="attempt-header">
         <button type="button" className="attempt-back" onClick={requestLeave} aria-label="Về danh sách đề" title="Về danh sách đề">
           ←

@@ -122,6 +122,17 @@
   border-color: var(--ink-900);
 }
 
+/* One pill per volume of the selected series, under the series pills. */
+.task-filters.volume-filters {
+  flex-wrap: wrap;
+  margin-top: var(--space-2);
+}
+
+.volume-filters .task-filter-pill {
+  padding: var(--space-1) var(--space-3);
+  font-size: 12px;
+}
+
 /* === Status text === */
 .practice-status {
   font-family: var(--font-ui);

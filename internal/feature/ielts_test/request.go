@@ -20,6 +20,8 @@ type TestFilter struct {
 	// Series is a series name ("cambridge"), or SeriesNone for tests that
 	// belong to no series.
 	Series string
+	// Volume, when positive, keeps one book of the series ("VOL 7").
+	Volume int
 }
 
 // SeriesNone selects tests outside any series.
