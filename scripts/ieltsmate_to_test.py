@@ -54,13 +54,22 @@ SERIES = "vol"
 #    evidence, status}, not YouPass's word ranges.
 
 
+def gaps_in_one_table(content):
+    """Whether every gap sits in one real table (rows of 2+ cells) — the
+    only layout table-completion can hold. Notes with a table among them,
+    or two tables, are note-completion instead."""
+    tables = re.findall(r"<table\b.*?</table>", content, flags=re.S | re.I)
+    gapped = [t for t in tables if "gap-placeholder" in t]
+    if len(gapped) != 1 or content.count("gap-placeholder") != gapped[0].count("gap-placeholder"):
+        return False
+    return max((len(yp.table_row_cells(r)) for r in yp.table_rows(gapped[0])), default=0) >= 2
+
+
 def fill_type(qset):
     """Our question_type for an IELTS Mate gap-fill set."""
     instr = yp.clean(yp.html_text(qset.get("description"))).lower()
     content = qset.get("content") or ""
-    has_table = max(
-        (len(yp.table_row_cells(r)) for r in yp.table_rows(content) if "gap-placeholder" in r), default=0
-    ) >= 2
+    has_table = gaps_in_one_table(content)
     has_image = "<img" in content
     if has_image and ("label the" in instr or "diagram" in instr):
         return "diagram-label-completion"
@@ -94,9 +103,7 @@ def listening_fill_type(qset):
     as sentences, a labelled diagram with typed answers as notes."""
     instr = yp.clean(yp.html_text(qset.get("description"))).lower()
     content = qset.get("content") or ""
-    has_table = max(
-        (len(yp.table_row_cells(r)) for r in yp.table_rows(content) if "gap-placeholder" in r), default=0
-    ) >= 2
+    has_table = gaps_in_one_table(content)
     gap_blocks = [t for _, t in yp.html_blocks(re.sub(
         r'<span[^>]*class="gap-placeholder"[^>]*>.*?</span>', yp.GAP, content, flags=re.S)) if yp.GAP in t]
     one_per_block = len(gap_blocks) == len(qset["questions"]) and all(t.count(yp.GAP) == 1 for t in gap_blocks)
