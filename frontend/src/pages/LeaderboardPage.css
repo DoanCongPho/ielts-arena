@@ -1,0 +1,535 @@
+/* The leaderboard is a wooden board: horizontal planks in a dark frame,
+   nailed at the corners, snow on its top edge and a pine garland across
+   it. All wood is drawn with gradients (no images); colors are the
+   --wood-* and --xmas-* tokens. */
+
+.leaderboard-page {
+  --lb-plank: 64px;
+}
+
+/* === The board === */
+.lb-board {
+  position: relative;
+  max-width: 980px;
+  margin: var(--space-8) auto var(--space-7);
+  padding: 150px var(--space-7) var(--space-8);
+  border-radius: 18px;
+  color: var(--wood-100);
+  background:
+    /* knots */
+    radial-gradient(ellipse 22px 9px at 18% 31%, rgba(58, 35, 20, 0.55), transparent 70%),
+    radial-gradient(ellipse 16px 7px at 74% 58%, rgba(58, 35, 20, 0.5), transparent 70%),
+    radial-gradient(ellipse 20px 8px at 41% 86%, rgba(58, 35, 20, 0.45), transparent 70%),
+    /* seams between planks */
+    repeating-linear-gradient(180deg, transparent 0 calc(var(--lb-plank) - 3px), rgba(30, 16, 8, 0.55) calc(var(--lb-plank) - 3px) var(--lb-plank)),
+    /* grain */
+    repeating-linear-gradient(178deg, rgba(255, 255, 255, 0.035) 0 2px, transparent 2px 7px),
+    repeating-linear-gradient(181deg, rgba(30, 16, 8, 0.12) 0 1px, transparent 1px 11px),
+    linear-gradient(180deg, var(--wood-500), var(--wood-700));
+  border: 16px solid var(--wood-900);
+  box-shadow:
+    inset 0 0 0 3px var(--wood-800),
+    inset 0 10px 30px rgba(0, 0, 0, 0.35),
+    inset 0 -10px 30px rgba(0, 0, 0, 0.3),
+    0 24px 48px rgba(22, 35, 63, 0.35),
+    0 6px 0 var(--wood-800);
+}
+
+.lb-snowcap {
+  position: absolute;
+  top: -30px;
+  left: -22px;
+  width: calc(100% + 44px);
+  height: 40px;
+  filter: drop-shadow(0 3px 3px rgba(22, 35, 63, 0.25));
+  z-index: 2;
+}
+
+.lb-garland {
+  position: absolute;
+  top: -14px;
+  left: -10px;
+  width: calc(100% + 20px);
+  height: auto;
+  z-index: 3;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.35));
+}
+
+.lb-garland-light {
+  animation: xmas-twinkle 1.8s ease-in-out infinite;
+}
+
+.lb-garland-bauble {
+  animation: lb-sway 4s ease-in-out infinite;
+}
+
+@keyframes lb-sway {
+  0%,
+  100% {
+    transform: rotate(-3deg);
+  }
+  50% {
+    transform: rotate(3deg);
+  }
+}
+
+/* Brass nail heads in the frame's corners. */
+.lb-nail {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, var(--gold-100), var(--gold-600) 55%, var(--wood-900));
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  z-index: 1;
+}
+
+.lb-nail-tl { top: 10px; left: 10px; }
+.lb-nail-tr { top: 10px; right: 10px; }
+.lb-nail-bl { bottom: 10px; left: 10px; }
+.lb-nail-br { bottom: 10px; right: 10px; }
+
+.lb-holly {
+  position: absolute;
+  top: 54px;
+  z-index: 2;
+}
+
+.lb-holly-left {
+  left: -26px;
+  transform: rotate(-24deg);
+}
+
+.lb-holly-right {
+  right: -26px;
+  transform: rotate(24deg) scaleX(-1);
+}
+
+/* === The hanging sign === */
+.lb-sign {
+  position: relative;
+  z-index: 2;
+  width: fit-content;
+  margin: 0 auto var(--space-5);
+  padding: var(--space-3) var(--space-7) var(--space-4);
+  text-align: center;
+  border-radius: 10px;
+  background:
+    repeating-linear-gradient(176deg, rgba(255, 255, 255, 0.04) 0 2px, transparent 2px 6px),
+    linear-gradient(180deg, var(--wood-700), var(--wood-800));
+  border: 4px solid var(--wood-900);
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.45), inset 0 2px 0 rgba(255, 255, 255, 0.12);
+}
+
+.lb-sign-rope {
+  position: absolute;
+  top: -58px;
+  width: 4px;
+  height: 58px;
+  background: repeating-linear-gradient(160deg, var(--wood-200) 0 4px, var(--wood-500) 4px 8px);
+  border-radius: 2px;
+}
+
+.lb-sign-rope-left { left: 26px; transform: rotate(-12deg); transform-origin: bottom; }
+.lb-sign-rope-right { right: 26px; transform: rotate(12deg); transform-origin: bottom; }
+
+.lb-sign-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--xmas-gold-500);
+  /* carved: dark cut above, light lip below */
+  text-shadow: 0 -2px 0 var(--wood-900), 0 2px 0 rgba(255, 236, 190, 0.25), 0 0 18px rgba(224, 180, 76, 0.35);
+}
+
+.lb-sign-sub {
+  margin-top: 2px;
+  font-family: var(--font-data);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--wood-200);
+}
+
+/* === Sort switch: two wooden buttons === */
+.lb-sorts {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.lb-sort {
+  padding: var(--space-2) var(--space-5);
+  border: 2px solid var(--wood-900);
+  border-radius: var(--radius-full);
+  background: linear-gradient(180deg, var(--wood-300), var(--wood-500));
+  color: var(--wood-900);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--wood-900), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.lb-sort:hover {
+  transform: translateY(-1px);
+}
+
+.lb-sort-active {
+  background: linear-gradient(180deg, var(--xmas-red-600), var(--xmas-red-800));
+  color: var(--surface-0);
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--wood-900), inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.lb-sort-active:hover {
+  transform: translateY(2px);
+}
+
+.lb-status {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  font-size: 15px;
+  color: var(--wood-100);
+  padding: var(--space-6) 0;
+}
+
+.lb-status-error {
+  color: var(--xmas-gold-500);
+  font-weight: 700;
+}
+
+/* === Podium === */
+.lb-podium {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: end;
+  gap: var(--space-4);
+  list-style: none;
+  max-width: 720px;
+  margin: 0 auto var(--space-6);
+}
+
+/* Second on the left, first in the middle, third on the right. */
+.lb-podium-1 { order: 2; }
+.lb-podium-2 { order: 1; }
+.lb-podium-3 { order: 3; }
+
+.lb-podium-spot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 0;
+}
+
+.lb-podium-portrait {
+  position: relative;
+  margin-bottom: var(--space-2);
+}
+
+.lb-podium-portrait .lb-medal {
+  position: absolute;
+  right: -10px;
+  bottom: -16px;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.45));
+}
+
+.lb-top-star {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 0 8px rgba(224, 180, 76, 0.8));
+  z-index: 1;
+}
+
+.lb-podium-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: 100%;
+  margin-top: var(--space-2);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--surface-0);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.lb-podium-level {
+  font-family: var(--font-data);
+  font-size: 12px;
+  color: var(--wood-200);
+}
+
+.lb-podium-score {
+  margin-top: var(--space-1);
+  font-family: var(--font-data);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--xmas-gold-500);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.lb-podium-1 .lb-podium-score {
+  font-size: 24px;
+}
+
+.lb-podium-sub {
+  font-size: 12px;
+  color: var(--wood-200);
+  margin-bottom: var(--space-2);
+}
+
+/* The step each of the top three stands on: a little wooden block. */
+.lb-podium-block {
+  width: 100%;
+  margin-top: var(--space-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px 8px 0 0;
+  border: 3px solid var(--wood-900);
+  border-bottom: none;
+  background:
+    repeating-linear-gradient(90deg, rgba(30, 16, 8, 0.12) 0 1px, transparent 1px 9px),
+    linear-gradient(180deg, var(--wood-300), var(--wood-500));
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.3);
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--wood-800);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.lb-podium-1 .lb-podium-block { height: 96px; background-color: var(--xmas-gold-500); }
+.lb-podium-2 .lb-podium-block { height: 70px; }
+.lb-podium-3 .lb-podium-block { height: 52px; }
+
+.lb-podium-1 .lb-podium-block {
+  background:
+    repeating-linear-gradient(90deg, rgba(30, 16, 8, 0.1) 0 1px, transparent 1px 9px),
+    linear-gradient(180deg, var(--xmas-gold-500), var(--gold-600));
+}
+
+/* === Rows: one plank per learner === */
+.lb-list {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  list-style: none;
+}
+
+.lb-row {
+  display: grid;
+  grid-template-columns: 44px auto 1fr auto auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-4);
+  border-radius: 10px;
+  color: var(--wood-900);
+  background:
+    repeating-linear-gradient(179deg, rgba(30, 16, 8, 0.08) 0 1px, transparent 1px 6px),
+    linear-gradient(180deg, var(--wood-200), var(--wood-300));
+  border: 2px solid var(--wood-800);
+  box-shadow: 0 3px 0 var(--wood-900), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  transition: transform 0.15s ease;
+}
+
+.lb-row:hover {
+  transform: translateX(4px);
+}
+
+.lb-row-rank {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, var(--wood-500), var(--wood-800));
+  color: var(--wood-100);
+  font-family: var(--font-data);
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.4);
+}
+
+.lb-row-who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.lb-row-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-weight: 700;
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lb-row-level {
+  font-family: var(--font-data);
+  font-size: 12px;
+  color: var(--wood-700);
+}
+
+.lb-row-score {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-family: var(--font-data);
+  white-space: nowrap;
+}
+
+.lb-row-score strong {
+  font-size: 16px;
+  color: var(--xmas-red-800);
+}
+
+.lb-row-score small {
+  font-size: 11px;
+  color: var(--wood-700);
+}
+
+/* The caller's row glows gold. */
+.lb-row.lb-is-me {
+  border-color: var(--gold-600);
+  box-shadow: 0 3px 0 var(--wood-900), 0 0 0 3px var(--xmas-gold-500), 0 0 18px rgba(224, 180, 76, 0.6);
+}
+
+.lb-podium-spot.lb-is-me .lb-podium-name {
+  color: var(--xmas-gold-500);
+}
+
+.lb-me-tag {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--xmas-red-600);
+  color: var(--surface-0);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-shadow: none;
+}
+
+.lb-gap {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  margin: var(--space-2) 0;
+  color: var(--wood-200);
+  letter-spacing: 0.4em;
+}
+
+/* === Tests per skill === */
+.lb-skills {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.lb-skill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  min-width: 38px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-data);
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.lb-skill b {
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+.lb-skill-reading { background: var(--reading-fill); color: var(--reading-600); border-color: var(--reading-500); }
+.lb-skill-listening { background: var(--listening-fill); color: var(--listening-600); border-color: var(--listening-500); }
+.lb-skill-writing { background: var(--writing-fill); color: var(--writing-600); border-color: var(--writing-500); }
+.lb-skill-speaking { background: var(--speaking-fill); color: var(--speaking-600); border-color: var(--speaking-500); }
+
+.lb-footnote {
+  position: relative;
+  z-index: 2;
+  margin-top: var(--space-5);
+  text-align: center;
+  font-size: 12px;
+  color: var(--wood-200);
+}
+
+/* === Corner decorations at the foot of the board === */
+.lb-corner {
+  position: absolute;
+  bottom: -22px;
+  display: flex;
+  align-items: flex-end;
+  z-index: 3;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.35));
+}
+
+.lb-corner-left { left: -26px; }
+.lb-corner-right { right: -26px; }
+
+.lb-corner .xmas-ornament + .xmas-ornament {
+  margin-left: -14px;
+}
+
+/* === Narrow screens === */
+@media (max-width: 760px) {
+  .lb-board {
+    padding: 120px var(--space-4) var(--space-7);
+    border-width: 10px;
+  }
+
+  .lb-sign-title {
+    font-size: 30px;
+  }
+
+  .lb-row {
+    grid-template-columns: 36px auto 1fr auto;
+  }
+
+  .lb-row .lb-skills {
+    grid-column: 2 / -1;
+    justify-content: flex-start;
+  }
+
+  .lb-podium-portrait .ui-avatar {
+    transform: scale(0.8);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lb-garland-light,
+  .lb-garland-bauble {
+    animation: none;
+  }
+}

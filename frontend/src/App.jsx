@@ -15,6 +15,7 @@ import SubmissionsPage from './pages/SubmissionsPage';
 import SubmissionDetailPage from './pages/SubmissionDetailPage';
 import CreateTestPage from './pages/CreateTestPage';
 import ShopPage from './pages/ShopPage';
+import LeaderboardPage from './pages/LeaderboardPage';
 import { isAdmin } from './lib/auth';
 
 // `focus` hides the ProfileHud and the seasonal theme — used on attempt
@@ -93,6 +94,11 @@ export default function App() {
         <Route path="/practice/speaking/:testId" element={
           <PrivateRoute focus>
             <SpeakingAttemptPage />
+          </PrivateRoute>
+        } />
+        <Route path="/leaderboard" element={
+          <PrivateRoute>
+            <LeaderboardPage />
           </PrivateRoute>
         } />
         <Route path="/shop" element={

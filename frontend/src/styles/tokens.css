@@ -86,6 +86,18 @@
   --xmas-skin: #f3cfa9;
   --xmas-ice: #bfe0f5;
 
+  /* Wood, for the leaderboard's board — darkest (frame) to lightest (plank
+     highlights). */
+  --wood-900: #3a2314;
+  --wood-800: #4f301b;
+  --wood-700: #6b4226;
+  --wood-500: #96643a;
+  --wood-300: #c99a66;
+  --wood-200: #dcb685;
+  --wood-100: #f1dcb8;
+  --medal-silver: #c3cbd3;
+  --medal-bronze: #c27c47;
+
   color-scheme: light;
 }
 

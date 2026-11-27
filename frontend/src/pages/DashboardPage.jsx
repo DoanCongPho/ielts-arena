@@ -73,6 +73,21 @@ export default function DashboardPage() {
             interactive
             padding="default"
             className="dashboard-nav-item"
+            onClick={() => navigate('/leaderboard')}
+          >
+            <IconChip icon="trophy" size={52} />
+            <span className="dashboard-nav-text">
+              <span className="dashboard-nav-title text-h2">Bảng xếp hạng</span>
+              <span className="dashboard-nav-subtitle text-body">Ai nhiều XP, làm nhiều bài nhất</span>
+            </span>
+          </Card>
+
+          <Card
+            as="button"
+            type="button"
+            interactive
+            padding="default"
+            className="dashboard-nav-item"
             onClick={() => navigate('/shop')}
           >
             <IconChip icon="gift" size={52} />

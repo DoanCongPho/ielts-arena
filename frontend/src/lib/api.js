@@ -165,6 +165,18 @@ export function getProfile() {
   return request('/api/profile');
 }
 
+// --- Leaderboard ---
+
+// getLeaderboard ranks learners by 'xp' or 'attempts' (finished tests):
+// {sort, total, entries: [{rank, user_id, name, image_url, equipped_avatar,
+// equipped_frame, level, xp, attempts, skills: {reading, listening,
+// writing, speaking}, is_me}], me} — `me` is the caller's row when it's
+// below the entries shown.
+export function getLeaderboard(sort = 'xp', limit = 50) {
+  const params = new URLSearchParams({ sort, limit: String(limit) });
+  return request(`/api/leaderboard?${params}`);
+}
+
 // --- XP shop ---
 
 // getShop returns {xp_balance, equipped_avatar, equipped_frame, items:

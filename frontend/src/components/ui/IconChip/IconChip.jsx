@@ -49,6 +49,15 @@ const ICON_PATHS = {
       <path d="M5 12h14" />
     </>
   ),
+  trophy: (
+    <>
+      <path d="M8 4h8v5a4 4 0 0 1-8 0z" />
+      <path d="M8 6H5a3 3 0 0 0 3 4" />
+      <path d="M16 6h3a3 3 0 0 1-3 4" />
+      <path d="M12 13v3" />
+      <path d="M8.5 20h7l-1-4h-5z" />
+    </>
+  ),
   gift: (
     <>
       <rect x="4" y="10" width="16" height="10" rx="1.5" />
