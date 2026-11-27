@@ -31,6 +31,9 @@ type ObjectStore interface {
 	Get(ctx context.Context, key string) ([]byte, error)
 	Put(ctx context.Context, key, contentType string, body []byte) error
 	Exists(ctx context.Context, key string) (bool, error)
+	// Delete removes an object. Deleting a key that holds nothing is not
+	// an error.
+	Delete(ctx context.Context, key string) error
 }
 
 // maxObjectBytes caps one object read or written through the store. A
@@ -84,6 +87,17 @@ func (s *bucketStore) Exists(ctx context.Context, key string) (bool, error) {
 		return false, err
 	}
 	return true, resp.Body.Close()
+}
+
+func (s *bucketStore) Delete(ctx context.Context, key string) error {
+	resp, err := s.do(ctx, http.MethodDelete, key, "", nil)
+	if errors.Is(err, ErrNotFound) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	return resp.Body.Close()
 }
 
 // do sends one presigned request and turns a non-2xx status into an error,
@@ -172,6 +186,17 @@ func (d *DiskStore) Exists(_ context.Context, key string) (bool, error) {
 		return false, nil
 	}
 	return err == nil, err
+}
+
+func (d *DiskStore) Delete(_ context.Context, key string) error {
+	p, err := d.path(key)
+	if err != nil {
+		return err
+	}
+	if err := os.Remove(p); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return nil
 }
 
 // Handler serves GET and PUT on links made by UploadURL/DownloadURL. It

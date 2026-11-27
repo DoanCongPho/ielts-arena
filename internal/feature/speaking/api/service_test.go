@@ -39,6 +39,12 @@ func (f *fakeStore) Exists(_ context.Context, key string) (bool, error) {
 	_, ok := f.objects[key]
 	return ok, nil
 }
+func (f *fakeStore) Delete(_ context.Context, key string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	delete(f.objects, key)
+	return nil
+}
 
 type fakeModerator struct{ flag string }
 

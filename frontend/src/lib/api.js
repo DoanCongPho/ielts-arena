@@ -236,6 +236,41 @@ export function getProfile() {
   return request('/api/profile');
 }
 
+// --- My music (uploads for the music player) ---
+
+// getMusic returns the caller's own tracks:
+// {tracks: [{id, title, url, size_bytes, created_at}], max_bytes, max_count}.
+export function getMusic() {
+  return request('/api/music');
+}
+
+export function deleteMusic(id) {
+  return request(`/api/music/${id}`, { method: 'DELETE' });
+}
+
+// uploadMusic sends one audio file: it asks the API for a slot, PUTs the
+// bytes straight to it (the bucket, not through the API), then confirms.
+// onProgress gets 0..1 while the bytes go up. Resolves to the new track.
+export async function uploadMusic(file, { title = '', onProgress } = {}) {
+  const slot = await request('/api/music/uploads', {
+    method: 'POST',
+    body: JSON.stringify({ filename: file.name, size: file.size }),
+  });
+  await new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', slot.upload_url);
+    xhr.setRequestHeader('Content-Type', slot.content_type);
+    xhr.upload.onprogress = (e) => e.lengthComputable && onProgress?.(e.loaded / e.total);
+    xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`Tải file lên thất bại (${xhr.status}).`)));
+    xhr.onerror = () => reject(new Error('Mất kết nối khi tải file lên.'));
+    xhr.send(file);
+  });
+  return request('/api/music', {
+    method: 'POST',
+    body: JSON.stringify({ key: slot.key, filename: file.name, title }),
+  });
+}
+
 // --- Leaderboard ---
 
 // getLeaderboard ranks learners by 'xp' or 'attempts' (finished tests):

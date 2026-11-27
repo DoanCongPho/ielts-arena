@@ -1,8 +1,10 @@
 import { useSyncExternalStore } from 'react';
 import { CAROLS } from './carols';
+import { getMusic } from './api';
 
 // carolPlayer plays the carols in lib/carols.js as a music box, synthesised
-// with Web Audio — no audio files. It's a module singleton, so music keeps
+// with Web Audio — no audio files — followed by the learner's own uploads
+// (GET /api/music), which play through an <audio> element. It's a module singleton, so music keeps
 // playing while pages change; the MusicPlayer component is only its remote
 // control. Notes are scheduled a little ahead on the AudioContext clock
 // (the usual lookahead pattern), so timing doesn't depend on React or on
@@ -22,7 +24,8 @@ function loadPrefs() {
     const p = JSON.parse(localStorage.getItem(PREF_KEY) || '{}');
     return {
       on: !!p.on,
-      track: Number.isInteger(p.track) && p.track >= 0 && p.track < CAROLS.length ? p.track : 0,
+      // Clamped against the playlist when it's read (uploads load later).
+      track: Number.isInteger(p.track) && p.track >= 0 ? p.track : 0,
       volume: typeof p.volume === 'number' ? Math.min(1, Math.max(0, p.volume)) : 0.5,
     };
   } catch {
@@ -30,7 +33,20 @@ function loadPrefs() {
   }
 }
 
-let state = { ...loadPrefs(), blocked: false, playing: false };
+let state = { ...loadPrefs(), blocked: false, playing: false, userTracks: [], libraryLoaded: false };
+
+// The playlist: the carols, then the learner's uploads.
+function playlist() {
+  return [
+    ...CAROLS.map((c, i) => ({ kind: 'carol', key: `carol:${c.id}`, title: c.title, carol: i })),
+    ...state.userTracks.map((t) => ({ kind: 'user', key: `user:${t.id}`, title: t.title, url: t.url, id: t.id })),
+  ];
+}
+
+function current() {
+  const list = playlist();
+  return list[Math.min(state.track, list.length - 1)];
+}
 
 function setState(patch) {
   state = { ...state, ...patch };
@@ -201,14 +217,48 @@ function silenceAll() {
   live = new Set();
 }
 
-function startSong(index) {
+function startSong(index, key) {
   silenceAll();
   const carol = CAROLS[index];
   const { events, totalBeats } = eventsOf(carol);
   const spb = 60 / carol.bpm;
-  song = { events, totalBeats, index, spb, start: ctx.currentTime + 0.12, next: 0 };
-  if (state.track !== index) setState({ track: index });
+  song = { events, totalBeats, index, key, spb, start: ctx.currentTime + 0.12, next: 0 };
 }
+
+function stopClock() {
+  clearInterval(timer);
+  timer = null;
+}
+
+// --- Uploaded tracks ----------------------------------------------------
+
+let audio = null;
+let retriedLink = false;
+
+function ensureAudio() {
+  if (audio) return;
+  audio = new Audio();
+  audio.preload = 'auto';
+  audio.addEventListener('ended', advance);
+  audio.addEventListener('error', () => {
+    if (!state.on || !audio.src) return;
+    // Play links expire after a few hours: fetch fresh ones once, then
+    // give up on this track and move on.
+    if (!retriedLink) {
+      retriedLink = true;
+      delete audio.dataset.key;
+      loadLibrary().then(sync, advance);
+    } else {
+      retriedLink = false;
+      advance();
+    }
+  });
+  audio.addEventListener('playing', () => {
+    retriedLink = false;
+  });
+}
+
+const audioVolume = (v) => v * v;
 
 function tick() {
   if (!ctx || !song || ctx.state !== 'running') return;
@@ -220,41 +270,81 @@ function tick() {
     if (t >= ctx.currentTime - 0.05) schedule(e, t, song.spb);
     song.next++;
   }
-  // Past the end (plus a breath): on to the next carol, looping the list.
+  // Past the end (plus a breath): on to the next track, looping the list.
   if (ctx.currentTime > song.start + song.totalBeats * song.spb + GAP_BETWEEN_SONGS_S) {
-    startSong((song.index + 1) % CAROLS.length);
+    advance();
   }
 }
 
-// Brings the audio in line with `state`: plays when on and not blocked.
+// Brings the audio in line with `state`: plays the current track when on
+// and not blocked, and nothing otherwise.
 async function sync() {
   const shouldPlay = state.on && !state.blocked;
+  const cur = current();
   if (!shouldPlay) {
-    clearInterval(timer);
-    timer = null;
+    stopClock();
     if (ctx && ctx.state === 'running') await ctx.suspend();
+    audio?.pause();
     if (state.playing) setState({ playing: false });
     return;
   }
-  ensureContext();
-  if (!ctx) return;
-  if (ctx.state !== 'running') {
+
+  if (cur.kind === 'carol') {
+    audio?.pause();
+    ensureContext();
+    if (!ctx) return;
+    if (ctx.state !== 'running') {
+      try {
+        await ctx.resume();
+      } catch {
+        return;
+      }
+    }
+    // A browser keeps audio locked until the page has had a click or key
+    // press; until then the context stays suspended and we wait for one.
+    if (ctx.state !== 'running') {
+      armUnlock();
+      return;
+    }
+    if (!song || song.key !== cur.key) startSong(cur.carol, cur.key);
+    if (!timer) timer = setInterval(tick, TICK_MS);
+    tick();
+  } else {
+    stopClock();
+    silenceAll();
+    song = null;
+    ensureAudio();
+    if (audio.dataset.key !== cur.key) {
+      audio.src = cur.url;
+      audio.dataset.key = cur.key;
+    }
+    audio.volume = audioVolume(state.volume);
     try {
-      await ctx.resume();
-    } catch {
+      await audio.play();
+    } catch (err) {
+      if (err?.name === 'NotAllowedError') armUnlock();
       return;
     }
   }
-  // A browser keeps audio locked until the page has had a click or key
-  // press; until then the context stays suspended and we wait for one.
-  if (ctx.state !== 'running') {
-    armUnlock();
-    return;
-  }
-  if (!song || song.index !== state.track) startSong(state.track);
-  if (!timer) timer = setInterval(tick, TICK_MS);
-  tick();
   if (!state.playing) setState({ playing: true });
+}
+
+function advance() {
+  const n = playlist().length;
+  setState({ track: (Math.min(state.track, n - 1) + 1) % n });
+  sync();
+}
+
+// loadLibrary fetches the learner's uploads into the playlist, keeping the
+// current track selected if it's still there.
+export async function loadLibrary() {
+  const lib = await getMusic();
+  const keep = current()?.key;
+  const tracks = lib?.tracks || [];
+  state = { ...state, userTracks: tracks, libraryLoaded: true };
+  const index = playlist().findIndex((t) => t.key === keep);
+  setState({ track: index >= 0 ? index : Math.min(state.track, playlist().length - 1) });
+  return lib;
 }
 
 let unlockArmed = false;
@@ -279,21 +369,23 @@ export const carolPlayer = {
     sync();
   },
   next() {
-    const index = (state.track + 1) % CAROLS.length;
-    setState({ track: index });
-    if (ctx && state.playing) startSong(index);
-    sync();
+    advance();
   },
   prev() {
-    const index = (state.track - 1 + CAROLS.length) % CAROLS.length;
-    setState({ track: index });
-    if (ctx && state.playing) startSong(index);
+    const n = playlist().length;
+    setState({ track: (Math.min(state.track, n - 1) - 1 + n) % n });
+    sync();
+  },
+  // Plays one track of the playlist (turning the music on if it was off).
+  play(index) {
+    setState({ track: index, on: true });
     sync();
   },
   setVolume(volume) {
     const v = Math.min(1, Math.max(0, volume));
     setState({ volume: v });
     if (master) master.gain.setTargetAtTime(gainFor(v), ctx.currentTime, 0.05);
+    if (audio) audio.volume = audioVolume(v);
   },
   // Pages that must stay quiet (taking a test) block the music while
   // they're open; it resumes when they close if it was on.
@@ -302,6 +394,14 @@ export const carolPlayer = {
     setState({ blocked });
     sync();
   },
+  // After an upload or a delete: reload the list; if the track playing
+  // was deleted, move on to whatever is now at its place.
+  async refresh() {
+    const playingKey = state.playing ? current()?.key : null;
+    const lib = await loadLibrary();
+    if (playingKey && current()?.key !== playingKey) sync();
+    return lib;
+  },
 };
 
 // Music that was on before a reload resumes at the first click or key.
@@ -309,5 +409,7 @@ if (state.on) armUnlock();
 
 export function useCarolPlayer() {
   const s = useSyncExternalStore(subscribe, () => state, () => state);
-  return { ...s, title: CAROLS[s.track].title, count: CAROLS.length, ...carolPlayer };
+  const list = playlist();
+  const index = Math.min(s.track, list.length - 1);
+  return { ...s, list, index, currentTrack: list[index], title: list[index].title, count: list.length, ...carolPlayer };
 }

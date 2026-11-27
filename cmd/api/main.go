@@ -13,6 +13,7 @@ import (
 
 	"github/DoanCongPho/game-arena/internal/feature/ielts_test"
 	"github/DoanCongPho/game-arena/internal/feature/leaderboard"
+	"github/DoanCongPho/game-arena/internal/feature/music"
 	"github/DoanCongPho/game-arena/internal/feature/profile"
 	"github/DoanCongPho/game-arena/internal/feature/progression"
 	"github/DoanCongPho/game-arena/internal/feature/shop"
@@ -183,6 +184,10 @@ func main() {
 	}
 	shopSvc := shop.NewService(shop.NewRepository(plat.DB), shopOpts...)
 	shop.NewHandler(shopSvc).MountRoutes(api)
+
+	// --music--
+	// A learner's own uploads for the music player, in the media store.
+	music.NewHandler(music.NewService(music.NewRepository(plat.DB), media)).MountRoutes(api)
 
 	// --leaderboard--
 	leaderboard.NewHandler(leaderboard.NewService(leaderboard.NewRepository(plat.DB))).MountRoutes(api)
