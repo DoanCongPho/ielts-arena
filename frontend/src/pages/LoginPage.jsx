@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Card from '../components/ui/Card/Card';
 import Button from '../components/ui/Button/Button';
-import { API_BASE } from '../lib/api';
+import { API_BASE, ServerAsleepError, apiFetch } from '../lib/api';
 import { ChristmasScenery } from '../components/ChristmasLayer/ChristmasLayer';
 import './AuthPage.css';
 
@@ -48,19 +48,25 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
+      // Signing in twice is harmless, so a sleeping API is waited out
+      // even on a timeout (see apiFetch).
+      const res = await apiFetch(
+        `${API_BASE}/api/auth/login`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(form),
+        },
+        { retryUnsure: true },
+      );
       const data = await res.json();
       if (!res.ok) { setError(data.message || 'Login failed'); return; }
       localStorage.setItem('access_token', data.data.access_token);
       localStorage.setItem('refresh_token', data.data.refresh_token);
       localStorage.setItem('user_role', data.data.user?.role || '');
       navigate('/dashboard');
-    } catch {
-      setError('Network error. Please try again.');
+    } catch (err) {
+      setError(err instanceof ServerAsleepError ? err.message : 'Network error. Please try again.');
     } finally {
       setLoading(false);
     }

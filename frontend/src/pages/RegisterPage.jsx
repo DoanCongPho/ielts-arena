@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Card from '../components/ui/Card/Card';
 import Button from '../components/ui/Button/Button';
-import { API_BASE } from '../lib/api';
+import { API_BASE, ServerAsleepError, apiFetch } from '../lib/api';
 import { ChristmasScenery } from '../components/ChristmasLayer/ChristmasLayer';
 import './AuthPage.css';
 
@@ -39,7 +39,7 @@ export default function RegisterPage() {
     if (form.password.length < 8) { setError('Password must be at least 8 characters'); return; }
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/auth/register`, {
+      const res = await apiFetch(`${API_BASE}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
@@ -48,8 +48,8 @@ export default function RegisterPage() {
       if (!res.ok) { setError(data.message || 'Registration failed'); return; }
       setSuccess(true);
       setTimeout(() => navigate('/login'), 1500);
-    } catch {
-      setError('Network error. Please try again.');
+    } catch (err) {
+      setError(err instanceof ServerAsleepError ? err.message : 'Network error. Please try again.');
     } finally {
       setLoading(false);
     }

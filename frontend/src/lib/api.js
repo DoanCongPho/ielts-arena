@@ -4,6 +4,73 @@
 // the stack. Set VITE_API_BASE only to point a build at a remote API.
 export const API_BASE = import.meta.env.VITE_API_BASE || '';
 
+// --- Waking the API ---
+//
+// The API runs on Render's free plan, which puts it to sleep when idle; the
+// first request after that waits for it to boot, and the proxy in front of
+// it (Vercel) answers 502/503/504 if that takes too long. apiFetch retries
+// those instead of failing, and while it does, `serverWaking` is true so
+// ServerWakeBanner can say "Máy chủ đang khởi động".
+
+const WAKE_DELAYS_MS = [2000, 4000, 6000, 8000, 10000, 12000, 15000];
+const WAKE_EVENT = 'server:waking';
+// How many requests are currently waiting for the API to wake; the banner
+// shows while any is, so one finishing doesn't hide it for the others.
+let wakingRequests = 0;
+
+function changeWaking(delta) {
+  const before = wakingRequests > 0;
+  wakingRequests += delta;
+  if (before !== wakingRequests > 0) window.dispatchEvent(new Event(WAKE_EVENT));
+}
+
+export function isServerWaking() {
+  return wakingRequests > 0;
+}
+
+export function onServerWakingChange(listener) {
+  window.addEventListener(WAKE_EVENT, listener);
+  return () => window.removeEventListener(WAKE_EVENT, listener);
+}
+
+export class ServerAsleepError extends Error {
+  constructor() {
+    super('Máy chủ đang khởi động lâu hơn bình thường. Bạn thử lại sau ít phút nhé.');
+    this.name = 'ServerAsleepError';
+  }
+}
+
+// apiFetch is fetch that waits out a sleeping API. A 502/503 means the
+// proxy never reached the API, so any request is safe to resend. A 504 or
+// a dropped connection may mean the API did get it, so those are retried
+// only for requests that are safe to repeat: GET/HEAD, or when the caller
+// says so with { retryUnsure: true } (signing in, refreshing a token).
+export async function apiFetch(url, options = {}, { retryUnsure = false } = {}) {
+  const method = (options.method || 'GET').toUpperCase();
+  const safeToRepeat = retryUnsure || method === 'GET' || method === 'HEAD';
+  let waiting = false;
+  try {
+    for (let attempt = 0; ; attempt++) {
+      let res = null;
+      try {
+        res = await fetch(url, options);
+      } catch (err) {
+        if (!safeToRepeat || options.signal?.aborted) throw err;
+      }
+      const asleep = res === null || res.status === 502 || res.status === 503 || (res.status === 504 && safeToRepeat);
+      if (!asleep) return res;
+      if (attempt >= WAKE_DELAYS_MS.length) throw new ServerAsleepError();
+      if (!waiting) {
+        waiting = true;
+        changeWaking(1);
+      }
+      await new Promise((resolve) => setTimeout(resolve, WAKE_DELAYS_MS[attempt]));
+    }
+  } finally {
+    if (waiting) changeWaking(-1);
+  }
+}
+
 function authHeaders() {
   const token = localStorage.getItem('access_token');
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -20,11 +87,15 @@ function refreshAccessToken() {
       const refreshToken = localStorage.getItem('refresh_token');
       if (!refreshToken) return false;
       try {
-        const res = await fetch(`${API_BASE}/api/auth/refresh`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refresh_token: refreshToken }),
-        });
+        const res = await apiFetch(
+          `${API_BASE}/api/auth/refresh`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh_token: refreshToken }),
+          },
+          { retryUnsure: true },
+        );
         if (!res.ok) return false;
         const body = await res.json();
         localStorage.setItem('access_token', body.data.access_token);
@@ -48,7 +119,7 @@ function forceLogout() {
 }
 
 async function request(path, options = {}, retry = true) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await apiFetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',

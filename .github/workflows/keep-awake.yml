@@ -1,0 +1,33 @@
+# Keeps the Render API awake. On Render's free plan the instance sleeps
+# after ~15 minutes without traffic, and the next request waits 50+ s for
+# it to boot — long enough for the Vercel proxy in front of it to give up
+# with a 502. Pinging /health every 10 minutes means it never falls asleep.
+#
+# The free plan's 750 instance-hours a month cover one service running all
+# month. GitHub may delay scheduled runs by a few minutes, and pauses them
+# after 60 days without a commit to the repository; "Run workflow" on the
+# Actions tab (or any push) re-enables them.
+name: Keep API awake
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping /health
+        run: |
+          # A cold start can take a minute or two: retry rather than fail.
+          for i in 1 2 3 4 5 6; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 60 https://ielts-arena-api.onrender.com/health || true)
+            echo "attempt $i: HTTP $code"
+            [ "$code" = "200" ] && exit 0
+            sleep 15
+          done
+          echo "::warning::API did not answer /health with 200 after 6 tries"
